@@ -173,7 +173,7 @@ function InspectorPanel({
   onChangeScene,
   onSelect,
 }: {
-  scene: ReturnType<typeof Object> extends never ? never : import("@/lib/engine/core").Scene;
+  scene: import("@/lib/engine/core").Scene;
   entityId: string | null;
   onChangeScene: (s: import("@/lib/engine/core").Scene) => void;
   onSelect: (id: string | null) => void;
