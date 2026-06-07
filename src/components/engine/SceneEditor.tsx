@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Entity, EntityKind, Scene } from "@/lib/engine/core";
 import { KIND_PRESETS, uid } from "@/lib/engine/core";
 import { getImage } from "@/lib/engine/images";
+import { currentFrameImage } from "@/lib/engine/animations";
 
 interface Props {
   scene: Scene;
