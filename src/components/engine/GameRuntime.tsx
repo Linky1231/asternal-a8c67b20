@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Entity, RuntimeInput, RuntimeState, Scene } from "@/lib/engine/core";
 import { stepScene } from "@/lib/engine/core";
+import { getImage } from "@/lib/engine/images";
 
 interface Props {
   scene: Scene;
@@ -181,6 +182,14 @@ function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => v
 
 function drawEntity(ctx: CanvasRenderingContext2D, e: Entity) {
   ctx.save();
+  if (e.texture) {
+    const img = getImage(e.texture);
+    if (img) {
+      ctx.drawImage(img, e.x, e.y, e.w, e.h);
+      ctx.restore();
+      return;
+    }
+  }
   ctx.shadowColor = e.color;
   ctx.shadowBlur = e.kind === "coin" ? 18 : e.kind === "goal" ? 24 : 8;
   ctx.fillStyle = e.color;
@@ -200,7 +209,6 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity) {
     ctx.closePath();
     ctx.fill();
   } else {
-    // rounded rect
     const r = e.kind === "platform" ? 4 : 6;
     roundRect(ctx, e.x, e.y, e.w, e.h, r);
     ctx.fill();

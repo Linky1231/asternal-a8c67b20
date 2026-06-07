@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { EntityKind, Project } from "@/lib/engine/core";
 import { newScene, uid } from "@/lib/engine/core";
 import { loadProject, saveProject } from "@/lib/engine/storage";
+import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
 
@@ -241,6 +242,13 @@ function InspectorPanel({
           className="w-full h-10 rounded-md bg-transparent border border-border mt-1"
         />
       </div>
+
+      <TexturePicker
+        texture={ent.texture ?? null}
+        onPick={(dataUrl) => update({ texture: dataUrl })}
+        onClear={() => update({ texture: null })}
+      />
+
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Toggle label="Solid" on={ent.solid} onChange={v => update({ solid: v })} />
         <Toggle label="Gravity" on={ent.gravity} onChange={v => update({ gravity: v })} />
@@ -409,5 +417,57 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
         <span className={`block w-3 h-3 rounded-full bg-background transition ${on ? "translate-x-4" : ""}`} />
       </span>
     </button>
+  );
+}
+
+function TexturePicker({ texture, onPick, onClear }: { texture: string | null; onPick: (dataUrl: string) => void; onClear: () => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <label className="text-[10px] font-display tracking-widest text-muted-foreground">TEXTURE</label>
+      <div className="mt-1 flex items-center gap-2">
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="relative w-16 h-16 rounded-md border border-border bg-input/40 grid place-items-center overflow-hidden glow-border"
+        >
+          {texture ? (
+            <img src={texture} alt="texture" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <span className="text-xl text-muted-foreground">＋</span>
+          )}
+        </button>
+        <div className="flex-1 flex flex-col gap-1.5">
+          <button
+            onClick={() => inputRef.current?.click()}
+            className="text-xs font-display tracking-widest px-3 py-2 rounded-md bg-primary/15 border border-primary/50 text-primary-glow"
+          >
+            {texture ? "REPLACE FROM GALLERY" : "PICK FROM GALLERY"}
+          </button>
+          {texture && (
+            <button
+              onClick={onClear}
+              className="text-[10px] font-display tracking-widest px-3 py-1.5 rounded-md border border-border text-muted-foreground"
+            >
+              CLEAR TEXTURE
+            </button>
+          )}
+        </div>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          try {
+            const url = await fileToDataURL(f);
+            onPick(url);
+          } catch { /* ignore */ }
+          e.target.value = "";
+        }}
+      />
+    </div>
   );
 }
