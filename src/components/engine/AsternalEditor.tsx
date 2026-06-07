@@ -528,3 +528,109 @@ function AnimationsButton({ entity, onUpdate }: { entity: import("@/lib/engine/c
     </>
   );
 }
+
+function AssetsPanel({
+  project, onChange, selectedEntity, onAssignTexture, onAssignAnimation,
+}: {
+  project: Project;
+  onChange: (p: Project) => void;
+  selectedEntity: Entity | null;
+  onAssignTexture: (dataUrl: string) => void;
+  onAssignAnimation: (sprite: SpriteAsset) => void;
+}) {
+  const sprites = project.assets?.sprites ?? [];
+  const [editing, setEditing] = useState<SpriteAsset | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const saveSprite = (asset: SpriteAsset) => {
+    const list = sprites.some(s => s.id === asset.id)
+      ? sprites.map(s => s.id === asset.id ? asset : s)
+      : [...sprites, asset];
+    onChange({ ...project, assets: { ...(project.assets ?? { sprites: [] }), sprites: list } });
+    setEditing(null);
+    setCreating(false);
+  };
+
+  const removeSprite = (id: string) => {
+    if (!confirm("Delete this sprite?")) return;
+    const list = sprites.filter(s => s.id !== id);
+    onChange({ ...project, assets: { ...(project.assets ?? { sprites: [] }), sprites: list } });
+  };
+
+  return (
+    <div className="h-full overflow-auto p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <SectionTitle>SPRITES · {sprites.length}</SectionTitle>
+        <button
+          onClick={() => setCreating(true)}
+          className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-primary/30 to-accent/30 border border-primary/50 text-primary-glow glow-border"
+        >+ DRAW NEW</button>
+      </div>
+
+      {selectedEntity ? (
+        <div className="text-[10px] font-mono text-muted-foreground panel rounded-md px-2 py-1.5 border border-border/50">
+          Tap a sprite to assign to <span className="text-primary-glow">{selectedEntity.kind.toUpperCase()}</span>
+        </div>
+      ) : (
+        <div className="text-[10px] font-mono text-muted-foreground">
+          Select an entity in INSPECT to assign sprites to it.
+        </div>
+      )}
+
+      {sprites.length === 0 && (
+        <div className="text-center text-xs text-muted-foreground py-10">
+          No sprites yet. Tap <span className="text-primary-glow">+ DRAW NEW</span> to create one.
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        {sprites.map(sp => (
+          <div key={sp.id} className="panel rounded-lg p-2 border border-border/60 glow-border">
+            <div className="aspect-square rounded-md bg-input/40 grid place-items-center overflow-hidden border border-border/30">
+              {sp.frames[0]?.composite && (
+                <img src={sp.frames[0].composite} alt={sp.name}
+                  className="w-full h-full object-contain"
+                  style={{ imageRendering: "pixelated" }} />
+              )}
+            </div>
+            <div className="mt-1.5">
+              <div className="text-xs font-display truncate text-primary-glow">{sp.name}</div>
+              <div className="text-[9px] font-mono text-muted-foreground">{sp.width}×{sp.height} · {sp.frames.length}f</div>
+            </div>
+            <div className="grid grid-cols-2 gap-1 mt-1.5">
+              <button
+                onClick={() => setEditing(sp)}
+                className="text-[10px] py-1.5 rounded border border-border text-muted-foreground font-display tracking-widest"
+              >EDIT</button>
+              <button
+                onClick={() => removeSprite(sp.id)}
+                className="text-[10px] py-1.5 rounded bg-destructive/15 border border-destructive/40 text-destructive font-display tracking-widest"
+              >✕</button>
+            </div>
+            {selectedEntity && (
+              <div className="grid grid-cols-2 gap-1 mt-1">
+                <button
+                  onClick={() => onAssignTexture(sp.frames[0]?.composite ?? "")}
+                  className="text-[10px] py-1.5 rounded bg-primary/15 border border-primary/40 text-primary-glow font-display tracking-widest"
+                >TEXTURE</button>
+                <button
+                  onClick={() => onAssignAnimation(sp)}
+                  disabled={sp.frames.length < 1}
+                  className="text-[10px] py-1.5 rounded bg-accent/15 border border-accent/40 text-primary-glow font-display tracking-widest disabled:opacity-40"
+                >ANIM</button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {(creating || editing) && (
+        <SpriteEditor
+          initial={editing}
+          onClose={() => { setEditing(null); setCreating(false); }}
+          onSave={saveSprite}
+        />
+      )}
+    </div>
+  );
+}
