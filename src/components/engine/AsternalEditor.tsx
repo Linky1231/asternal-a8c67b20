@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { EntityKind, Project } from "@/lib/engine/core";
+import type { EntityKind, Project, SpriteAsset, Entity, Scene } from "@/lib/engine/core";
 import { newScene, uid } from "@/lib/engine/core";
 import { loadProject, saveProject } from "@/lib/engine/storage";
 import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
 import { AnimationEditor } from "./AnimationEditor";
+import { SpriteEditor } from "./SpriteEditor";
 
 type Tool = EntityKind | "select" | "erase";
-type Tab = "build" | "inspect" | "scenes" | "settings";
+type Tab = "build" | "inspect" | "scenes" | "assets" | "settings";
 
 const TOOL_LIST: { id: Tool; label: string; icon: string }[] = [
   { id: "select", label: "Select", icon: "⌖" },
