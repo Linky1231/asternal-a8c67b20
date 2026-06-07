@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Entity, RuntimeInput, RuntimeState, Scene } from "@/lib/engine/core";
 import { stepScene } from "@/lib/engine/core";
 import { getImage } from "@/lib/engine/images";
+import { currentFrameImage } from "@/lib/engine/animations";
 
 interface Props {
   scene: Scene;
