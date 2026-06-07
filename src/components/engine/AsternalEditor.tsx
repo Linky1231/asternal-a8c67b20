@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { EntityKind, Project } from "@/lib/engine/core";
 import { newScene, uid } from "@/lib/engine/core";
 import { loadProject, saveProject } from "@/lib/engine/storage";
+import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
 
@@ -241,6 +242,13 @@ function InspectorPanel({
           className="w-full h-10 rounded-md bg-transparent border border-border mt-1"
         />
       </div>
+
+      <TexturePicker
+        texture={ent.texture ?? null}
+        onPick={(dataUrl) => update({ texture: dataUrl })}
+        onClear={() => update({ texture: null })}
+      />
+
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Toggle label="Solid" on={ent.solid} onChange={v => update({ solid: v })} />
         <Toggle label="Gravity" on={ent.gravity} onChange={v => update({ gravity: v })} />
