@@ -1,5 +1,6 @@
 // Asternal Engine core: ECS-lite + loop + physics + scenes + input
 import type { AnimationClip } from "./animations";
+import type { Script } from "./scripts";
 
 export type EntityKind = "player" | "platform" | "enemy" | "coin" | "goal";
 
@@ -45,6 +46,7 @@ export interface Entity {
   goal: boolean;
   texture?: string | null;
   animations?: AnimationClip[];
+  scripts?: Script[];
 }
 
 export interface Scene {
