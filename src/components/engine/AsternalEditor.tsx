@@ -250,6 +250,8 @@ function InspectorPanel({
         onClear={() => update({ texture: null })}
       />
 
+      <AnimationsButton entity={ent} onUpdate={update} />
+
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Toggle label="Solid" on={ent.solid} onChange={v => update({ solid: v })} />
         <Toggle label="Gravity" on={ent.gravity} onChange={v => update({ gravity: v })} />
