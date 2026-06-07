@@ -3,6 +3,29 @@ import type { AnimationClip } from "./animations";
 
 export type EntityKind = "player" | "platform" | "enemy" | "coin" | "goal";
 
+// --- Sprite asset (created in the in-engine pixel editor) ---
+export interface SpriteLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+  opacity: number;      // 0..1
+  dataUrl: string;      // PNG of just this layer at native resolution
+}
+export interface SpriteFrame {
+  id: string;
+  layers: SpriteLayer[];
+  composite: string;    // PNG, all visible layers flattened
+}
+export interface SpriteAsset {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  fps: number;
+  loop: boolean;
+  frames: SpriteFrame[];
+}
+
 export interface Entity {
   id: string;
   kind: EntityKind;
@@ -38,6 +61,7 @@ export interface Project {
   name: string;
   scenes: Scene[];
   activeSceneId: string;
+  assets?: { sprites: SpriteAsset[] };
   settings: {
     fpsCap: 30 | 60;
     showHUD: boolean;
@@ -81,6 +105,7 @@ export function newProject(): Project {
     name: "Untitled Game",
     scenes: [s],
     activeSceneId: s.id,
+    assets: { sprites: [] },
     settings: { fpsCap: 60, showHUD: true },
   };
 }

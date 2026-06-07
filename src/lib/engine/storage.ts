@@ -10,6 +10,8 @@ export function loadProject(): Project {
     if (!raw) return newProject();
     const p = JSON.parse(raw) as Project;
     if (!p.scenes?.length) return newProject();
+    if (!p.assets) p.assets = { sprites: [] };
+    if (!p.assets.sprites) p.assets.sprites = [];
     return p;
   } catch {
     return newProject();
