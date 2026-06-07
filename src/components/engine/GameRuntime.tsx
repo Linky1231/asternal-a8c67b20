@@ -3,6 +3,7 @@ import type { Entity, RuntimeInput, RuntimeState, Scene } from "@/lib/engine/cor
 import { stepScene } from "@/lib/engine/core";
 import { getImage } from "@/lib/engine/images";
 import { currentFrameImage } from "@/lib/engine/animations";
+import { createScriptRunner } from "@/lib/engine/scripts";
 
 interface Props {
   scene: Scene;
@@ -21,6 +22,7 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
     const ctx = canvas.getContext("2d")!;
     const work: Scene = JSON.parse(JSON.stringify(scene));
     const state: RuntimeState = { score: 0, lives: 1, win: false, dead: false, cameraX: 0 };
+    const scripts = createScriptRunner();
 
     let raf = 0;
     let last = performance.now();
@@ -91,7 +93,10 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
       acc += elapsed;
       let steps = 0;
       while (acc >= targetDt && steps < 5) {
-        if (!state.win && !state.dead) stepScene(work, inputRef.current, state, targetDt);
+        if (!state.win && !state.dead) {
+          stepScene(work, inputRef.current, state, targetDt);
+          scripts.step(work, state);
+        }
         acc -= targetDt;
         steps++;
       }

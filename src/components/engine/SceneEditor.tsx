@@ -392,22 +392,10 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       <div className="absolute top-2 left-2 panel rounded-md px-2 py-1 text-[10px] font-mono text-primary-glow">
         {scene.width}×{scene.height} · {Math.round(scale * 100)}%
       </div>
-      <div className="absolute top-2 right-2 flex gap-1">
-        <ZoomBtn onClick={() => setScale(s => Math.max(0.15, s - 0.1))}>−</ZoomBtn>
-        <ZoomBtn onClick={() => setScale(s => Math.min(3, s + 0.1))}>+</ZoomBtn>
-      </div>
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 panel rounded-full px-3 py-1 text-[10px] font-mono text-muted-foreground whitespace-nowrap">
         pinch · zoom · drag handles · resize
       </div>
     </div>
-  );
-}
-
-function ZoomBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="panel rounded-md w-8 h-8 font-display text-primary-glow glow-border">
-      {children}
-    </button>
   );
 }
 

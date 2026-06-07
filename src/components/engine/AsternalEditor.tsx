@@ -7,6 +7,7 @@ import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
 import { AnimationEditor } from "./AnimationEditor";
 import { SpriteEditor } from "./SpriteEditor";
+import { ScriptEditor } from "./ScriptEditor";
 
 type Tool = EntityKind | "select" | "erase";
 type Tab = "build" | "inspect" | "scenes" | "assets" | "settings";
@@ -220,10 +221,23 @@ function InspectorPanel({
         <Field label="Name" value={scene.name} onChange={v => onChangeScene({ ...scene, name: v })} />
         <Slider label="Gravity" value={scene.gravity} min={0} max={3000} step={50}
           onChange={v => onChangeScene({ ...scene, gravity: v })} />
-        <Slider label="Width" value={scene.width} min={400} max={4000} step={100}
+        <Slider label="Width" value={scene.width} min={400} max={8000} step={100}
           onChange={v => onChangeScene({ ...scene, width: v })} />
-        <Slider label="Height" value={scene.height} min={400} max={2000} step={100}
+        <Slider label="Height" value={scene.height} min={400} max={4000} step={100}
           onChange={v => onChangeScene({ ...scene, height: v })} />
+
+        <div>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">SCALE SCENE + CONTENTS</label>
+          <div className="grid grid-cols-4 gap-1.5 mt-1">
+            {[0.5, 0.75, 1.5, 2].map(k => (
+              <button key={k}
+                onClick={() => onChangeScene(scaleScene(scene, k))}
+                className="py-2 rounded-md panel border border-border text-xs font-display tracking-widest text-primary-glow glow-border"
+              >×{k}</button>
+            ))}
+          </div>
+        </div>
+
 
         <div className="pt-4">
           <SectionTitle>ENTITIES · {scene.entities.length}</SectionTitle>
@@ -282,6 +296,8 @@ function InspectorPanel({
       />
 
       <AnimationsButton entity={ent} onUpdate={update} />
+      <ScriptsButton entity={ent} onUpdate={update} />
+
 
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Toggle label="Solid" on={ent.solid} onChange={v => update({ solid: v })} />
@@ -632,5 +648,43 @@ function AssetsPanel({
         />
       )}
     </div>
+  );
+}
+
+function scaleScene(scene: Scene, k: number): Scene {
+  return {
+    ...scene,
+    width: Math.round(scene.width * k),
+    height: Math.round(scene.height * k),
+    entities: scene.entities.map(e => ({
+      ...e,
+      x: Math.round(e.x * k),
+      y: Math.round(e.y * k),
+      w: Math.max(8, Math.round(e.w * k)),
+      h: Math.max(8, Math.round(e.h * k)),
+    })),
+  };
+}
+
+function ScriptsButton({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: Partial<Entity>) => void }) {
+  const [open, setOpen] = useState(false);
+  const count = entity.scripts?.length ?? 0;
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full mt-1 px-3 py-2.5 rounded-md bg-gradient-to-r from-accent/20 to-primary/20 border border-accent/50 text-primary-glow font-display text-xs tracking-widest flex items-center justify-between glow-border"
+      >
+        <span>◉ EVENTS · BLOCKS</span>
+        <span className="font-mono text-[10px] opacity-80">{count} SCRIPTS</span>
+      </button>
+      {open && (
+        <ScriptEditor
+          entity={entity}
+          onChange={onUpdate}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 }
