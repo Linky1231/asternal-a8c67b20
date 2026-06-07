@@ -5,6 +5,7 @@ import { loadProject, saveProject } from "@/lib/engine/storage";
 import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
+import { AnimationEditor } from "./AnimationEditor";
 
 type Tool = EntityKind | "select" | "erase";
 type Tab = "build" | "inspect" | "scenes" | "settings";
