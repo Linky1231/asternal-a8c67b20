@@ -61,6 +61,7 @@ export interface Project {
   name: string;
   scenes: Scene[];
   activeSceneId: string;
+  assets?: { sprites: SpriteAsset[] };
   settings: {
     fpsCap: 30 | 60;
     showHUD: boolean;
