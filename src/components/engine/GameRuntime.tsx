@@ -67,8 +67,9 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
       ctx.scale(scale, scale);
       ctx.translate(-state.cameraX, 0);
 
+      const tSec = now / 1000;
       for (const e of work.entities) {
-        drawEntity(ctx, e);
+        drawEntity(ctx, e, tSec);
       }
       ctx.restore();
 
