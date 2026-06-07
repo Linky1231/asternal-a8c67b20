@@ -18,6 +18,7 @@ export interface Entity {
   collectible: boolean;
   hazard: boolean;
   goal: boolean;
+  texture?: string | null;
 }
 
 export interface Scene {
