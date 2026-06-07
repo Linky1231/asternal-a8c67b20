@@ -21,6 +21,7 @@ export interface Entity {
   hazard: boolean;
   goal: boolean;
   texture?: string | null;
+  animations?: AnimationClip[];
 }
 
 export interface Scene {
