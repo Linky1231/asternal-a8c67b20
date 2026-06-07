@@ -116,12 +116,12 @@ export function AsternalEditor() {
             project={project}
             onChange={setProject}
             selectedEntity={selected}
-            onAssignTexture={(dataUrl) => {
+            onAssignTexture={(dataUrl: string) => {
               if (!selected) return;
               const s = activeScene;
               updateScene({ ...s, entities: s.entities.map(e => e.id === selected.id ? { ...e, texture: dataUrl } : e) });
             }}
-            onAssignAnimation={(sprite) => {
+            onAssignAnimation={(sprite: SpriteAsset) => {
               if (!selected) return;
               const s = activeScene;
               const clip = {
@@ -129,7 +129,7 @@ export function AsternalEditor() {
                 name: "idle",
                 fps: sprite.fps,
                 loop: sprite.loop,
-                frames: sprite.frames.map(f => f.composite),
+                frames: sprite.frames.map((f) => f.composite),
               };
               const animations = [
                 ...(selected.animations ?? []).filter(c => c.name !== "idle"),
