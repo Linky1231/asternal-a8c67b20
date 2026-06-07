@@ -182,8 +182,14 @@ function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => v
   );
 }
 
-function drawEntity(ctx: CanvasRenderingContext2D, e: Entity) {
+function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number) {
   ctx.save();
+  const animImg = currentFrameImage(e, time);
+  if (animImg) {
+    ctx.drawImage(animImg, e.x, e.y, e.w, e.h);
+    ctx.restore();
+    return;
+  }
   if (e.texture) {
     const img = getImage(e.texture);
     if (img) {
