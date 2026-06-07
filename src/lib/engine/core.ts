@@ -105,6 +105,7 @@ export function newProject(): Project {
     name: "Untitled Game",
     scenes: [s],
     activeSceneId: s.id,
+    assets: { sprites: [] },
     settings: { fpsCap: 60, showHUD: true },
   };
 }
