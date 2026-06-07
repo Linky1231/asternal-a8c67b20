@@ -111,6 +111,35 @@ export function AsternalEditor() {
           />
         )}
 
+        {tab === "assets" && (
+          <AssetsPanel
+            project={project}
+            onChange={setProject}
+            selectedEntity={selected}
+            onAssignTexture={(dataUrl) => {
+              if (!selected) return;
+              const s = activeScene;
+              updateScene({ ...s, entities: s.entities.map(e => e.id === selected.id ? { ...e, texture: dataUrl } : e) });
+            }}
+            onAssignAnimation={(sprite) => {
+              if (!selected) return;
+              const s = activeScene;
+              const clip = {
+                id: uid(),
+                name: "idle",
+                fps: sprite.fps,
+                loop: sprite.loop,
+                frames: sprite.frames.map(f => f.composite),
+              };
+              const animations = [
+                ...(selected.animations ?? []).filter(c => c.name !== "idle"),
+                clip,
+              ];
+              updateScene({ ...s, entities: s.entities.map(e => e.id === selected.id ? { ...e, animations, texture: sprite.frames[0]?.composite ?? e.texture } : e) });
+            }}
+          />
+        )}
+
         {tab === "settings" && (
           <SettingsPanel project={project} onChange={setProject} />
         )}
