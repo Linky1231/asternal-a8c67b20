@@ -650,3 +650,41 @@ function AssetsPanel({
     </div>
   );
 }
+
+function scaleScene(scene: Scene, k: number): Scene {
+  return {
+    ...scene,
+    width: Math.round(scene.width * k),
+    height: Math.round(scene.height * k),
+    entities: scene.entities.map(e => ({
+      ...e,
+      x: Math.round(e.x * k),
+      y: Math.round(e.y * k),
+      w: Math.max(8, Math.round(e.w * k)),
+      h: Math.max(8, Math.round(e.h * k)),
+    })),
+  };
+}
+
+function ScriptsButton({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: Partial<Entity>) => void }) {
+  const [open, setOpen] = useState(false);
+  const count = entity.scripts?.length ?? 0;
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full mt-1 px-3 py-2.5 rounded-md bg-gradient-to-r from-accent/20 to-primary/20 border border-accent/50 text-primary-glow font-display text-xs tracking-widest flex items-center justify-between glow-border"
+      >
+        <span>◉ EVENTS · BLOCKS</span>
+        <span className="font-mono text-[10px] opacity-80">{count} SCRIPTS</span>
+      </button>
+      {open && (
+        <ScriptEditor
+          entity={entity}
+          onChange={onUpdate}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
