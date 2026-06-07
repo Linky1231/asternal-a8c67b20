@@ -474,3 +474,26 @@ function TexturePicker({ texture, onPick, onClear }: { texture: string | null; o
     </div>
   );
 }
+
+function AnimationsButton({ entity, onUpdate }: { entity: import("@/lib/engine/core").Entity; onUpdate: (patch: Partial<import("@/lib/engine/core").Entity>) => void }) {
+  const [open, setOpen] = useState(false);
+  const count = entity.animations?.length ?? 0;
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full mt-1 px-3 py-2.5 rounded-md bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest flex items-center justify-between glow-border"
+      >
+        <span>◈ ANIMATIONS</span>
+        <span className="font-mono text-[10px] opacity-80">{count} CLIPS</span>
+      </button>
+      {open && (
+        <AnimationEditor
+          entity={entity}
+          onChange={onUpdate}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
