@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Entity, RuntimeInput, RuntimeState, Scene } from "@/lib/engine/core";
 import { stepScene } from "@/lib/engine/core";
 import { getImage } from "@/lib/engine/images";
+import { currentFrameImage } from "@/lib/engine/animations";
 
 interface Props {
   scene: Scene;
@@ -66,8 +67,9 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
       ctx.scale(scale, scale);
       ctx.translate(-state.cameraX, 0);
 
+      const tSec = performance.now() / 1000;
       for (const e of work.entities) {
-        drawEntity(ctx, e);
+        drawEntity(ctx, e, tSec);
       }
       ctx.restore();
 
@@ -180,8 +182,14 @@ function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => v
   );
 }
 
-function drawEntity(ctx: CanvasRenderingContext2D, e: Entity) {
+function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number) {
   ctx.save();
+  const animImg = currentFrameImage(e, time);
+  if (animImg) {
+    ctx.drawImage(animImg, e.x, e.y, e.w, e.h);
+    ctx.restore();
+    return;
+  }
   if (e.texture) {
     const img = getImage(e.texture);
     if (img) {

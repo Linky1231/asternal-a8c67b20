@@ -5,6 +5,7 @@ import { loadProject, saveProject } from "@/lib/engine/storage";
 import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
+import { AnimationEditor } from "./AnimationEditor";
 
 type Tool = EntityKind | "select" | "erase";
 type Tab = "build" | "inspect" | "scenes" | "settings";
@@ -249,6 +250,8 @@ function InspectorPanel({
         onClear={() => update({ texture: null })}
       />
 
+      <AnimationsButton entity={ent} onUpdate={update} />
+
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Toggle label="Solid" on={ent.solid} onChange={v => update({ solid: v })} />
         <Toggle label="Gravity" on={ent.gravity} onChange={v => update({ gravity: v })} />
@@ -469,5 +472,28 @@ function TexturePicker({ texture, onPick, onClear }: { texture: string | null; o
         }}
       />
     </div>
+  );
+}
+
+function AnimationsButton({ entity, onUpdate }: { entity: import("@/lib/engine/core").Entity; onUpdate: (patch: Partial<import("@/lib/engine/core").Entity>) => void }) {
+  const [open, setOpen] = useState(false);
+  const count = entity.animations?.length ?? 0;
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full mt-1 px-3 py-2.5 rounded-md bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest flex items-center justify-between glow-border"
+      >
+        <span>◈ ANIMATIONS</span>
+        <span className="font-mono text-[10px] opacity-80">{count} CLIPS</span>
+      </button>
+      {open && (
+        <AnimationEditor
+          entity={entity}
+          onChange={onUpdate}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 }

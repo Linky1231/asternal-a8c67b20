@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Entity, EntityKind, Scene } from "@/lib/engine/core";
 import { KIND_PRESETS, uid } from "@/lib/engine/core";
 import { getImage } from "@/lib/engine/images";
+import { currentFrameImage } from "@/lib/engine/animations";
 
 interface Props {
   scene: Scene;
@@ -129,9 +130,13 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       ctx.lineWidth = 2 / scale;
       ctx.strokeRect(0, 0, scene.width, scene.height);
 
+      const tSec = t / 1000;
       for (const e of scene.entities) {
         ctx.save();
-        if (e.texture) {
+        const animImg = currentFrameImage(e, tSec, "idle");
+        if (animImg) {
+          ctx.drawImage(animImg, e.x, e.y, e.w, e.h);
+        } else if (e.texture) {
           const img = getImage(e.texture);
           if (img) {
             ctx.drawImage(img, e.x, e.y, e.w, e.h);
