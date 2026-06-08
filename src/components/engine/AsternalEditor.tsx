@@ -6,7 +6,7 @@ import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
 import { AnimationEditor } from "./AnimationEditor";
-import { SpriteEditor } from "./SpriteEditor";
+
 import { ScriptEditor } from "./ScriptEditor";
 
 type Tool = EntityKind | "select" | "erase";
@@ -555,16 +555,35 @@ function AssetsPanel({
   onAssignAnimation: (sprite: SpriteAsset) => void;
 }) {
   const sprites = project.assets?.sprites ?? [];
-  const [editing, setEditing] = useState<SpriteAsset | null>(null);
-  const [creating, setCreating] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const saveSprite = (asset: SpriteAsset) => {
-    const list = sprites.some(s => s.id === asset.id)
-      ? sprites.map(s => s.id === asset.id ? asset : s)
-      : [...sprites, asset];
-    onChange({ ...project, assets: { ...(project.assets ?? { sprites: [] }), sprites: list } });
-    setEditing(null);
-    setCreating(false);
+  const importFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const list = Array.from(files);
+    const frames = await Promise.all(list.map(async (f) => ({
+      id: uid(),
+      layers: [],
+      composite: await fileToDataURL(f),
+    })));
+    // Probe dimensions from the first frame
+    const dims = await new Promise<{ w: number; h: number }>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => resolve({ w: 32, h: 32 });
+      img.src = frames[0].composite;
+    });
+    const asset: SpriteAsset = {
+      id: uid(),
+      name: list[0].name.replace(/\.[^.]+$/, "").slice(0, 24) || "sprite",
+      width: dims.w,
+      height: dims.h,
+      fps: 8,
+      loop: true,
+      frames,
+    };
+    const next = [...sprites, asset];
+    onChange({ ...project, assets: { ...(project.assets ?? { sprites: [] }), sprites: next } });
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const removeSprite = (id: string) => {
@@ -578,9 +597,17 @@ function AssetsPanel({
       <div className="flex items-center justify-between">
         <SectionTitle>SPRITES · {sprites.length}</SectionTitle>
         <button
-          onClick={() => setCreating(true)}
+          onClick={() => fileRef.current?.click()}
           className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-primary/30 to-accent/30 border border-primary/50 text-primary-glow glow-border"
-        >+ DRAW NEW</button>
+        >+ IMPORT</button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => importFiles(e.target.files)}
+        />
       </div>
 
       {selectedEntity ? (
@@ -595,7 +622,8 @@ function AssetsPanel({
 
       {sprites.length === 0 && (
         <div className="text-center text-xs text-muted-foreground py-10">
-          No sprites yet. Tap <span className="text-primary-glow">+ DRAW NEW</span> to create one.
+          No sprites yet. Tap <span className="text-primary-glow">+ IMPORT</span> to load images from your gallery.
+          <div className="mt-1 text-[10px] opacity-70">Select multiple files to create an animated sprite.</div>
         </div>
       )}
 
@@ -613,15 +641,11 @@ function AssetsPanel({
               <div className="text-xs font-display truncate text-primary-glow">{sp.name}</div>
               <div className="text-[9px] font-mono text-muted-foreground">{sp.width}×{sp.height} · {sp.frames.length}f</div>
             </div>
-            <div className="grid grid-cols-2 gap-1 mt-1.5">
-              <button
-                onClick={() => setEditing(sp)}
-                className="text-[10px] py-1.5 rounded border border-border text-muted-foreground font-display tracking-widest"
-              >EDIT</button>
+            <div className="mt-1.5">
               <button
                 onClick={() => removeSprite(sp.id)}
-                className="text-[10px] py-1.5 rounded bg-destructive/15 border border-destructive/40 text-destructive font-display tracking-widest"
-              >✕</button>
+                className="w-full text-[10px] py-1.5 rounded bg-destructive/15 border border-destructive/40 text-destructive font-display tracking-widest"
+              >✕ DELETE</button>
             </div>
             {selectedEntity && (
               <div className="grid grid-cols-2 gap-1 mt-1">
@@ -639,14 +663,6 @@ function AssetsPanel({
           </div>
         ))}
       </div>
-
-      {(creating || editing) && (
-        <SpriteEditor
-          initial={editing}
-          onClose={() => { setEditing(null); setCreating(false); }}
-          onSave={saveSprite}
-        />
-      )}
     </div>
   );
 }
