@@ -242,6 +242,16 @@ function InspectorPanel({
           onChange={v => onChangeScene({ ...scene, height: v })} />
 
         <div>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">BACKGROUND COLOR</label>
+          <input
+            type="color"
+            value={scene.bg}
+            onChange={e => onChangeScene({ ...scene, bg: e.target.value })}
+            className="w-full h-10 rounded-md bg-transparent border border-border mt-1"
+          />
+        </div>
+
+        <div>
           <label className="text-[10px] font-display tracking-widest text-muted-foreground">SCALE SCENE + CONTENTS</label>
           <div className="grid grid-cols-4 gap-1.5 mt-1">
             {[0.5, 0.75, 1.5, 2].map(k => (
