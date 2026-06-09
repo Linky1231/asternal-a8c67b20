@@ -9,7 +9,12 @@ export type EventType =
   | "onCollide"
   | "onKeyDown"
   | "onScoreReach"
-  | "onDestroyed";
+  | "onDestroyed"
+  | "onTimer"
+  | "onLeaveScreen"
+  | "onLand"
+  | "onWin"
+  | "onLose";
 
 export type BlockKind =
   | "jump"
@@ -29,6 +34,10 @@ export type BlockKind =
   | "setSize"
   | "setGravity"
   | "setControllable"
+  | "impulse"
+  | "setVisible"
+  | "restartScene"
+  | "setBg"
   | "if";
 
 export interface Block {
@@ -51,6 +60,7 @@ export interface Script {
   withKind?: EntityKind | "any";          // onCollide
   key?: "left" | "right" | "jump";        // onKeyDown
   threshold?: number;                     // onScoreReach
+  interval?: number;                      // onTimer (ms)
   blocks: Block[];
 }
 
@@ -61,6 +71,11 @@ export const EVENT_LABELS: Record<EventType, string> = {
   onKeyDown: "On Key Press",
   onScoreReach: "On Score Reach",
   onDestroyed: "On Destroyed",
+  onTimer: "On Timer",
+  onLeaveScreen: "On Leave Screen",
+  onLand: "On Land",
+  onWin: "On Win",
+  onLose: "On Lose",
 };
 
 export const BLOCK_LABELS: Record<BlockKind, string> = {
@@ -81,20 +96,26 @@ export const BLOCK_LABELS: Record<BlockKind, string> = {
   setSize: "Set size",
   setGravity: "Enable gravity",
   setControllable: "Player control",
+  impulse: "Impulse (x,y)",
+  setVisible: "Set visible",
+  restartScene: "Restart scene",
+  setBg: "Set background",
   if: "If condition",
 };
 
 export const ALL_BLOCKS: BlockKind[] = [
-  "jump", "setVx", "setVy",
+  "jump", "impulse", "setVx", "setVy",
   "addScore", "destroySelf", "destroyOther",
-  "win", "lose", "teleport",
+  "win", "lose", "restartScene", "teleport",
   "playSound", "vibrate", "shake",
-  "setColor", "setSize", "setGravity", "setControllable",
+  "setColor", "setBg", "setVisible", "setSize",
+  "setGravity", "setControllable",
   "log", "if",
 ];
 
 export interface RuntimeHooks {
   shake: (intensity: number, duration: number) => void;
+  restart: () => void;
 }
 
 interface ExecCtx {
@@ -110,11 +131,16 @@ function execBlock(b: Block, ctx: ExecCtx) {
     case "jump": ctx.self.vy = -(b.value ?? 520); break;
     case "setVx": ctx.self.vx = b.value ?? 0; break;
     case "setVy": ctx.self.vy = b.value ?? 0; break;
+    case "impulse":
+      ctx.self.vx += b.x ?? 0;
+      ctx.self.vy += b.y ?? 0;
+      break;
     case "addScore": ctx.state.score += b.value ?? 1; break;
     case "destroySelf": ctx.self.x = -99999; break;
     case "destroyOther": if (ctx.other) ctx.other.x = -99999; break;
     case "win": ctx.state.win = true; break;
     case "lose": ctx.state.dead = true; break;
+    case "restartScene": ctx.hooks.restart(); break;
     case "teleport":
       ctx.self.x = b.x ?? ctx.self.x;
       ctx.self.y = b.y ?? ctx.self.y;
@@ -124,6 +150,8 @@ function execBlock(b: Block, ctx: ExecCtx) {
     case "vibrate": vibrate(Math.max(1, b.value ?? 50)); break;
     case "shake": ctx.hooks.shake(Math.max(1, b.value ?? 8), 0.3); break;
     case "setColor": if (b.color) ctx.self.color = b.color; break;
+    case "setBg": if (b.color) ctx.scene.bg = b.color; break;
+    case "setVisible": ctx.self.visible = b.bool ?? !(ctx.self.visible ?? true); break;
     case "setSize":
       if (b.x) ctx.self.w = Math.max(4, b.x);
       if (b.y) ctx.self.h = Math.max(4, b.y);
@@ -146,19 +174,23 @@ function runScript(s: Script, ctx: ExecCtx) {
 }
 
 export interface ScriptRunner {
-  step: (scene: Scene, state: RuntimeState, input: RuntimeInput, hooks: RuntimeHooks) => void;
+  step: (scene: Scene, state: RuntimeState, input: RuntimeInput, hooks: RuntimeHooks, dt: number) => void;
 }
 
-/** Tracks per-entity onStart firing, onCollide edges, key edges, score thresholds, destruction edges. */
 export function createScriptRunner(): ScriptRunner {
   const started = new Set<string>();
   const destroyed = new Set<string>();
+  const left = new Set<string>();
   const colliding = new Set<string>();
+  const prevVy = new Map<string, number>();
+  const timerAcc = new Map<string, number>();
   let prevInput: RuntimeInput = { left: false, right: false, jump: false };
   let prevScore = 0;
+  let prevWin = false;
+  let prevDead = false;
 
   return {
-    step(scene, state, input, hooks) {
+    step(scene, state, input, hooks, dt) {
       const live = scene.entities;
       const keyEdges = {
         left: input.left && !prevInput.left,
@@ -166,10 +198,13 @@ export function createScriptRunner(): ScriptRunner {
         jump: input.jump && !prevInput.jump,
       };
 
-      // onStart + onUpdate + onKeyDown + onScoreReach + onDestroyed
+      // global edges
+      const winEdge = state.win && !prevWin;
+      const loseEdge = state.dead && !prevDead;
+
       for (const e of live) {
         const scripts = e.scripts ?? [];
-        if (!scripts.length) continue;
+        if (!scripts.length) { prevVy.set(e.id, e.vy); continue; }
 
         // onDestroyed (edge: moved off-world)
         if (e.x < -9000 && !destroyed.has(e.id)) {
@@ -179,11 +214,25 @@ export function createScriptRunner(): ScriptRunner {
         }
         if (e.x < -9000) continue;
 
+        // onLeaveScreen (edge)
+        const outside = e.x + e.w < 0 || e.x > scene.width || e.y > scene.height + 200 || e.y + e.h < -200;
+        if (outside && !left.has(e.id)) {
+          left.add(e.id);
+          for (const s of scripts) if (s.event === "onLeaveScreen")
+            runScript(s, { self: e, scene, state, hooks });
+        } else if (!outside) {
+          left.delete(e.id);
+        }
+
         if (!started.has(e.id)) {
           for (const s of scripts) if (s.event === "onStart")
             runScript(s, { self: e, scene, state, hooks });
           started.add(e.id);
         }
+
+        // onLand (edge: was falling, now grounded)
+        const pv = prevVy.get(e.id) ?? 0;
+        const landed = pv > 80 && e.vy === 0;
 
         for (const s of scripts) {
           if (s.event === "onUpdate") {
@@ -194,8 +243,25 @@ export function createScriptRunner(): ScriptRunner {
             const t = s.threshold ?? 0;
             if (prevScore < t && state.score >= t)
               runScript(s, { self: e, scene, state, hooks });
+          } else if (s.event === "onTimer") {
+            const iv = Math.max(0.05, (s.interval ?? 1000) / 1000);
+            const acc = (timerAcc.get(s.id) ?? 0) + dt;
+            if (acc >= iv) {
+              timerAcc.set(s.id, 0);
+              runScript(s, { self: e, scene, state, hooks });
+            } else {
+              timerAcc.set(s.id, acc);
+            }
+          } else if (s.event === "onLand" && landed) {
+            runScript(s, { self: e, scene, state, hooks });
+          } else if (s.event === "onWin" && winEdge) {
+            runScript(s, { self: e, scene, state, hooks });
+          } else if (s.event === "onLose" && loseEdge) {
+            runScript(s, { self: e, scene, state, hooks });
           }
         }
+
+        prevVy.set(e.id, e.vy);
       }
 
       // onCollide (edge-triggered)
@@ -225,6 +291,8 @@ export function createScriptRunner(): ScriptRunner {
 
       prevInput = { ...input };
       prevScore = state.score;
+      prevWin = state.win;
+      prevDead = state.dead;
     },
   };
 }
