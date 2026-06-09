@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene } from "@/lib/engine/core";
-import { newScene, uid } from "@/lib/engine/core";
+import { newScene, uid, DEFAULT_SETTINGS } from "@/lib/engine/core";
 import { loadProject, saveProject } from "@/lib/engine/storage";
 import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
@@ -8,6 +8,7 @@ import { GameRuntime } from "./GameRuntime";
 import { AnimationEditor } from "./AnimationEditor";
 
 import { ScriptEditor } from "./ScriptEditor";
+
 
 type Tool = EntityKind | "select" | "erase";
 type Tab = "build" | "inspect" | "scenes" | "assets" | "settings";
