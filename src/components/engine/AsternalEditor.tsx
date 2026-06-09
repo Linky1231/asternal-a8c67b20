@@ -768,14 +768,7 @@ function AssetsPanel({
         />
       )}
 
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => importFiles(e.target.files)}
-        />
-      </div>
+
 
       {selectedEntity ? (
         <div className="text-[10px] font-mono text-muted-foreground panel rounded-md px-2 py-1.5 border border-border/50">
