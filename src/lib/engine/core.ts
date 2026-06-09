@@ -152,8 +152,15 @@ export function newProject(): Project {
 
 
 // --- Physics: AABB ---
+export function aabb(e: Entity) {
+  const hb = e.hitbox;
+  if (hb) return { x: e.x + hb.x, y: e.y + hb.y, w: hb.w, h: hb.h };
+  return { x: e.x, y: e.y, w: e.w, h: e.h };
+}
+
 export function intersects(a: Entity, b: Entity) {
-  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  const A = aabb(a), B = aabb(b);
+  return A.x < B.x + B.w && A.x + A.w > B.x && A.y < B.y + B.h && A.y + A.h > B.y;
 }
 
 export interface RuntimeInput {
@@ -188,8 +195,10 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     for (const o of scene.entities) {
       if (o === e || !o.solid) continue;
       if (intersects(e, o)) {
-        if (e.vx > 0) e.x = o.x - e.w;
-        else if (e.vx < 0) e.x = o.x + o.w;
+        const A = aabb(e), B = aabb(o);
+        const ox = e.hitbox?.x ?? 0;
+        if (e.vx > 0) e.x = B.x - A.w - ox;
+        else if (e.vx < 0) e.x = B.x + B.w - ox;
         if (e.kind === "enemy") e.vx = -e.vx;
       }
     }
@@ -203,12 +212,14 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     for (const o of scene.entities) {
       if (o === e || !o.solid) continue;
       if (intersects(e, o)) {
+        const A = aabb(e), B = aabb(o);
+        const oy = e.hitbox?.y ?? 0;
         if (e.vy > 0) {
-          e.y = o.y - e.h;
+          e.y = B.y - A.h - oy;
           e.vy = 0;
           grounded.add(e.id);
         } else if (e.vy < 0) {
-          e.y = o.y + o.h;
+          e.y = B.y + B.h - oy;
           e.vy = 0;
         }
       }
