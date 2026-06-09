@@ -27,6 +27,13 @@ export interface SpriteAsset {
   frames: SpriteFrame[];
 }
 
+export interface Hitbox {
+  x: number; // offset relative to entity x
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface Entity {
   id: string;
   kind: EntityKind;
@@ -49,6 +56,7 @@ export interface Entity {
   texture?: string | null;
   animations?: AnimationClip[];
   scripts?: Script[];
+  hitbox?: Hitbox | null;
 }
 
 
