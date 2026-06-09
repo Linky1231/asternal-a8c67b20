@@ -389,23 +389,36 @@ function ScenesPanel({
       <SectionTitle>SCENES</SectionTitle>
       <div className="space-y-2">
         {project.scenes.map(s => (
-          <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-3 glow-border">
-            <div className="w-12 h-12 rounded-md bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center font-display text-primary-glow">
+          <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-2 glow-border">
+            <div className="w-12 h-12 rounded-md bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center font-display text-primary-glow shrink-0">
               {s.entities.length}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-display text-sm truncate">{s.name}</div>
-              <div className="text-[10px] font-mono text-muted-foreground">{s.width}×{s.height} · g{s.gravity}</div>
+              <input
+                value={s.name}
+                onChange={e => onChange({ ...project, scenes: project.scenes.map(x => x.id === s.id ? { ...x, name: e.target.value } : x) })}
+                className="w-full bg-transparent font-display text-sm focus:outline-none focus:bg-input/40 rounded px-1"
+              />
+              <div className="text-[10px] font-mono text-muted-foreground px-1">{s.width}×{s.height} · g{s.gravity}</div>
             </div>
             <button
               onClick={() => onOpen(s.id)}
-              className="text-xs font-display px-3 py-1.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow"
-            >
-              OPEN
-            </button>
+              className="text-[10px] font-display px-2 py-1.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow"
+            >OPEN</button>
+            <button
+              onClick={() => {
+                const copy: Scene = JSON.parse(JSON.stringify(s));
+                copy.id = uid();
+                copy.name = s.name + " copy";
+                copy.entities = copy.entities.map(e => ({ ...e, id: uid() }));
+                onChange({ ...project, scenes: [...project.scenes, copy], activeSceneId: copy.id });
+              }}
+              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground"
+            >⧉</button>
             {project.scenes.length > 1 && (
               <button
                 onClick={() => {
+                  if (!confirm(`Delete "${s.name}"?`)) return;
                   const remaining = project.scenes.filter(x => x.id !== s.id);
                   onChange({
                     ...project,
