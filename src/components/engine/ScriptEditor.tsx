@@ -4,6 +4,7 @@ import {
   type Block, type BlockKind, type EventType, type Script,
   ALL_BLOCKS, BLOCK_LABELS, EVENT_LABELS, uid,
 } from "@/lib/engine/scripts";
+import { SOUND_NAMES, type SoundName, playSound } from "@/lib/engine/sfx";
 
 const KIND_OPTIONS: (EntityKind | "any")[] = ["any", "player", "platform", "enemy", "coin", "goal"];
 
