@@ -1,5 +1,10 @@
-// Tiny WebAudio synth — preset sound effects, no assets needed.
+// Tiny WebAudio synth — preset sound effects + simple background music.
 let ctx: AudioContext | null = null;
+let volume = 0.8;
+let muted = false;
+
+export function setVolume(v: number) { volume = Math.max(0, Math.min(1, v)); }
+export function setMuted(v: boolean) { muted = v; if (v) stopMusic(); }
 
 function ac(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -13,13 +18,14 @@ function ac(): AudioContext | null {
 }
 
 function beep(freq: number, dur: number, type: OscillatorType, gain = 0.2, slide = 0) {
+  if (muted) return;
   const a = ac(); if (!a) return;
   const o = a.createOscillator();
   const g = a.createGain();
   o.type = type;
   o.frequency.setValueAtTime(freq, a.currentTime);
   if (slide) o.frequency.linearRampToValueAtTime(Math.max(40, freq + slide), a.currentTime + dur);
-  g.gain.setValueAtTime(gain, a.currentTime);
+  g.gain.setValueAtTime(gain * volume, a.currentTime);
   g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
   o.connect(g); g.connect(a.destination);
   o.start();
@@ -54,4 +60,24 @@ export function vibrate(ms: number) {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
     try { (navigator as Navigator).vibrate(ms); } catch { /* ignore */ }
   }
+}
+
+// --- Background music: arpeggiated drone ---
+let musicTimer: ReturnType<typeof setInterval> | null = null;
+const NOTES = [220, 277, 330, 415, 494];
+
+export function startMusic() {
+  if (musicTimer || muted) return;
+  let i = 0;
+  const tick = () => {
+    if (muted) return;
+    beep(NOTES[i % NOTES.length], 0.6, "triangle", 0.07, 0);
+    i++;
+  };
+  tick();
+  musicTimer = setInterval(tick, 700);
+}
+
+export function stopMusic() {
+  if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
 }
