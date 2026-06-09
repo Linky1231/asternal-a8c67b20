@@ -338,6 +338,15 @@ function InspectorPanel({
         <Toggle label="Hazard" on={ent.hazard} onChange={v => update({ hazard: v })} />
         <Toggle label="Collectible" on={ent.collectible} onChange={v => update({ collectible: v })} />
       </div>
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        <Toggle label="Visible" on={ent.visible ?? true} onChange={v => update({ visible: v })} />
+        <Slider label="Opacity" value={Math.round((ent.opacity ?? 1) * 100)} min={0} max={100} step={5}
+          onChange={v => update({ opacity: v / 100 })} />
+      </div>
+      <button
+        onClick={() => update({ x: scene.width / 2 - ent.w / 2, y: scene.height / 2 - ent.h / 2 })}
+        className="w-full py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
+      >⊕ CENTER IN SCENE</button>
       <div className="grid grid-cols-3 gap-2 pt-1">
         <button
           onClick={() => {
@@ -368,6 +377,7 @@ function InspectorPanel({
           className="py-2 rounded-md bg-primary/15 border border-primary/40 text-primary-glow font-display text-[10px] tracking-widest"
         >⧉ CLONE</button>
       </div>
+
       {ent.kind !== "player" && (
         <button
           onClick={() => {
