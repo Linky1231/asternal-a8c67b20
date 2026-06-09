@@ -16,13 +16,14 @@ interface Props {
   music?: boolean;
   touchControls?: boolean;
   autoPause?: boolean;
+  showHitboxes?: boolean;
   onExit: () => void;
 }
 
 export function GameRuntime({
   scene, fpsCap, showHUD,
   showFPS = true, volume = 0.8, muted = false, music = false,
-  touchControls = true, autoPause = true,
+  touchControls = true, autoPause = true, showHitboxes = false,
   onExit,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
