@@ -790,3 +790,70 @@ function ScriptsButton({ entity, onUpdate }: { entity: Entity; onUpdate: (patch:
     </>
   );
 }
+
+function timeAgo(ts: number) {
+  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (s < 5) return "just now";
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ago`;
+}
+
+function exportProject(project: Project) {
+  const data = JSON.stringify(project, null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${(project.name || "asternal-project").replace(/\s+/g, "-").toLowerCase()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importProject(): Promise<Project | null> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
+    input.onchange = async () => {
+      const f = input.files?.[0];
+      if (!f) return resolve(null);
+      try {
+        const text = await f.text();
+        const parsed = JSON.parse(text) as Project;
+        if (!parsed.scenes || !Array.isArray(parsed.scenes)) {
+          return reject(new Error("Invalid project file"));
+        }
+        if (!confirm("Replace current project with imported file?")) return resolve(null);
+        resolve(parsed);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    input.click();
+  });
+}
+
+function HelpModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-md p-4" onClick={onClose}>
+      <div className="panel rounded-xl border border-primary/40 glow-border max-w-md w-full p-5 space-y-3" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-sm text-primary-glow glow-text tracking-[0.25em]">QUICK HELP</h2>
+          <button onClick={onClose} className="text-muted-foreground text-xl leading-none">✕</button>
+        </div>
+        <ul className="space-y-2 text-xs font-mono text-muted-foreground">
+          <li><span className="text-primary-glow">BUILD</span> · tap to place selected tool, two-finger pinch to zoom, swipe to pan.</li>
+          <li><span className="text-primary-glow">SELECT</span> · tap an entity, then open INSPECT to edit.</li>
+          <li><span className="text-primary-glow">ASSETS</span> · import multiple frames to make an animation.</li>
+          <li><span className="text-primary-glow">SCRIPTS</span> · add event blocks (onStart, onCollide) to bring entities to life.</li>
+          <li><span className="text-primary-glow">SCENES</span> · rename inline, duplicate with ⧉, scale ×N from inspector.</li>
+          <li><span className="text-primary-glow">DATA</span> · export/import your project as JSON. Auto-saves on every change.</li>
+        </ul>
+        <button onClick={onClose} className="w-full mt-2 py-2.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest">GOT IT</button>
+      </div>
+    </div>
+  );
+}
