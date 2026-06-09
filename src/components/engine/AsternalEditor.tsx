@@ -330,6 +330,8 @@ function InspectorPanel({
 
       <AnimationsButton entity={ent} onUpdate={update} />
       <ScriptsButton entity={ent} onUpdate={update} />
+      <HitboxEditor entity={ent} onUpdate={update} />
+
 
 
       <div className="grid grid-cols-2 gap-2 pt-1">
