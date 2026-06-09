@@ -740,13 +740,34 @@ function AssetsPanel({
 
   return (
     <div className="h-full overflow-auto p-4 space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <SectionTitle>SPRITES · {sprites.length}</SectionTitle>
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-primary/30 to-accent/30 border border-primary/50 text-primary-glow glow-border"
-        >+ IMPORT</button>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setPaintOpen(true)}
+            className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-accent/30 to-primary/30 border border-accent/50 text-primary-glow glow-border"
+          >✎ DRAW</button>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-primary/30 to-accent/30 border border-primary/50 text-primary-glow glow-border"
+          >+ IMPORT</button>
+        </div>
         <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => importFiles(e.target.files)}
+        />
+      </div>
+      {paintOpen && (
+        <PaintEditor
+          onClose={() => setPaintOpen(false)}
+          onSave={(asset) => { addSprite(asset); setPaintOpen(false); }}
+        />
+      )}
+
           ref={fileRef}
           type="file"
           accept="image/*"
