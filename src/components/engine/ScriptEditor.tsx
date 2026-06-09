@@ -261,18 +261,21 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<
         </div>
       );
     case "setColor":
+    case "setBg":
       return (
         <input type="color" value={block.color ?? "#7dd3fc"} onChange={e => onChange({ color: e.target.value })}
           className="w-full h-9 bg-transparent border border-border rounded" />
       );
     case "setGravity":
     case "setControllable":
+    case "setVisible":
       return (
         <button onClick={() => onChange({ bool: !block.bool })}
           className={`w-full py-1.5 rounded border text-xs font-display tracking-widest ${
             block.bool ? "bg-primary/15 border-primary/50 text-primary-glow" : "border-border text-muted-foreground"
           }`}>{block.bool ? "ON" : "OFF"}</button>
       );
+
     case "if":
       return (
         <div className="grid grid-cols-2 gap-2">
