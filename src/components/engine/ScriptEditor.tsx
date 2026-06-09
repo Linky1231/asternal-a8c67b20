@@ -109,6 +109,31 @@ export function ScriptEditor({ entity, onChange, onClose }: Props) {
                         </select>
                       </label>
                     )}
+                    {s.event === "onKeyDown" && (
+                      <label className="text-[10px] font-display tracking-widest text-muted-foreground">
+                        KEY
+                        <select
+                          value={s.key ?? "jump"}
+                          onChange={e => updateScript(s.id, { key: e.target.value as Script["key"] })}
+                          className="mt-1 w-full bg-input/60 border border-border rounded-md px-2 py-1.5 text-sm font-mono"
+                        >
+                          <option value="jump">jump</option>
+                          <option value="left">left</option>
+                          <option value="right">right</option>
+                        </select>
+                      </label>
+                    )}
+                    {s.event === "onScoreReach" && (
+                      <label className="text-[10px] font-display tracking-widest text-muted-foreground">
+                        SCORE ≥
+                        <input
+                          type="number"
+                          value={s.threshold ?? 0}
+                          onChange={e => updateScript(s.id, { threshold: Number(e.target.value) })}
+                          className="mt-1 w-full bg-input/60 border border-border rounded-md px-2 py-1.5 text-sm font-mono"
+                        />
+                      </label>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
