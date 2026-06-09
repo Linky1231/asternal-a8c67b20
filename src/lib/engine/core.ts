@@ -44,10 +44,13 @@ export interface Entity {
   collectible: boolean;
   hazard: boolean;
   goal: boolean;
+  visible?: boolean;
+  opacity?: number;
   texture?: string | null;
   animations?: AnimationClip[];
   scripts?: Script[];
 }
+
 
 export interface Scene {
   id: string;
