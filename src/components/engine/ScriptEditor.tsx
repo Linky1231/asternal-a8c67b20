@@ -134,6 +134,18 @@ export function ScriptEditor({ entity, onChange, onClose }: Props) {
                         />
                       </label>
                     )}
+                    {s.event === "onTimer" && (
+                      <label className="text-[10px] font-display tracking-widest text-muted-foreground">
+                        EVERY (MS)
+                        <input
+                          type="number"
+                          value={s.interval ?? 1000}
+                          onChange={e => updateScript(s.id, { interval: Number(e.target.value) })}
+                          className="mt-1 w-full bg-input/60 border border-border rounded-md px-2 py-1.5 text-sm font-mono"
+                        />
+                      </label>
+                    )}
+
                   </div>
 
                   <div className="space-y-1.5">
