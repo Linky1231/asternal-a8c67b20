@@ -234,6 +234,7 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<
       );
     case "teleport":
     case "setSize":
+    case "impulse":
       return (
         <div className="grid grid-cols-2 gap-2">
           <input type="number" value={block.x ?? 0} onChange={e => num("x", e.target.value)}
@@ -242,6 +243,7 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<
             placeholder={block.kind === "setSize" ? "h" : "y"} className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
         </div>
       );
+
     case "log":
       return (
         <input value={block.text ?? ""} onChange={e => onChange({ text: e.target.value })}
