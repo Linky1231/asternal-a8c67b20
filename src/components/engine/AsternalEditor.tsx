@@ -433,6 +433,14 @@ function ScenesPanel({
               }}
               className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground"
             >⧉</button>
+            <button
+              onClick={() => {
+                if (!confirm(`Clear all entities in "${s.name}"?`)) return;
+                onChange({ ...project, scenes: project.scenes.map(x => x.id === s.id ? { ...x, entities: [] } : x) });
+              }}
+              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground"
+              title="Clear entities"
+            >⌫</button>
             {project.scenes.length > 1 && (
               <button
                 onClick={() => {
