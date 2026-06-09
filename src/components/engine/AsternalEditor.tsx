@@ -72,6 +72,7 @@ export function AsternalEditor() {
           music={project.settings.music ?? false}
           touchControls={project.settings.touchControls ?? true}
           autoPause={project.settings.autoPause ?? true}
+          showHitboxes={project.settings.showHitboxes ?? false}
           onExit={() => setPlaying(false)}
         />
       </div>
