@@ -695,6 +695,13 @@ function AssetsPanel({
 }) {
   const sprites = project.assets?.sprites ?? [];
   const fileRef = useRef<HTMLInputElement>(null);
+  const [paintOpen, setPaintOpen] = useState(false);
+
+  const addSprite = (asset: SpriteAsset) => {
+    const next = [...sprites, asset];
+    onChange({ ...project, assets: { ...(project.assets ?? { sprites: [] }), sprites: next } });
+  };
+
 
   const importFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
