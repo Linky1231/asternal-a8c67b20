@@ -931,3 +931,48 @@ function HelpModal({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
+
+function HitboxEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: Partial<Entity>) => void }) {
+  const enabled = !!entity.hitbox;
+  const hb: Hitbox = entity.hitbox ?? { x: 0, y: 0, w: entity.w, h: entity.h };
+  const set = (patch: Partial<Hitbox>) => onUpdate({ hitbox: { ...hb, ...patch } });
+
+  return (
+    <div className="mt-1 panel rounded-md border border-border/60 p-2.5 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="font-display text-[11px] tracking-widest text-primary-glow">▣ HITBOX</span>
+        <Toggle
+          label={enabled ? "On" : "Off"}
+          on={enabled}
+          onChange={(v) => onUpdate({ hitbox: v ? { x: 0, y: 0, w: entity.w, h: entity.h } : null })}
+        />
+      </div>
+      {enabled && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="HB X" value={hb.x} min={-entity.w} max={entity.w} step={1} onChange={v => set({ x: v })} />
+            <Slider label="HB Y" value={hb.y} min={-entity.h} max={entity.h} step={1} onChange={v => set({ y: v })} />
+            <Slider label="HB W" value={hb.w} min={1} max={entity.w * 2} step={1} onChange={v => set({ w: v })} />
+            <Slider label="HB H" value={hb.h} min={1} max={entity.h * 2} step={1} onChange={v => set({ h: v })} />
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              onClick={() => set({ x: 0, y: 0, w: entity.w, h: entity.h })}
+              className="py-1.5 rounded border border-border text-muted-foreground font-display text-[10px] tracking-widest"
+            >FILL BOUNDS</button>
+            <button
+              onClick={() => set({
+                x: Math.round(entity.w * 0.15),
+                y: Math.round(entity.h * 0.1),
+                w: Math.round(entity.w * 0.7),
+                h: Math.round(entity.h * 0.85),
+              })}
+              className="py-1.5 rounded border border-border text-muted-foreground font-display text-[10px] tracking-widest"
+            >SHRINK 80%</button>
+          </div>
+          <div className="text-[9px] font-mono text-muted-foreground">Offset is relative to entity origin. Red dashed box = collision area.</div>
+        </>
+      )}
+    </div>
+  );
+}
