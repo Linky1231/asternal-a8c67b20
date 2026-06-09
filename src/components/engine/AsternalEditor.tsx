@@ -28,13 +28,18 @@ export function AsternalEditor() {
   const [tab, setTab] = useState<Tab>("build");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
     setProject(loadProject());
   }, []);
 
   useEffect(() => {
-    if (project) saveProject(project);
+    if (project) {
+      saveProject(project);
+      setSavedAt(Date.now());
+    }
   }, [project]);
 
   const activeScene = useMemo(
@@ -72,16 +77,26 @@ export function AsternalEditor() {
           <Logo />
           <div>
             <div className="font-display text-sm text-primary-glow glow-text leading-none">ASTERNAL</div>
-            <div className="text-[10px] font-mono text-muted-foreground -mt-0.5">ENGINE · v0.1</div>
+            <div className="text-[10px] font-mono text-muted-foreground -mt-0.5">
+              {savedAt ? `saved ${timeAgo(savedAt)}` : "ENGINE · v0.1"}
+            </div>
           </div>
         </div>
-        <button
-          onClick={() => setPlaying(true)}
-          className="font-display text-sm px-4 py-1.5 rounded-md bg-gradient-to-r from-primary to-accent text-primary-foreground glow-border active:scale-95 transition"
-        >
-          ▶ PLAY
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setHelpOpen(true)}
+            aria-label="Help"
+            className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
+          >?</button>
+          <button
+            onClick={() => setPlaying(true)}
+            className="font-display text-sm px-4 py-1.5 rounded-md bg-gradient-to-r from-primary to-accent text-primary-foreground glow-border active:scale-95 transition"
+          >
+            ▶ PLAY
+          </button>
+        </div>
       </header>
+      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
 
       {/* Main */}
       <main className="relative flex-1 min-h-0">
@@ -227,6 +242,16 @@ function InspectorPanel({
           onChange={v => onChangeScene({ ...scene, height: v })} />
 
         <div>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">BACKGROUND COLOR</label>
+          <input
+            type="color"
+            value={scene.bg}
+            onChange={e => onChangeScene({ ...scene, bg: e.target.value })}
+            className="w-full h-10 rounded-md bg-transparent border border-border mt-1"
+          />
+        </div>
+
+        <div>
           <label className="text-[10px] font-display tracking-widest text-muted-foreground">SCALE SCENE + CONTENTS</label>
           <div className="grid grid-cols-4 gap-1.5 mt-1">
             {[0.5, 0.75, 1.5, 2].map(k => (
@@ -305,6 +330,36 @@ function InspectorPanel({
         <Toggle label="Hazard" on={ent.hazard} onChange={v => update({ hazard: v })} />
         <Toggle label="Collectible" on={ent.collectible} onChange={v => update({ collectible: v })} />
       </div>
+      <div className="grid grid-cols-3 gap-2 pt-1">
+        <button
+          onClick={() => {
+            const idx = scene.entities.findIndex(e => e.id === ent.id);
+            if (idx <= 0) return;
+            const next = [...scene.entities];
+            [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+            onChangeScene({ ...scene, entities: next });
+          }}
+          className="py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
+        >↓ BACK</button>
+        <button
+          onClick={() => {
+            const idx = scene.entities.findIndex(e => e.id === ent.id);
+            if (idx < 0 || idx === scene.entities.length - 1) return;
+            const next = [...scene.entities];
+            [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+            onChangeScene({ ...scene, entities: next });
+          }}
+          className="py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
+        >↑ FRONT</button>
+        <button
+          onClick={() => {
+            const copy = { ...ent, id: uid(), x: ent.x + 20, y: ent.y + 20 };
+            onChangeScene({ ...scene, entities: [...scene.entities, copy] });
+            onSelect(copy.id);
+          }}
+          className="py-2 rounded-md bg-primary/15 border border-primary/40 text-primary-glow font-display text-[10px] tracking-widest"
+        >⧉ CLONE</button>
+      </div>
       {ent.kind !== "player" && (
         <button
           onClick={() => {
@@ -334,23 +389,36 @@ function ScenesPanel({
       <SectionTitle>SCENES</SectionTitle>
       <div className="space-y-2">
         {project.scenes.map(s => (
-          <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-3 glow-border">
-            <div className="w-12 h-12 rounded-md bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center font-display text-primary-glow">
+          <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-2 glow-border">
+            <div className="w-12 h-12 rounded-md bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center font-display text-primary-glow shrink-0">
               {s.entities.length}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-display text-sm truncate">{s.name}</div>
-              <div className="text-[10px] font-mono text-muted-foreground">{s.width}×{s.height} · g{s.gravity}</div>
+              <input
+                value={s.name}
+                onChange={e => onChange({ ...project, scenes: project.scenes.map(x => x.id === s.id ? { ...x, name: e.target.value } : x) })}
+                className="w-full bg-transparent font-display text-sm focus:outline-none focus:bg-input/40 rounded px-1"
+              />
+              <div className="text-[10px] font-mono text-muted-foreground px-1">{s.width}×{s.height} · g{s.gravity}</div>
             </div>
             <button
               onClick={() => onOpen(s.id)}
-              className="text-xs font-display px-3 py-1.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow"
-            >
-              OPEN
-            </button>
+              className="text-[10px] font-display px-2 py-1.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow"
+            >OPEN</button>
+            <button
+              onClick={() => {
+                const copy: Scene = JSON.parse(JSON.stringify(s));
+                copy.id = uid();
+                copy.name = s.name + " copy";
+                copy.entities = copy.entities.map(e => ({ ...e, id: uid() }));
+                onChange({ ...project, scenes: [...project.scenes, copy], activeSceneId: copy.id });
+              }}
+              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground"
+            >⧉</button>
             {project.scenes.length > 1 && (
               <button
                 onClick={() => {
+                  if (!confirm(`Delete "${s.name}"?`)) return;
                   const remaining = project.scenes.filter(x => x.id !== s.id);
                   onChange({
                     ...project,
@@ -402,7 +470,25 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
       </div>
       <Toggle label="Show HUD" on={project.settings.showHUD} onChange={v => onChange({ ...project, settings: { ...project.settings, showHUD: v } })} />
 
+      <SectionTitle>GRID</SectionTitle>
+      <Toggle label="Show grid" on={project.settings.showGrid ?? true}
+        onChange={v => onChange({ ...project, settings: { ...project.settings, showGrid: v } })} />
+      <Toggle label="Snap to grid" on={project.settings.snapToGrid ?? false}
+        onChange={v => onChange({ ...project, settings: { ...project.settings, snapToGrid: v } })} />
+      <Slider label="Grid size" value={project.settings.gridSize ?? 16} min={4} max={64} step={2}
+        onChange={v => onChange({ ...project, settings: { ...project.settings, gridSize: v } })} />
+
       <SectionTitle>DATA</SectionTitle>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => exportProject(project)}
+          className="py-2.5 rounded-md bg-primary/15 border border-primary/50 text-primary-glow font-display text-xs tracking-widest"
+        >⤓ EXPORT JSON</button>
+        <button
+          onClick={() => importProject().then(p => p && onChange(p)).catch(e => alert(String(e)))}
+          className="py-2.5 rounded-md bg-accent/15 border border-accent/50 text-primary-glow font-display text-xs tracking-widest"
+        >⤒ IMPORT JSON</button>
+      </div>
       <button
         onClick={() => {
           if (confirm("Reset project? All scenes will be lost.")) {
@@ -702,5 +788,72 @@ function ScriptsButton({ entity, onUpdate }: { entity: Entity; onUpdate: (patch:
         />
       )}
     </>
+  );
+}
+
+function timeAgo(ts: number) {
+  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (s < 5) return "just now";
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ago`;
+}
+
+function exportProject(project: Project) {
+  const data = JSON.stringify(project, null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${(project.name || "asternal-project").replace(/\s+/g, "-").toLowerCase()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importProject(): Promise<Project | null> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
+    input.onchange = async () => {
+      const f = input.files?.[0];
+      if (!f) return resolve(null);
+      try {
+        const text = await f.text();
+        const parsed = JSON.parse(text) as Project;
+        if (!parsed.scenes || !Array.isArray(parsed.scenes)) {
+          return reject(new Error("Invalid project file"));
+        }
+        if (!confirm("Replace current project with imported file?")) return resolve(null);
+        resolve(parsed);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    input.click();
+  });
+}
+
+function HelpModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-md p-4" onClick={onClose}>
+      <div className="panel rounded-xl border border-primary/40 glow-border max-w-md w-full p-5 space-y-3" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-sm text-primary-glow glow-text tracking-[0.25em]">QUICK HELP</h2>
+          <button onClick={onClose} className="text-muted-foreground text-xl leading-none">✕</button>
+        </div>
+        <ul className="space-y-2 text-xs font-mono text-muted-foreground">
+          <li><span className="text-primary-glow">BUILD</span> · tap to place selected tool, two-finger pinch to zoom, swipe to pan.</li>
+          <li><span className="text-primary-glow">SELECT</span> · tap an entity, then open INSPECT to edit.</li>
+          <li><span className="text-primary-glow">ASSETS</span> · import multiple frames to make an animation.</li>
+          <li><span className="text-primary-glow">SCRIPTS</span> · add event blocks (onStart, onCollide) to bring entities to life.</li>
+          <li><span className="text-primary-glow">SCENES</span> · rename inline, duplicate with ⧉, scale ×N from inspector.</li>
+          <li><span className="text-primary-glow">DATA</span> · export/import your project as JSON. Auto-saves on every change.</li>
+        </ul>
+        <button onClick={onClose} className="w-full mt-2 py-2.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest">GOT IT</button>
+      </div>
+    </div>
   );
 }
