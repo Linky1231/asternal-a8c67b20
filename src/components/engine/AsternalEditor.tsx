@@ -330,6 +330,36 @@ function InspectorPanel({
         <Toggle label="Hazard" on={ent.hazard} onChange={v => update({ hazard: v })} />
         <Toggle label="Collectible" on={ent.collectible} onChange={v => update({ collectible: v })} />
       </div>
+      <div className="grid grid-cols-3 gap-2 pt-1">
+        <button
+          onClick={() => {
+            const idx = scene.entities.findIndex(e => e.id === ent.id);
+            if (idx <= 0) return;
+            const next = [...scene.entities];
+            [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+            onChangeScene({ ...scene, entities: next });
+          }}
+          className="py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
+        >↓ BACK</button>
+        <button
+          onClick={() => {
+            const idx = scene.entities.findIndex(e => e.id === ent.id);
+            if (idx < 0 || idx === scene.entities.length - 1) return;
+            const next = [...scene.entities];
+            [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+            onChangeScene({ ...scene, entities: next });
+          }}
+          className="py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
+        >↑ FRONT</button>
+        <button
+          onClick={() => {
+            const copy = { ...ent, id: uid(), x: ent.x + 20, y: ent.y + 20 };
+            onChangeScene({ ...scene, entities: [...scene.entities, copy] });
+            onSelect(copy.id);
+          }}
+          className="py-2 rounded-md bg-primary/15 border border-primary/40 text-primary-glow font-display text-[10px] tracking-widest"
+        >⧉ CLONE</button>
+      </div>
       {ent.kind !== "player" && (
         <button
           onClick={() => {
