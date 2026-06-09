@@ -470,7 +470,25 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
       </div>
       <Toggle label="Show HUD" on={project.settings.showHUD} onChange={v => onChange({ ...project, settings: { ...project.settings, showHUD: v } })} />
 
+      <SectionTitle>GRID</SectionTitle>
+      <Toggle label="Show grid" on={project.settings.showGrid ?? true}
+        onChange={v => onChange({ ...project, settings: { ...project.settings, showGrid: v } })} />
+      <Toggle label="Snap to grid" on={project.settings.snapToGrid ?? false}
+        onChange={v => onChange({ ...project, settings: { ...project.settings, snapToGrid: v } })} />
+      <Slider label="Grid size" value={project.settings.gridSize ?? 16} min={4} max={64} step={2}
+        onChange={v => onChange({ ...project, settings: { ...project.settings, gridSize: v } })} />
+
       <SectionTitle>DATA</SectionTitle>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => exportProject(project)}
+          className="py-2.5 rounded-md bg-primary/15 border border-primary/50 text-primary-glow font-display text-xs tracking-widest"
+        >⤓ EXPORT JSON</button>
+        <button
+          onClick={() => importProject().then(p => p && onChange(p)).catch(e => alert(String(e)))}
+          className="py-2.5 rounded-md bg-accent/15 border border-accent/50 text-primary-glow font-display text-xs tracking-widest"
+        >⤒ IMPORT JSON</button>
+      </div>
       <button
         onClick={() => {
           if (confirm("Reset project? All scenes will be lost.")) {
