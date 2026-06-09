@@ -23,6 +23,13 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
     const work: Scene = JSON.parse(JSON.stringify(scene));
     const state: RuntimeState = { score: 0, lives: 1, win: false, dead: false, cameraX: 0 };
     const scripts = createScriptRunner();
+    const shake = { intensity: 0, time: 0 };
+    const hooks = {
+      shake: (intensity: number, duration: number) => {
+        shake.intensity = Math.max(shake.intensity, intensity);
+        shake.time = Math.max(shake.time, duration);
+      },
+    };
 
     let raf = 0;
     let last = performance.now();
@@ -63,9 +70,12 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
         ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
       }
 
-      // scale world to fit height
+      // scale world to fit height (+ screen shake offset)
       const scale = H / work.height;
+      const sx = shake.time > 0 ? (Math.random() - 0.5) * shake.intensity : 0;
+      const sy = shake.time > 0 ? (Math.random() - 0.5) * shake.intensity : 0;
       ctx.save();
+      ctx.translate(sx, sy);
       ctx.scale(scale, scale);
       ctx.translate(-state.cameraX, 0);
 
@@ -95,8 +105,9 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
       while (acc >= targetDt && steps < 5) {
         if (!state.win && !state.dead) {
           stepScene(work, inputRef.current, state, targetDt);
-          scripts.step(work, state);
+          scripts.step(work, state, inputRef.current, hooks);
         }
+        if (shake.time > 0) shake.time = Math.max(0, shake.time - targetDt);
         acc -= targetDt;
         steps++;
       }
