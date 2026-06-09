@@ -28,13 +28,18 @@ export function AsternalEditor() {
   const [tab, setTab] = useState<Tab>("build");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
     setProject(loadProject());
   }, []);
 
   useEffect(() => {
-    if (project) saveProject(project);
+    if (project) {
+      saveProject(project);
+      setSavedAt(Date.now());
+    }
   }, [project]);
 
   const activeScene = useMemo(
