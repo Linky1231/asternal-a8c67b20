@@ -109,6 +109,17 @@ export function GameRuntime({
         drawEntity(ctx, e, tSec);
         if (a !== 1) ctx.globalAlpha = 1;
       }
+      if (showHitboxes) {
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "#f43f5e";
+        ctx.setLineDash([4, 3]);
+        for (const e of work.entities) {
+          const hb = e.hitbox;
+          if (hb) ctx.strokeRect(e.x + hb.x, e.y + hb.y, hb.w, hb.h);
+          else ctx.strokeRect(e.x, e.y, e.w, e.h);
+        }
+        ctx.setLineDash([]);
+      }
       ctx.restore();
 
       if (showHUD) {
