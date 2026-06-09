@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene } from "@/lib/engine/core";
-import { newScene, uid } from "@/lib/engine/core";
+import { newScene, uid, DEFAULT_SETTINGS } from "@/lib/engine/core";
 import { loadProject, saveProject } from "@/lib/engine/storage";
 import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
@@ -8,6 +8,7 @@ import { GameRuntime } from "./GameRuntime";
 import { AnimationEditor } from "./AnimationEditor";
 
 import { ScriptEditor } from "./ScriptEditor";
+
 
 type Tool = EntityKind | "select" | "erase";
 type Tab = "build" | "inspect" | "scenes" | "assets" | "settings";
@@ -63,11 +64,18 @@ export function AsternalEditor() {
           scene={activeScene}
           fpsCap={project.settings.fpsCap}
           showHUD={project.settings.showHUD}
+          showFPS={project.settings.showFPS ?? true}
+          volume={project.settings.volume ?? 0.8}
+          muted={project.settings.muted ?? false}
+          music={project.settings.music ?? false}
+          touchControls={project.settings.touchControls ?? true}
+          autoPause={project.settings.autoPause ?? true}
           onExit={() => setPlaying(false)}
         />
       </div>
     );
   }
+
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden">
@@ -330,6 +338,15 @@ function InspectorPanel({
         <Toggle label="Hazard" on={ent.hazard} onChange={v => update({ hazard: v })} />
         <Toggle label="Collectible" on={ent.collectible} onChange={v => update({ collectible: v })} />
       </div>
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        <Toggle label="Visible" on={ent.visible ?? true} onChange={v => update({ visible: v })} />
+        <Slider label="Opacity" value={Math.round((ent.opacity ?? 1) * 100)} min={0} max={100} step={5}
+          onChange={v => update({ opacity: v / 100 })} />
+      </div>
+      <button
+        onClick={() => update({ x: scene.width / 2 - ent.w / 2, y: scene.height / 2 - ent.h / 2 })}
+        className="w-full py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
+      >⊕ CENTER IN SCENE</button>
       <div className="grid grid-cols-3 gap-2 pt-1">
         <button
           onClick={() => {
@@ -360,6 +377,7 @@ function InspectorPanel({
           className="py-2 rounded-md bg-primary/15 border border-primary/40 text-primary-glow font-display text-[10px] tracking-widest"
         >⧉ CLONE</button>
       </div>
+
       {ent.kind !== "player" && (
         <button
           onClick={() => {
@@ -415,6 +433,14 @@ function ScenesPanel({
               }}
               className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground"
             >⧉</button>
+            <button
+              onClick={() => {
+                if (!confirm(`Clear all entities in "${s.name}"?`)) return;
+                onChange({ ...project, scenes: project.scenes.map(x => x.id === s.id ? { ...x, entities: [] } : x) });
+              }}
+              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground"
+              title="Clear entities"
+            >⌫</button>
             {project.scenes.length > 1 && (
               <button
                 onClick={() => {
@@ -447,6 +473,9 @@ function ScenesPanel({
 }
 
 function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: Project) => void }) {
+  const set = (patch: Partial<Project["settings"]>) =>
+    onChange({ ...project, settings: { ...project.settings, ...patch } });
+
   return (
     <div className="h-full overflow-auto p-4 space-y-4">
       <SectionTitle>PROJECT</SectionTitle>
@@ -458,7 +487,7 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
         <div className="flex gap-2 mt-1">
           {[30, 60].map(f => (
             <button key={f}
-              onClick={() => onChange({ ...project, settings: { ...project.settings, fpsCap: f as 30 | 60 } })}
+              onClick={() => set({ fpsCap: f as 30 | 60 })}
               className={`flex-1 py-2 rounded-md font-display border ${
                 project.settings.fpsCap === f
                   ? "bg-primary/20 border-primary text-primary-glow"
@@ -468,15 +497,26 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
           ))}
         </div>
       </div>
-      <Toggle label="Show HUD" on={project.settings.showHUD} onChange={v => onChange({ ...project, settings: { ...project.settings, showHUD: v } })} />
+      <div className="grid grid-cols-2 gap-2">
+        <Toggle label="Show HUD" on={project.settings.showHUD} onChange={v => set({ showHUD: v })} />
+        <Toggle label="Show FPS" on={project.settings.showFPS ?? true} onChange={v => set({ showFPS: v })} />
+        <Toggle label="Touch ctrls" on={project.settings.touchControls ?? true} onChange={v => set({ touchControls: v })} />
+        <Toggle label="Auto-pause" on={project.settings.autoPause ?? true} onChange={v => set({ autoPause: v })} />
+      </div>
+
+      <SectionTitle>AUDIO</SectionTitle>
+      <div className="grid grid-cols-2 gap-2">
+        <Toggle label="Mute" on={project.settings.muted ?? false} onChange={v => set({ muted: v })} />
+        <Toggle label="Music" on={project.settings.music ?? false} onChange={v => set({ music: v })} />
+      </div>
+      <Slider label="Volume" value={Math.round((project.settings.volume ?? 0.8) * 100)} min={0} max={100} step={5}
+        onChange={v => set({ volume: v / 100 })} />
 
       <SectionTitle>GRID</SectionTitle>
-      <Toggle label="Show grid" on={project.settings.showGrid ?? true}
-        onChange={v => onChange({ ...project, settings: { ...project.settings, showGrid: v } })} />
-      <Toggle label="Snap to grid" on={project.settings.snapToGrid ?? false}
-        onChange={v => onChange({ ...project, settings: { ...project.settings, snapToGrid: v } })} />
+      <Toggle label="Show grid" on={project.settings.showGrid ?? true} onChange={v => set({ showGrid: v })} />
+      <Toggle label="Snap to grid" on={project.settings.snapToGrid ?? false} onChange={v => set({ snapToGrid: v })} />
       <Slider label="Grid size" value={project.settings.gridSize ?? 16} min={4} max={64} step={2}
-        onChange={v => onChange({ ...project, settings: { ...project.settings, gridSize: v } })} />
+        onChange={v => set({ gridSize: v })} />
 
       <SectionTitle>DATA</SectionTitle>
       <div className="grid grid-cols-2 gap-2">
@@ -491,7 +531,15 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
       </div>
       <button
         onClick={() => {
-          if (confirm("Reset project? All scenes will be lost.")) {
+          if (confirm("Restore default settings? Scenes and assets will be kept.")) {
+            onChange({ ...project, settings: { ...DEFAULT_SETTINGS } });
+          }
+        }}
+        className="w-full py-2.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest glow-border"
+      >↺ RESET TO DEFAULT SETTINGS</button>
+      <button
+        onClick={() => {
+          if (confirm("Reset entire project? All scenes will be lost.")) {
             localStorage.removeItem("asternal:project");
             location.reload();
           }
@@ -505,6 +553,7 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
     </div>
   );
 }
+
 
 // --- shared bits ---
 function SectionTitle({ children }: { children: React.ReactNode }) {

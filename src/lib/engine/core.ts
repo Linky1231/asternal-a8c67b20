@@ -44,10 +44,13 @@ export interface Entity {
   collectible: boolean;
   hazard: boolean;
   goal: boolean;
+  visible?: boolean;
+  opacity?: number;
   texture?: string | null;
   animations?: AnimationClip[];
   scripts?: Script[];
 }
+
 
 export interface Scene {
   id: string;
@@ -59,26 +62,48 @@ export interface Scene {
   entities: Entity[];
 }
 
+export interface ProjectSettings {
+  fpsCap: 30 | 60;
+  showHUD: boolean;
+  showFPS?: boolean;
+  gridSize?: number;
+  snapToGrid?: boolean;
+  showGrid?: boolean;
+  volume?: number;       // 0..1
+  muted?: boolean;
+  music?: boolean;
+  touchControls?: boolean;
+  autoPause?: boolean;
+}
+
 export interface Project {
   name: string;
   scenes: Scene[];
   activeSceneId: string;
   assets?: { sprites: SpriteAsset[] };
-  settings: {
-    fpsCap: 30 | 60;
-    showHUD: boolean;
-    gridSize?: number;
-    snapToGrid?: boolean;
-    showGrid?: boolean;
-  };
+  settings: ProjectSettings;
 }
 
+export const DEFAULT_SETTINGS: ProjectSettings = {
+  fpsCap: 60,
+  showHUD: true,
+  showFPS: true,
+  gridSize: 16,
+  snapToGrid: false,
+  showGrid: true,
+  volume: 0.8,
+  muted: false,
+  music: false,
+  touchControls: true,
+  autoPause: true,
+};
+
 export const KIND_PRESETS: Record<EntityKind, Omit<Entity, "id" | "x" | "y">> = {
-  player: { kind: "player", w: 40, h: 56, vx: 0, vy: 0, color: "#38bdf8", solid: true, gravity: true, controllable: true, collectible: false, hazard: false, goal: false, texture: null },
-  platform: { kind: "platform", w: 160, h: 24, vx: 0, vy: 0, color: "#1e3a8a", solid: true, gravity: false, controllable: false, collectible: false, hazard: false, goal: false, texture: null },
-  enemy: { kind: "enemy", w: 40, h: 40, vx: 60, vy: 0, color: "#f43f5e", solid: false, gravity: true, controllable: false, collectible: false, hazard: true, goal: false, texture: null },
-  coin: { kind: "coin", w: 22, h: 22, vx: 0, vy: 0, color: "#fbbf24", solid: false, gravity: false, controllable: false, collectible: true, hazard: false, goal: false, texture: null },
-  goal: { kind: "goal", w: 36, h: 64, vx: 0, vy: 0, color: "#7dd3fc", solid: false, gravity: false, controllable: false, collectible: false, hazard: false, goal: true, texture: null },
+  player: { kind: "player", w: 40, h: 56, vx: 0, vy: 0, color: "#38bdf8", solid: true, gravity: true, controllable: true, collectible: false, hazard: false, goal: false, visible: true, opacity: 1, texture: null },
+  platform: { kind: "platform", w: 160, h: 24, vx: 0, vy: 0, color: "#1e3a8a", solid: true, gravity: false, controllable: false, collectible: false, hazard: false, goal: false, visible: true, opacity: 1, texture: null },
+  enemy: { kind: "enemy", w: 40, h: 40, vx: 60, vy: 0, color: "#f43f5e", solid: false, gravity: true, controllable: false, collectible: false, hazard: true, goal: false, visible: true, opacity: 1, texture: null },
+  coin: { kind: "coin", w: 22, h: 22, vx: 0, vy: 0, color: "#fbbf24", solid: false, gravity: false, controllable: false, collectible: true, hazard: false, goal: false, visible: true, opacity: 1, texture: null },
+  goal: { kind: "goal", w: 36, h: 64, vx: 0, vy: 0, color: "#7dd3fc", solid: false, gravity: false, controllable: false, collectible: false, hazard: false, goal: true, visible: true, opacity: 1, texture: null },
 };
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
@@ -111,9 +136,10 @@ export function newProject(): Project {
     scenes: [s],
     activeSceneId: s.id,
     assets: { sprites: [] },
-    settings: { fpsCap: 60, showHUD: true },
+    settings: { ...DEFAULT_SETTINGS },
   };
 }
+
 
 // --- Physics: AABB ---
 export function intersects(a: Entity, b: Entity) {

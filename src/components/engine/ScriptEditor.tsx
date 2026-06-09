@@ -134,6 +134,18 @@ export function ScriptEditor({ entity, onChange, onClose }: Props) {
                         />
                       </label>
                     )}
+                    {s.event === "onTimer" && (
+                      <label className="text-[10px] font-display tracking-widest text-muted-foreground">
+                        EVERY (MS)
+                        <input
+                          type="number"
+                          value={s.interval ?? 1000}
+                          onChange={e => updateScript(s.id, { interval: Number(e.target.value) })}
+                          className="mt-1 w-full bg-input/60 border border-border rounded-md px-2 py-1.5 text-sm font-mono"
+                        />
+                      </label>
+                    )}
+
                   </div>
 
                   <div className="space-y-1.5">
@@ -178,18 +190,22 @@ function defaultBlock(k: BlockKind): Block {
     case "setVy": return { ...base, value: 0 };
     case "addScore": return { ...base, value: 10 };
     case "teleport": return { ...base, x: 100, y: 100 };
+    case "impulse": return { ...base, x: 0, y: -300 };
     case "log": return { ...base, text: "hello" };
     case "playSound": return { ...base, sound: "coin" };
     case "vibrate": return { ...base, value: 50 };
     case "shake": return { ...base, value: 8 };
     case "setColor": return { ...base, color: "#7dd3fc" };
+    case "setBg": return { ...base, color: "#0b1e3f" };
     case "setSize": return { ...base, x: 32, y: 32 };
     case "setGravity": return { ...base, bool: true };
     case "setControllable": return { ...base, bool: true };
+    case "setVisible": return { ...base, bool: true };
     case "if": return { ...base, cond: "scoreGte", value: 10, thenBlocks: [] };
     default: return base;
   }
 }
+
 
 function BlockRow({ block, onChange, onRemove }: { block: Block; onChange: (p: Partial<Block>) => void; onRemove: () => void }) {
   return (
@@ -218,6 +234,7 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<
       );
     case "teleport":
     case "setSize":
+    case "impulse":
       return (
         <div className="grid grid-cols-2 gap-2">
           <input type="number" value={block.x ?? 0} onChange={e => num("x", e.target.value)}
@@ -226,6 +243,7 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<
             placeholder={block.kind === "setSize" ? "h" : "y"} className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
         </div>
       );
+
     case "log":
       return (
         <input value={block.text ?? ""} onChange={e => onChange({ text: e.target.value })}
@@ -243,18 +261,21 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<
         </div>
       );
     case "setColor":
+    case "setBg":
       return (
         <input type="color" value={block.color ?? "#7dd3fc"} onChange={e => onChange({ color: e.target.value })}
           className="w-full h-9 bg-transparent border border-border rounded" />
       );
     case "setGravity":
     case "setControllable":
+    case "setVisible":
       return (
         <button onClick={() => onChange({ bool: !block.bool })}
           className={`w-full py-1.5 rounded border text-xs font-display tracking-widest ${
             block.bool ? "bg-primary/15 border-primary/50 text-primary-glow" : "border-border text-muted-foreground"
           }`}>{block.bool ? "ON" : "OFF"}</button>
       );
+
     case "if":
       return (
         <div className="grid grid-cols-2 gap-2">

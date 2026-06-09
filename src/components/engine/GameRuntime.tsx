@@ -4,32 +4,61 @@ import { stepScene } from "@/lib/engine/core";
 import { getImage } from "@/lib/engine/images";
 import { currentFrameImage } from "@/lib/engine/animations";
 import { createScriptRunner } from "@/lib/engine/scripts";
+import { startMusic, stopMusic, setVolume, setMuted } from "@/lib/engine/sfx";
 
 interface Props {
   scene: Scene;
   fpsCap: 30 | 60;
   showHUD: boolean;
+  showFPS?: boolean;
+  volume?: number;
+  muted?: boolean;
+  music?: boolean;
+  touchControls?: boolean;
+  autoPause?: boolean;
   onExit: () => void;
 }
 
-export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
+export function GameRuntime({
+  scene, fpsCap, showHUD,
+  showFPS = true, volume = 0.8, muted = false, music = false,
+  touchControls = true, autoPause = true,
+  onExit,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<RuntimeInput>({ left: false, right: false, jump: false });
   const [hud, setHud] = useState({ score: 0, fps: 0, win: false, dead: false });
 
+  useEffect(() => { setVolume(volume); }, [volume]);
+  useEffect(() => { setMuted(muted); }, [muted]);
+  useEffect(() => {
+    if (music && !muted) startMusic(); else stopMusic();
+    return () => stopMusic();
+  }, [music, muted]);
+
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
-    const work: Scene = JSON.parse(JSON.stringify(scene));
+    const initial: Scene = JSON.parse(JSON.stringify(scene));
+    let work: Scene = JSON.parse(JSON.stringify(initial));
     const state: RuntimeState = { score: 0, lives: 1, win: false, dead: false, cameraX: 0 };
-    const scripts = createScriptRunner();
+    let scripts = createScriptRunner();
     const shake = { intensity: 0, time: 0 };
     const hooks = {
       shake: (intensity: number, duration: number) => {
         shake.intensity = Math.max(shake.intensity, intensity);
         shake.time = Math.max(shake.time, duration);
       },
+      restart: () => {
+        work = JSON.parse(JSON.stringify(initial));
+        state.score = 0; state.win = false; state.dead = false; state.cameraX = 0;
+        scripts = createScriptRunner();
+      },
     };
+
+    let paused = false;
+    const onVis = () => { if (autoPause) paused = document.hidden; };
+    document.addEventListener("visibilitychange", onVis);
 
     let raf = 0;
     let last = performance.now();
@@ -50,27 +79,19 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
     const draw = () => {
       const W = canvas.clientWidth;
       const H = canvas.clientHeight;
-      // bg
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#0b1e3f");
-      g.addColorStop(1, "#020617");
-      ctx.fillStyle = g;
+      ctx.fillStyle = work.bg || "#0b1e3f";
       ctx.fillRect(0, 0, W, H);
 
-      // parallax grid
-      ctx.strokeStyle = "rgba(56,189,248,0.12)";
+      ctx.strokeStyle = "rgba(56,189,248,0.10)";
       ctx.lineWidth = 1;
       const off = -state.cameraX * 0.4;
       for (let x = (off % 40); x < W; x += 40) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
       }
       for (let y = 0; y < H; y += 40) {
-        ctx.beginPath();
-        ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
       }
 
-      // scale world to fit height (+ screen shake offset)
       const scale = H / work.height;
       const sx = shake.time > 0 ? (Math.random() - 0.5) * shake.intensity : 0;
       const sy = shake.time > 0 ? (Math.random() - 0.5) * shake.intensity : 0;
@@ -81,7 +102,11 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
 
       const tSec = performance.now() / 1000;
       for (const e of work.entities) {
+        if (e.visible === false) continue;
+        const a = e.opacity ?? 1;
+        if (a !== 1) ctx.globalAlpha = a;
         drawEntity(ctx, e, tSec);
+        if (a !== 1) ctx.globalAlpha = 1;
       }
       ctx.restore();
 
@@ -100,16 +125,18 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
       raf = requestAnimationFrame(loop);
       const elapsed = (now - last) / 1000;
       last = now;
-      acc += elapsed;
-      let steps = 0;
-      while (acc >= targetDt && steps < 5) {
-        if (!state.win && !state.dead) {
-          stepScene(work, inputRef.current, state, targetDt);
-          scripts.step(work, state, inputRef.current, hooks);
+      if (!paused) {
+        acc += elapsed;
+        let steps = 0;
+        while (acc >= targetDt && steps < 5) {
+          if (!state.win && !state.dead) {
+            stepScene(work, inputRef.current, state, targetDt);
+            scripts.step(work, state, inputRef.current, hooks, targetDt);
+          }
+          if (shake.time > 0) shake.time = Math.max(0, shake.time - targetDt);
+          acc -= targetDt;
+          steps++;
         }
-        if (shake.time > 0) shake.time = Math.max(0, shake.time - targetDt);
-        acc -= targetDt;
-        steps++;
       }
       draw();
       frames++;
@@ -124,8 +151,9 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVis);
     };
-  }, [scene, fpsCap, showHUD]);
+  }, [scene, fpsCap, showHUD, autoPause]);
 
   const press = (k: keyof RuntimeInput, v: boolean) => {
     inputRef.current[k] = v;
@@ -135,32 +163,27 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
     <div className="relative h-full w-full">
       <canvas ref={canvasRef} className="h-full w-full block" />
 
-      {/* HUD overlay */}
       <div className="pointer-events-none absolute top-3 right-3 flex gap-2">
-        <div className="panel rounded-md px-2 py-1 text-[10px] font-mono text-primary-glow">
-          {hud.fps} FPS
-        </div>
+        {showFPS && (
+          <div className="panel rounded-md px-2 py-1 text-[10px] font-mono text-primary-glow">
+            {hud.fps} FPS
+          </div>
+        )}
         <button
           onClick={onExit}
           className="pointer-events-auto panel rounded-md px-3 py-1 text-xs font-display text-foreground glow-border"
-        >
-          STOP
-        </button>
+        >STOP</button>
       </div>
 
-      {/* Touch controls */}
-      <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between select-none">
-        <div className="flex gap-3">
-          <TouchBtn label="◀" onDown={() => press("left", true)} onUp={() => press("left", false)} />
-          <TouchBtn label="▶" onDown={() => press("right", true)} onUp={() => press("right", false)} />
+      {touchControls && (
+        <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between select-none">
+          <div className="flex gap-3">
+            <TouchBtn label="◀" onDown={() => press("left", true)} onUp={() => press("left", false)} />
+            <TouchBtn label="▶" onDown={() => press("right", true)} onUp={() => press("right", false)} />
+          </div>
+          <TouchBtn label="JUMP" big onDown={() => press("jump", true)} onUp={() => press("jump", false)} />
         </div>
-        <TouchBtn
-          label="JUMP"
-          big
-          onDown={() => press("jump", true)}
-          onUp={() => press("jump", false)}
-        />
-      </div>
+      )}
 
       {(hud.win || hud.dead) && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
@@ -172,9 +195,7 @@ export function GameRuntime({ scene, fpsCap, showHUD, onExit }: Props) {
             <button
               onClick={onExit}
               className="font-display text-sm px-5 py-2 rounded-md bg-primary text-primary-foreground glow-border"
-            >
-              BACK TO EDITOR
-            </button>
+            >BACK TO EDITOR</button>
           </div>
         </div>
       )}
