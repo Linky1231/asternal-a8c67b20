@@ -179,6 +179,13 @@ function defaultBlock(k: BlockKind): Block {
     case "addScore": return { ...base, value: 10 };
     case "teleport": return { ...base, x: 100, y: 100 };
     case "log": return { ...base, text: "hello" };
+    case "playSound": return { ...base, sound: "coin" };
+    case "vibrate": return { ...base, value: 50 };
+    case "shake": return { ...base, value: 8 };
+    case "setColor": return { ...base, color: "#7dd3fc" };
+    case "setSize": return { ...base, x: 32, y: 32 };
+    case "setGravity": return { ...base, bool: true };
+    case "setControllable": return { ...base, bool: true };
     case "if": return { ...base, cond: "scoreGte", value: 10, thenBlocks: [] };
     default: return base;
   }
