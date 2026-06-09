@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Asternal Engine" },
+      { name: "description", content: "Asternal Engine is a mobile game development tool for intuitive game creation on mobile devices." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Asternal Engine" },
+      { property: "og:description", content: "Asternal Engine is a mobile game development tool for intuitive game creation on mobile devices." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Asternal Engine" },
+      { name: "twitter:description", content: "Asternal Engine is a mobile game development tool for intuitive game creation on mobile devices." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/26841cff-eee6-4a89-ac90-de7c6f15437f/id-preview-b6f52948--a34ffe51-098c-4c8f-b955-ee330e30dc90.lovable.app-1780965889796.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/26841cff-eee6-4a89-ac90-de7c6f15437f/id-preview-b6f52948--a34ffe51-098c-4c8f-b955-ee330e30dc90.lovable.app-1780965889796.png" },
     ],
     links: [
       {
