@@ -210,23 +210,50 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<
     case "setVx":
     case "setVy":
     case "addScore":
+    case "vibrate":
+    case "shake":
       return (
         <input type="number" value={block.value ?? 0} onChange={e => num("value", e.target.value)}
           className="w-full bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
       );
     case "teleport":
+    case "setSize":
       return (
         <div className="grid grid-cols-2 gap-2">
           <input type="number" value={block.x ?? 0} onChange={e => num("x", e.target.value)}
-            placeholder="x" className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
+            placeholder={block.kind === "setSize" ? "w" : "x"} className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
           <input type="number" value={block.y ?? 0} onChange={e => num("y", e.target.value)}
-            placeholder="y" className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
+            placeholder={block.kind === "setSize" ? "h" : "y"} className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
         </div>
       );
     case "log":
       return (
         <input value={block.text ?? ""} onChange={e => onChange({ text: e.target.value })}
           className="w-full bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
+      );
+    case "playSound":
+      return (
+        <div className="flex gap-2">
+          <select value={block.sound ?? "blip"} onChange={e => onChange({ sound: e.target.value as SoundName })}
+            className="flex-1 bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono">
+            {SOUND_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <button type="button" onClick={() => playSound((block.sound ?? "blip") as SoundName)}
+            className="px-2 py-1 text-xs rounded border border-primary/40 text-primary-glow font-display">▶</button>
+        </div>
+      );
+    case "setColor":
+      return (
+        <input type="color" value={block.color ?? "#7dd3fc"} onChange={e => onChange({ color: e.target.value })}
+          className="w-full h-9 bg-transparent border border-border rounded" />
+      );
+    case "setGravity":
+    case "setControllable":
+      return (
+        <button onClick={() => onChange({ bool: !block.bool })}
+          className={`w-full py-1.5 rounded border text-xs font-display tracking-widest ${
+            block.bool ? "bg-primary/15 border-primary/50 text-primary-glow" : "border-border text-muted-foreground"
+          }`}>{block.bool ? "ON" : "OFF"}</button>
       );
     case "if":
       return (
