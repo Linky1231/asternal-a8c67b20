@@ -165,7 +165,7 @@ export function GameRuntime({
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [scene, fpsCap, showHUD, autoPause]);
+  }, [scene, fpsCap, showHUD, autoPause, showHitboxes]);
 
   const press = (k: keyof RuntimeInput, v: boolean) => {
     inputRef.current[k] = v;
