@@ -64,11 +64,18 @@ export function AsternalEditor() {
           scene={activeScene}
           fpsCap={project.settings.fpsCap}
           showHUD={project.settings.showHUD}
+          showFPS={project.settings.showFPS ?? true}
+          volume={project.settings.volume ?? 0.8}
+          muted={project.settings.muted ?? false}
+          music={project.settings.music ?? false}
+          touchControls={project.settings.touchControls ?? true}
+          autoPause={project.settings.autoPause ?? true}
           onExit={() => setPlaying(false)}
         />
       </div>
     );
   }
+
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden">
