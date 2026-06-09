@@ -82,6 +82,7 @@ export interface ProjectSettings {
   music?: boolean;
   touchControls?: boolean;
   autoPause?: boolean;
+  showHitboxes?: boolean;
 }
 
 export interface Project {
@@ -104,6 +105,7 @@ export const DEFAULT_SETTINGS: ProjectSettings = {
   music: false,
   touchControls: true,
   autoPause: true,
+  showHitboxes: false,
 };
 
 export const KIND_PRESETS: Record<EntityKind, Omit<Entity, "id" | "x" | "y">> = {
