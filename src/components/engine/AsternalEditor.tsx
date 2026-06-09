@@ -506,7 +506,9 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
         <Toggle label="Show FPS" on={project.settings.showFPS ?? true} onChange={v => set({ showFPS: v })} />
         <Toggle label="Touch ctrls" on={project.settings.touchControls ?? true} onChange={v => set({ touchControls: v })} />
         <Toggle label="Auto-pause" on={project.settings.autoPause ?? true} onChange={v => set({ autoPause: v })} />
+        <Toggle label="Show hitbox" on={project.settings.showHitboxes ?? false} onChange={v => set({ showHitboxes: v })} />
       </div>
+
 
       <SectionTitle>AUDIO</SectionTitle>
       <div className="grid grid-cols-2 gap-2">
