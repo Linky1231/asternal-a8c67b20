@@ -16,13 +16,14 @@ interface Props {
   music?: boolean;
   touchControls?: boolean;
   autoPause?: boolean;
+  showHitboxes?: boolean;
   onExit: () => void;
 }
 
 export function GameRuntime({
   scene, fpsCap, showHUD,
   showFPS = true, volume = 0.8, muted = false, music = false,
-  touchControls = true, autoPause = true,
+  touchControls = true, autoPause = true, showHitboxes = false,
   onExit,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -108,6 +109,17 @@ export function GameRuntime({
         drawEntity(ctx, e, tSec);
         if (a !== 1) ctx.globalAlpha = 1;
       }
+      if (showHitboxes) {
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "#f43f5e";
+        ctx.setLineDash([4, 3]);
+        for (const e of work.entities) {
+          const hb = e.hitbox;
+          if (hb) ctx.strokeRect(e.x + hb.x, e.y + hb.y, hb.w, hb.h);
+          else ctx.strokeRect(e.x, e.y, e.w, e.h);
+        }
+        ctx.setLineDash([]);
+      }
       ctx.restore();
 
       if (showHUD) {
@@ -153,7 +165,7 @@ export function GameRuntime({
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [scene, fpsCap, showHUD, autoPause]);
+  }, [scene, fpsCap, showHUD, autoPause, showHitboxes]);
 
   const press = (k: keyof RuntimeInput, v: boolean) => {
     inputRef.current[k] = v;

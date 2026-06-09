@@ -153,6 +153,20 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         ctx.restore();
       }
 
+      // hitbox overlays in world-space (for all entities; selected one gets stronger highlight)
+      for (const e of scene.entities) {
+        const hb = e.hitbox;
+        if (!hb) continue;
+        const isSel = e.id === selectedId;
+        ctx.save();
+        ctx.lineWidth = (isSel ? 2 : 1) / scale;
+        ctx.strokeStyle = isSel ? "#f43f5e" : "rgba(244,63,94,0.55)";
+        ctx.setLineDash([8 / scale, 6 / scale]);
+        ctx.strokeRect(e.x + hb.x, e.y + hb.y, hb.w, hb.h);
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
       // modern selection overlay (screen-space crispness)
       const sel = scene.entities.find(e => e.id === selectedId);
       if (sel) {

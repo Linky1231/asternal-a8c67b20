@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { EntityKind, Project, SpriteAsset, Entity, Scene } from "@/lib/engine/core";
+import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox } from "@/lib/engine/core";
 import { newScene, uid, DEFAULT_SETTINGS } from "@/lib/engine/core";
 import { loadProject, saveProject } from "@/lib/engine/storage";
 import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
 import { AnimationEditor } from "./AnimationEditor";
+import { PaintEditor } from "./PaintEditor";
 
 import { ScriptEditor } from "./ScriptEditor";
+
 
 
 type Tool = EntityKind | "select" | "erase";
@@ -70,6 +72,7 @@ export function AsternalEditor() {
           music={project.settings.music ?? false}
           touchControls={project.settings.touchControls ?? true}
           autoPause={project.settings.autoPause ?? true}
+          showHitboxes={project.settings.showHitboxes ?? false}
           onExit={() => setPlaying(false)}
         />
       </div>
@@ -330,6 +333,8 @@ function InspectorPanel({
 
       <AnimationsButton entity={ent} onUpdate={update} />
       <ScriptsButton entity={ent} onUpdate={update} />
+      <HitboxEditor entity={ent} onUpdate={update} />
+
 
 
       <div className="grid grid-cols-2 gap-2 pt-1">
@@ -502,7 +507,9 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
         <Toggle label="Show FPS" on={project.settings.showFPS ?? true} onChange={v => set({ showFPS: v })} />
         <Toggle label="Touch ctrls" on={project.settings.touchControls ?? true} onChange={v => set({ touchControls: v })} />
         <Toggle label="Auto-pause" on={project.settings.autoPause ?? true} onChange={v => set({ autoPause: v })} />
+        <Toggle label="Show hitbox" on={project.settings.showHitboxes ?? false} onChange={v => set({ showHitboxes: v })} />
       </div>
+
 
       <SectionTitle>AUDIO</SectionTitle>
       <div className="grid grid-cols-2 gap-2">
@@ -691,6 +698,13 @@ function AssetsPanel({
 }) {
   const sprites = project.assets?.sprites ?? [];
   const fileRef = useRef<HTMLInputElement>(null);
+  const [paintOpen, setPaintOpen] = useState(false);
+
+  const addSprite = (asset: SpriteAsset) => {
+    const next = [...sprites, asset];
+    onChange({ ...project, assets: { ...(project.assets ?? { sprites: [] }), sprites: next } });
+  };
+
 
   const importFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -729,12 +743,18 @@ function AssetsPanel({
 
   return (
     <div className="h-full overflow-auto p-4 space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <SectionTitle>SPRITES · {sprites.length}</SectionTitle>
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-primary/30 to-accent/30 border border-primary/50 text-primary-glow glow-border"
-        >+ IMPORT</button>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setPaintOpen(true)}
+            className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-accent/30 to-primary/30 border border-accent/50 text-primary-glow glow-border"
+          >✎ DRAW</button>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-primary/30 to-accent/30 border border-primary/50 text-primary-glow glow-border"
+          >+ IMPORT</button>
+        </div>
         <input
           ref={fileRef}
           type="file"
@@ -744,6 +764,14 @@ function AssetsPanel({
           onChange={(e) => importFiles(e.target.files)}
         />
       </div>
+      {paintOpen && (
+        <PaintEditor
+          onClose={() => setPaintOpen(false)}
+          onSave={(asset) => { addSprite(asset); setPaintOpen(false); }}
+        />
+      )}
+
+
 
       {selectedEntity ? (
         <div className="text-[10px] font-mono text-muted-foreground panel rounded-md px-2 py-1.5 border border-border/50">
@@ -903,6 +931,51 @@ function HelpModal({ onClose }: { onClose: () => void }) {
         </ul>
         <button onClick={onClose} className="w-full mt-2 py-2.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest">GOT IT</button>
       </div>
+    </div>
+  );
+}
+
+function HitboxEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: Partial<Entity>) => void }) {
+  const enabled = !!entity.hitbox;
+  const hb: Hitbox = entity.hitbox ?? { x: 0, y: 0, w: entity.w, h: entity.h };
+  const set = (patch: Partial<Hitbox>) => onUpdate({ hitbox: { ...hb, ...patch } });
+
+  return (
+    <div className="mt-1 panel rounded-md border border-border/60 p-2.5 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="font-display text-[11px] tracking-widest text-primary-glow">▣ HITBOX</span>
+        <Toggle
+          label={enabled ? "On" : "Off"}
+          on={enabled}
+          onChange={(v) => onUpdate({ hitbox: v ? { x: 0, y: 0, w: entity.w, h: entity.h } : null })}
+        />
+      </div>
+      {enabled && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <Slider label="HB X" value={hb.x} min={-entity.w} max={entity.w} step={1} onChange={v => set({ x: v })} />
+            <Slider label="HB Y" value={hb.y} min={-entity.h} max={entity.h} step={1} onChange={v => set({ y: v })} />
+            <Slider label="HB W" value={hb.w} min={1} max={entity.w * 2} step={1} onChange={v => set({ w: v })} />
+            <Slider label="HB H" value={hb.h} min={1} max={entity.h * 2} step={1} onChange={v => set({ h: v })} />
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              onClick={() => set({ x: 0, y: 0, w: entity.w, h: entity.h })}
+              className="py-1.5 rounded border border-border text-muted-foreground font-display text-[10px] tracking-widest"
+            >FILL BOUNDS</button>
+            <button
+              onClick={() => set({
+                x: Math.round(entity.w * 0.15),
+                y: Math.round(entity.h * 0.1),
+                w: Math.round(entity.w * 0.7),
+                h: Math.round(entity.h * 0.85),
+              })}
+              className="py-1.5 rounded border border-border text-muted-foreground font-display text-[10px] tracking-widest"
+            >SHRINK 80%</button>
+          </div>
+          <div className="text-[9px] font-mono text-muted-foreground">Offset is relative to entity origin. Red dashed box = collision area.</div>
+        </>
+      )}
     </div>
   );
 }
