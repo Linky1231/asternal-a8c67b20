@@ -67,6 +67,9 @@ export interface Project {
   settings: {
     fpsCap: 30 | 60;
     showHUD: boolean;
+    gridSize?: number;
+    snapToGrid?: boolean;
+    showGrid?: boolean;
   };
 }
 
