@@ -473,6 +473,9 @@ function ScenesPanel({
 }
 
 function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: Project) => void }) {
+  const set = (patch: Partial<Project["settings"]>) =>
+    onChange({ ...project, settings: { ...project.settings, ...patch } });
+
   return (
     <div className="h-full overflow-auto p-4 space-y-4">
       <SectionTitle>PROJECT</SectionTitle>
@@ -484,7 +487,7 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
         <div className="flex gap-2 mt-1">
           {[30, 60].map(f => (
             <button key={f}
-              onClick={() => onChange({ ...project, settings: { ...project.settings, fpsCap: f as 30 | 60 } })}
+              onClick={() => set({ fpsCap: f as 30 | 60 })}
               className={`flex-1 py-2 rounded-md font-display border ${
                 project.settings.fpsCap === f
                   ? "bg-primary/20 border-primary text-primary-glow"
@@ -494,15 +497,26 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
           ))}
         </div>
       </div>
-      <Toggle label="Show HUD" on={project.settings.showHUD} onChange={v => onChange({ ...project, settings: { ...project.settings, showHUD: v } })} />
+      <div className="grid grid-cols-2 gap-2">
+        <Toggle label="Show HUD" on={project.settings.showHUD} onChange={v => set({ showHUD: v })} />
+        <Toggle label="Show FPS" on={project.settings.showFPS ?? true} onChange={v => set({ showFPS: v })} />
+        <Toggle label="Touch ctrls" on={project.settings.touchControls ?? true} onChange={v => set({ touchControls: v })} />
+        <Toggle label="Auto-pause" on={project.settings.autoPause ?? true} onChange={v => set({ autoPause: v })} />
+      </div>
+
+      <SectionTitle>AUDIO</SectionTitle>
+      <div className="grid grid-cols-2 gap-2">
+        <Toggle label="Mute" on={project.settings.muted ?? false} onChange={v => set({ muted: v })} />
+        <Toggle label="Music" on={project.settings.music ?? false} onChange={v => set({ music: v })} />
+      </div>
+      <Slider label="Volume" value={Math.round((project.settings.volume ?? 0.8) * 100)} min={0} max={100} step={5}
+        onChange={v => set({ volume: v / 100 })} />
 
       <SectionTitle>GRID</SectionTitle>
-      <Toggle label="Show grid" on={project.settings.showGrid ?? true}
-        onChange={v => onChange({ ...project, settings: { ...project.settings, showGrid: v } })} />
-      <Toggle label="Snap to grid" on={project.settings.snapToGrid ?? false}
-        onChange={v => onChange({ ...project, settings: { ...project.settings, snapToGrid: v } })} />
+      <Toggle label="Show grid" on={project.settings.showGrid ?? true} onChange={v => set({ showGrid: v })} />
+      <Toggle label="Snap to grid" on={project.settings.snapToGrid ?? false} onChange={v => set({ snapToGrid: v })} />
       <Slider label="Grid size" value={project.settings.gridSize ?? 16} min={4} max={64} step={2}
-        onChange={v => onChange({ ...project, settings: { ...project.settings, gridSize: v } })} />
+        onChange={v => set({ gridSize: v })} />
 
       <SectionTitle>DATA</SectionTitle>
       <div className="grid grid-cols-2 gap-2">
@@ -517,7 +531,15 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
       </div>
       <button
         onClick={() => {
-          if (confirm("Reset project? All scenes will be lost.")) {
+          if (confirm("Restore default settings? Scenes and assets will be kept.")) {
+            onChange({ ...project, settings: { ...DEFAULT_SETTINGS } });
+          }
+        }}
+        className="w-full py-2.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest glow-border"
+      >↺ RESET TO DEFAULT SETTINGS</button>
+      <button
+        onClick={() => {
+          if (confirm("Reset entire project? All scenes will be lost.")) {
             localStorage.removeItem("asternal:project");
             location.reload();
           }
@@ -531,6 +553,7 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
     </div>
   );
 }
+
 
 // --- shared bits ---
 function SectionTitle({ children }: { children: React.ReactNode }) {
