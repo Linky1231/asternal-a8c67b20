@@ -77,16 +77,26 @@ export function AsternalEditor() {
           <Logo />
           <div>
             <div className="font-display text-sm text-primary-glow glow-text leading-none">ASTERNAL</div>
-            <div className="text-[10px] font-mono text-muted-foreground -mt-0.5">ENGINE · v0.1</div>
+            <div className="text-[10px] font-mono text-muted-foreground -mt-0.5">
+              {savedAt ? `saved ${timeAgo(savedAt)}` : "ENGINE · v0.1"}
+            </div>
           </div>
         </div>
-        <button
-          onClick={() => setPlaying(true)}
-          className="font-display text-sm px-4 py-1.5 rounded-md bg-gradient-to-r from-primary to-accent text-primary-foreground glow-border active:scale-95 transition"
-        >
-          ▶ PLAY
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setHelpOpen(true)}
+            aria-label="Help"
+            className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
+          >?</button>
+          <button
+            onClick={() => setPlaying(true)}
+            className="font-display text-sm px-4 py-1.5 rounded-md bg-gradient-to-r from-primary to-accent text-primary-foreground glow-border active:scale-95 transition"
+          >
+            ▶ PLAY
+          </button>
+        </div>
       </header>
+      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
 
       {/* Main */}
       <main className="relative flex-1 min-h-0">
