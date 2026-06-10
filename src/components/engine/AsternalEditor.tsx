@@ -27,6 +27,7 @@ const TOOL_LIST: { id: Tool; label: string; icon: string }[] = [
 ];
 
 export function AsternalEditor() {
+  const t = useT();
   const [project, setProject] = useState<Project | null>(null);
   const [tool, setTool] = useState<Tool>("select");
   const [tab, setTab] = useState<Tab>("build");
