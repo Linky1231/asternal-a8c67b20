@@ -284,6 +284,10 @@ function InspectorPanel({
           />
         </div>
 
+        <SceneBgImage scene={scene} onChange={onChangeScene} />
+
+
+
         <div>
           <label className="text-[10px] font-display tracking-widest text-muted-foreground">SCALE SCENE + CONTENTS</label>
           <div className="grid grid-cols-4 gap-1.5 mt-1">
