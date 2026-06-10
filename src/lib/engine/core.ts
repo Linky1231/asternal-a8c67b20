@@ -41,6 +41,19 @@ export interface CrumbleSpec { delay: number; respawn: number; _t?: number; _sta
 export interface SpringSpec { force: number }
 export interface PatrolSpec { range: number; _origin?: number }
 
+export interface ParticleEmitter {
+  enabled: boolean;
+  rate: number;       // particles/sec
+  lifetime: number;   // seconds
+  speed: number;      // px/sec
+  direction: number;  // degrees, 0 = right, 90 = down
+  spread: number;     // degrees (total cone)
+  size: number;       // px
+  gravity: number;    // px/s^2 applied to y
+  color: string;
+  _acc?: number;
+}
+
 export interface Entity {
   id: string;
   kind: EntityKind;
@@ -76,6 +89,7 @@ export interface Entity {
   powerup?: PowerupKind | null;
   switchId?: string;
   doorId?: string;
+  emitter?: ParticleEmitter | null;
 }
 
 export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
@@ -84,6 +98,8 @@ export interface Scene {
   id: string;
   name: string;
   bg: string;
+  bgImage?: string | null;       // dataURL or CDN URL
+  bgImageMode?: "cover" | "contain" | "stretch" | "tile";
   gravity: number;
   width: number;
   height: number;
@@ -106,6 +122,7 @@ export interface ProjectSettings {
   touchControls?: boolean;
   autoPause?: boolean;
   showHitboxes?: boolean;
+  language?: "es" | "en" | "pt" | "fr" | "de";
 }
 
 export interface Project {

@@ -77,7 +77,7 @@ export function GameRuntime({
     resize();
     window.addEventListener("resize", resize);
 
-    type Part = { x: number; y: number; vx: number; vy: number; life: number; color: string };
+    type Part = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number; gravity: number };
     const particles: Part[] = [];
     const flushParticles = () => {
       const list = state.particles ?? [];
@@ -86,17 +86,63 @@ export function GameRuntime({
         for (let i = 0; i < n; i++) {
           const a = Math.random() * Math.PI * 2;
           const s = 60 + Math.random() * 140;
-          particles.push({ x: p.x, y: p.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 0.6, color: p.color });
+          particles.push({ x: p.x, y: p.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 0.6, max: 0.6, color: p.color, size: 3, gravity: 400 });
         }
       }
       if (list.length) state.particles = [];
     };
+
+    const tickEmitters = (dt: number) => {
+      for (const e of work.entities) {
+        const em = e.emitter;
+        if (!em || !em.enabled) continue;
+        em._acc = (em._acc ?? 0) + (em.rate || 0) * dt;
+        while ((em._acc ?? 0) >= 1) {
+          em._acc = (em._acc ?? 0) - 1;
+          const dir = ((em.direction || 0) + (Math.random() - 0.5) * (em.spread || 0)) * Math.PI / 180;
+          const sp = em.speed || 80;
+          particles.push({
+            x: e.x + e.w / 2,
+            y: e.y + e.h / 2,
+            vx: Math.cos(dir) * sp,
+            vy: Math.sin(dir) * sp,
+            life: em.lifetime || 1,
+            max: em.lifetime || 1,
+            color: em.color || "#7dd3fc",
+            size: em.size || 3,
+            gravity: em.gravity ?? 0,
+          });
+        }
+      }
+    };
+
 
     const draw = () => {
       const W = canvas.clientWidth;
       const H = canvas.clientHeight;
       ctx.fillStyle = work.bg || "#0b1e3f";
       ctx.fillRect(0, 0, W, H);
+
+      // Background image
+      if (work.bgImage) {
+        const img = getImage(work.bgImage);
+        if (img && img.width) {
+          const mode = work.bgImageMode || "cover";
+          if (mode === "stretch") {
+            ctx.drawImage(img, 0, 0, W, H);
+          } else if (mode === "tile") {
+            for (let x = 0; x < W; x += img.width) for (let y = 0; y < H; y += img.height) ctx.drawImage(img, x, y);
+          } else {
+            const sa = img.width / img.height;
+            const da = W / H;
+            const fit = mode === "cover" ? sa > da : sa < da;
+            const dw = fit ? H * sa : W;
+            const dh = fit ? H : W / sa;
+            ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+          }
+        }
+      }
+
 
       // Parallax bands
       if (work.parallax?.length) {
@@ -144,11 +190,12 @@ export function GameRuntime({
       flushParticles();
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        ctx.globalAlpha = Math.max(0, p.life / 0.6);
+        ctx.globalAlpha = Math.max(0, p.life / p.max);
         ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, 3, 3);
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
       }
       ctx.globalAlpha = 1;
+
 
       if (showHitboxes) {
         ctx.lineWidth = 1.5;
@@ -193,12 +240,13 @@ export function GameRuntime({
             scripts.step(work, state, inputRef.current, hooks, targetDt);
           }
           if (shake.time > 0) shake.time = Math.max(0, shake.time - targetDt);
+          tickEmitters(targetDt);
           // particle physics
           for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
             p.x += p.vx * targetDt;
             p.y += p.vy * targetDt;
-            p.vy += 400 * targetDt;
+            p.vy += p.gravity * targetDt;
             p.life -= targetDt;
             if (p.life <= 0) particles.splice(i, 1);
           }

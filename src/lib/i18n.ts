@@ -1,0 +1,192 @@
+// Tiny i18n with subscribe pattern (no extra deps).
+import { useSyncExternalStore } from "react";
+
+export type Lang = "es" | "en" | "pt" | "fr" | "de";
+
+export const LANGS: { id: Lang; label: string; flag: string }[] = [
+  { id: "es", label: "Español", flag: "🇪🇸" },
+  { id: "en", label: "English", flag: "🇬🇧" },
+  { id: "pt", label: "Português", flag: "🇧🇷" },
+  { id: "fr", label: "Français", flag: "🇫🇷" },
+  { id: "de", label: "Deutsch", flag: "🇩🇪" },
+];
+
+type Dict = Record<string, string>;
+const DICTS: Record<Lang, Dict> = {
+  es: {
+    "tab.build": "CONSTRUIR",
+    "tab.inspect": "INSPECCIÓN",
+    "tab.assets": "ASSETS",
+    "tab.scenes": "ESCENAS",
+    "tab.settings": "AJUSTES",
+    "settings.project": "PROYECTO",
+    "settings.runtime": "EJECUCIÓN",
+    "settings.audio": "AUDIO",
+    "settings.grid": "CUADRÍCULA",
+    "settings.data": "DATOS",
+    "settings.language": "IDIOMA",
+    "settings.gameName": "Nombre del juego",
+    "settings.fpsCap": "TOPE DE FPS",
+    "settings.showHUD": "Mostrar HUD",
+    "settings.showFPS": "Mostrar FPS",
+    "settings.touch": "Controles táctiles",
+    "settings.autoPause": "Auto-pausa",
+    "settings.showHitbox": "Mostrar hitbox",
+    "settings.mute": "Silenciar",
+    "settings.music": "Música",
+    "settings.volume": "Volumen",
+    "settings.showGrid": "Mostrar cuadrícula",
+    "settings.snapGrid": "Ajustar a cuadrícula",
+    "settings.gridSize": "Tamaño cuadrícula",
+    "settings.exportJson": "⤓ EXPORTAR JSON",
+    "settings.importJson": "⤒ IMPORTAR JSON",
+    "settings.resetDefaults": "↺ RESTAURAR AJUSTES",
+    "settings.resetProject": "REINICIAR PROYECTO",
+    "scene.bgImage": "IMAGEN DE FONDO",
+    "scene.bgImagePick": "Elegir imagen…",
+    "scene.bgImageClear": "Quitar imagen",
+    "inspector.particles": "PARTÍCULAS",
+    "particles.enable": "Activar emisor",
+    "particles.rate": "Por segundo",
+    "particles.lifetime": "Vida (s)",
+    "particles.speed": "Velocidad",
+    "particles.direction": "Dirección (°)",
+    "particles.spread": "Dispersión (°)",
+    "particles.size": "Tamaño",
+    "particles.gravity": "Gravedad",
+    "particles.color": "Color",
+    "particles.preview": "VISTA PREVIA",
+    "particles.close": "Cerrar",
+    "common.on": "ON",
+    "common.off": "OFF",
+  },
+  en: {
+    "tab.build": "BUILD", "tab.inspect": "INSPECT", "tab.assets": "ASSETS",
+    "tab.scenes": "SCENES", "tab.settings": "CONFIG",
+    "settings.project": "PROJECT", "settings.runtime": "RUNTIME",
+    "settings.audio": "AUDIO", "settings.grid": "GRID", "settings.data": "DATA",
+    "settings.language": "LANGUAGE", "settings.gameName": "Game name",
+    "settings.fpsCap": "FPS CAP", "settings.showHUD": "Show HUD",
+    "settings.showFPS": "Show FPS", "settings.touch": "Touch controls",
+    "settings.autoPause": "Auto-pause", "settings.showHitbox": "Show hitbox",
+    "settings.mute": "Mute", "settings.music": "Music", "settings.volume": "Volume",
+    "settings.showGrid": "Show grid", "settings.snapGrid": "Snap to grid",
+    "settings.gridSize": "Grid size",
+    "settings.exportJson": "⤓ EXPORT JSON", "settings.importJson": "⤒ IMPORT JSON",
+    "settings.resetDefaults": "↺ RESET TO DEFAULTS",
+    "settings.resetProject": "RESET PROJECT",
+    "scene.bgImage": "BACKGROUND IMAGE",
+    "scene.bgImagePick": "Pick image…",
+    "scene.bgImageClear": "Remove image",
+    "inspector.particles": "PARTICLES",
+    "particles.enable": "Enable emitter", "particles.rate": "Per second",
+    "particles.lifetime": "Lifetime (s)", "particles.speed": "Speed",
+    "particles.direction": "Direction (°)", "particles.spread": "Spread (°)",
+    "particles.size": "Size", "particles.gravity": "Gravity",
+    "particles.color": "Color", "particles.preview": "PREVIEW",
+    "particles.close": "Close",
+    "common.on": "ON", "common.off": "OFF",
+  },
+  pt: {
+    "tab.build": "CRIAR", "tab.inspect": "INSPEÇÃO", "tab.assets": "ASSETS",
+    "tab.scenes": "CENAS", "tab.settings": "AJUSTES",
+    "settings.project": "PROJETO", "settings.runtime": "EXECUÇÃO",
+    "settings.audio": "ÁUDIO", "settings.grid": "GRADE", "settings.data": "DADOS",
+    "settings.language": "IDIOMA", "settings.gameName": "Nome do jogo",
+    "settings.fpsCap": "LIMITE FPS", "settings.showHUD": "Mostrar HUD",
+    "settings.showFPS": "Mostrar FPS", "settings.touch": "Controles toque",
+    "settings.autoPause": "Auto-pausa", "settings.showHitbox": "Mostrar hitbox",
+    "settings.mute": "Silenciar", "settings.music": "Música", "settings.volume": "Volume",
+    "settings.showGrid": "Mostrar grade", "settings.snapGrid": "Encaixar grade",
+    "settings.gridSize": "Tamanho grade",
+    "settings.exportJson": "⤓ EXPORTAR JSON", "settings.importJson": "⤒ IMPORTAR JSON",
+    "settings.resetDefaults": "↺ RESTAURAR PADRÕES",
+    "settings.resetProject": "REINICIAR PROJETO",
+    "scene.bgImage": "IMAGEM DE FUNDO",
+    "scene.bgImagePick": "Escolher imagem…",
+    "scene.bgImageClear": "Remover imagem",
+    "inspector.particles": "PARTÍCULAS",
+    "particles.enable": "Ativar emissor", "particles.rate": "Por segundo",
+    "particles.lifetime": "Vida (s)", "particles.speed": "Velocidade",
+    "particles.direction": "Direção (°)", "particles.spread": "Dispersão (°)",
+    "particles.size": "Tamanho", "particles.gravity": "Gravidade",
+    "particles.color": "Cor", "particles.preview": "PRÉVIA",
+    "particles.close": "Fechar",
+    "common.on": "ON", "common.off": "OFF",
+  },
+  fr: {
+    "tab.build": "CRÉER", "tab.inspect": "INSPECTION", "tab.assets": "ASSETS",
+    "tab.scenes": "SCÈNES", "tab.settings": "CONFIG",
+    "settings.project": "PROJET", "settings.runtime": "EXÉCUTION",
+    "settings.audio": "AUDIO", "settings.grid": "GRILLE", "settings.data": "DONNÉES",
+    "settings.language": "LANGUE", "settings.gameName": "Nom du jeu",
+    "settings.fpsCap": "LIMITE FPS", "settings.showHUD": "Afficher HUD",
+    "settings.showFPS": "Afficher FPS", "settings.touch": "Contrôles tactiles",
+    "settings.autoPause": "Auto-pause", "settings.showHitbox": "Afficher hitbox",
+    "settings.mute": "Muet", "settings.music": "Musique", "settings.volume": "Volume",
+    "settings.showGrid": "Afficher grille", "settings.snapGrid": "Aligner grille",
+    "settings.gridSize": "Taille grille",
+    "settings.exportJson": "⤓ EXPORTER JSON", "settings.importJson": "⤒ IMPORTER JSON",
+    "settings.resetDefaults": "↺ RÉINITIALISER",
+    "settings.resetProject": "RÉINIT. PROJET",
+    "scene.bgImage": "IMAGE DE FOND",
+    "scene.bgImagePick": "Choisir image…",
+    "scene.bgImageClear": "Retirer image",
+    "inspector.particles": "PARTICULES",
+    "particles.enable": "Activer émetteur", "particles.rate": "Par seconde",
+    "particles.lifetime": "Durée (s)", "particles.speed": "Vitesse",
+    "particles.direction": "Direction (°)", "particles.spread": "Dispersion (°)",
+    "particles.size": "Taille", "particles.gravity": "Gravité",
+    "particles.color": "Couleur", "particles.preview": "APERÇU",
+    "particles.close": "Fermer",
+    "common.on": "ON", "common.off": "OFF",
+  },
+  de: {
+    "tab.build": "BAUEN", "tab.inspect": "PRÜFEN", "tab.assets": "ASSETS",
+    "tab.scenes": "SZENEN", "tab.settings": "EINSTELL.",
+    "settings.project": "PROJEKT", "settings.runtime": "LAUFZEIT",
+    "settings.audio": "AUDIO", "settings.grid": "RASTER", "settings.data": "DATEN",
+    "settings.language": "SPRACHE", "settings.gameName": "Spielname",
+    "settings.fpsCap": "FPS-LIMIT", "settings.showHUD": "HUD zeigen",
+    "settings.showFPS": "FPS zeigen", "settings.touch": "Touch-Steuerung",
+    "settings.autoPause": "Auto-Pause", "settings.showHitbox": "Hitbox zeigen",
+    "settings.mute": "Stumm", "settings.music": "Musik", "settings.volume": "Lautstärke",
+    "settings.showGrid": "Raster zeigen", "settings.snapGrid": "Am Raster",
+    "settings.gridSize": "Rastergröße",
+    "settings.exportJson": "⤓ JSON EXPORT.", "settings.importJson": "⤒ JSON IMPORT.",
+    "settings.resetDefaults": "↺ STANDARD",
+    "settings.resetProject": "PROJEKT RESET",
+    "scene.bgImage": "HINTERGRUNDBILD",
+    "scene.bgImagePick": "Bild wählen…",
+    "scene.bgImageClear": "Bild entfernen",
+    "inspector.particles": "PARTIKEL",
+    "particles.enable": "Emitter aktiv", "particles.rate": "Pro Sekunde",
+    "particles.lifetime": "Lebensdauer (s)", "particles.speed": "Geschw.",
+    "particles.direction": "Richtung (°)", "particles.spread": "Streuung (°)",
+    "particles.size": "Größe", "particles.gravity": "Schwerkraft",
+    "particles.color": "Farbe", "particles.preview": "VORSCHAU",
+    "particles.close": "Schließen",
+    "common.on": "AN", "common.off": "AUS",
+  },
+};
+
+const KEY = "asternal:lang";
+let current: Lang = (typeof localStorage !== "undefined" && (localStorage.getItem(KEY) as Lang)) || "es";
+const listeners = new Set<() => void>();
+
+export function getLang(): Lang { return current; }
+export function setLang(l: Lang) {
+  current = l;
+  try { localStorage.setItem(KEY, l); } catch { /* ignore */ }
+  listeners.forEach(fn => fn());
+}
+function subscribe(fn: () => void) { listeners.add(fn); return () => { listeners.delete(fn); }; }
+
+export function t(key: string): string {
+  return DICTS[current][key] ?? DICTS.en[key] ?? key;
+}
+
+export function useT() {
+  useSyncExternalStore(subscribe, () => current, () => current);
+  return t;
+}
