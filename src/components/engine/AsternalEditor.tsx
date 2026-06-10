@@ -1190,3 +1190,182 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
     </div>
   );
 }
+
+function SceneBgImage({ scene, onChange }: { scene: Scene; onChange: (s: Scene) => void }) {
+  const t = useT();
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div className="panel rounded-md p-2 space-y-2">
+      <div className="text-[10px] font-display tracking-widest text-muted-foreground">{t("scene.bgImage")}</div>
+      {scene.bgImage && (
+        <div className="relative w-full h-24 rounded overflow-hidden border border-border bg-background">
+          <img src={scene.bgImage} alt="" className="w-full h-full object-cover" />
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-1.5">
+        <button
+          onClick={() => ref.current?.click()}
+          className="py-1.5 rounded border border-border text-[10px] font-display tracking-widest text-primary-glow"
+        >{t("scene.bgImagePick")}</button>
+        <button
+          onClick={() => onChange({ ...scene, bgImage: null })}
+          className="py-1.5 rounded border border-border text-[10px] font-display tracking-widest text-muted-foreground"
+        >{t("scene.bgImageClear")}</button>
+      </div>
+      <div className="grid grid-cols-4 gap-1">
+        {(["cover","contain","stretch","tile"] as const).map(m => (
+          <button key={m}
+            onClick={() => onChange({ ...scene, bgImageMode: m })}
+            className={`py-1 rounded text-[9px] font-display tracking-widest border ${
+              (scene.bgImageMode ?? "cover") === m ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"
+            }`}
+          >{m.toUpperCase()}</button>
+        ))}
+      </div>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async e => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          const url = await fileToDataURL(f);
+          onChange({ ...scene, bgImage: url });
+          if (ref.current) ref.current.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
+function ParticlesButton({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: Partial<Entity>) => void }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const has = !!entity.emitter;
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className={`w-full py-2 rounded-md font-display text-[10px] tracking-widest border ${
+          has ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"
+        }`}
+      >✦ {t("inspector.particles")}{has ? " · ON" : ""}</button>
+      {open && (
+        <ParticleEditor
+          entity={entity}
+          onUpdate={onUpdate}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+function ParticleEditor({ entity, onUpdate, onClose }: { entity: Entity; onUpdate: (patch: Partial<Entity>) => void; onClose: () => void }) {
+  const t = useT();
+  const em = entity.emitter ?? {
+    enabled: true, rate: 20, lifetime: 1, speed: 80,
+    direction: 270, spread: 40, size: 4, gravity: 0, color: "#7dd3fc",
+  };
+  const upd = (patch: Partial<typeof em>) =>
+    onUpdate({ emitter: { ...em, ...patch } });
+
+  // Live preview
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = canvasRef.current; if (!c) return;
+    const ctx = c.getContext("2d")!;
+    let raf = 0;
+    type P = { x: number; y: number; vx: number; vy: number; life: number; max: number };
+    const ps: P[] = [];
+    let acc = 0;
+    let last = performance.now();
+    const loop = (now: number) => {
+      raf = requestAnimationFrame(loop);
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      acc += (em.rate || 0) * dt;
+      while (acc >= 1) {
+        acc -= 1;
+        const dir = ((em.direction || 0) + (Math.random() - 0.5) * (em.spread || 0)) * Math.PI / 180;
+        const sp = em.speed || 80;
+        ps.push({ x: c.width / 2, y: c.height / 2, vx: Math.cos(dir) * sp, vy: Math.sin(dir) * sp, life: em.lifetime || 1, max: em.lifetime || 1 });
+      }
+      ctx.fillStyle = "#0b1220"; ctx.fillRect(0, 0, c.width, c.height);
+      for (let i = ps.length - 1; i >= 0; i--) {
+        const p = ps[i];
+        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (em.gravity ?? 0) * dt;
+        p.life -= dt;
+        if (p.life <= 0) { ps.splice(i, 1); continue; }
+        ctx.globalAlpha = Math.max(0, p.life / p.max);
+        ctx.fillStyle = em.color || "#7dd3fc";
+        ctx.fillRect(p.x - (em.size || 4) / 2, p.y - (em.size || 4) / 2, em.size || 4, em.size || 4);
+      }
+      ctx.globalAlpha = 1;
+      // direction arrow
+      const cx = c.width / 2, cy = c.height / 2;
+      const dr = (em.direction || 0) * Math.PI / 180;
+      ctx.strokeStyle = "rgba(125,211,252,0.5)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(dr) * 30, cy + Math.sin(dr) * 30); ctx.stroke();
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [em.rate, em.direction, em.spread, em.speed, em.lifetime, em.gravity, em.size, em.color]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-2">
+      <div className="panel glow-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-auto p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="font-display text-sm tracking-widest text-primary-glow">✦ {t("inspector.particles")}</div>
+          <button onClick={onClose} className="text-xs font-display tracking-widest text-muted-foreground">✕</button>
+        </div>
+
+        <Toggle label={t("particles.enable")} on={em.enabled} onChange={v => upd({ enabled: v })} />
+
+        <div className="rounded-md overflow-hidden border border-border bg-background">
+          <canvas ref={canvasRef} width={320} height={180} className="w-full block" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Slider label={t("particles.rate")} value={em.rate} min={0} max={200} step={1} onChange={v => upd({ rate: v })} />
+          <Slider label={t("particles.lifetime")} value={Math.round(em.lifetime * 10) / 10} min={0.1} max={6} step={0.1} onChange={v => upd({ lifetime: v })} />
+          <Slider label={t("particles.speed")} value={em.speed} min={0} max={600} step={5} onChange={v => upd({ speed: v })} />
+          <Slider label={t("particles.size")} value={em.size} min={1} max={24} step={1} onChange={v => upd({ size: v })} />
+          <Slider label={t("particles.direction")} value={em.direction} min={0} max={360} step={5} onChange={v => upd({ direction: v })} />
+          <Slider label={t("particles.spread")} value={em.spread} min={0} max={360} step={5} onChange={v => upd({ spread: v })} />
+          <Slider label={t("particles.gravity")} value={em.gravity} min={-600} max={1200} step={20} onChange={v => upd({ gravity: v })} />
+        </div>
+
+        <div className="grid grid-cols-4 gap-1">
+          {[0, 45, 90, 135, 180, 225, 270, 315].map(d => (
+            <button key={d}
+              onClick={() => upd({ direction: d })}
+              className={`py-1 rounded text-[10px] font-display tracking-widest border ${
+                em.direction === d ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"
+              }`}
+            >{d}°</button>
+          ))}
+        </div>
+
+        <div>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">{t("particles.color")}</label>
+          <input type="color" value={em.color}
+            onChange={e => upd({ color: e.target.value })}
+            className="w-full h-10 rounded-md bg-transparent border border-border mt-1" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <button
+            onClick={() => onUpdate({ emitter: null })}
+            className="py-2 rounded-md border border-destructive/50 text-destructive font-display text-[10px] tracking-widest"
+          >REMOVE</button>
+          <button
+            onClick={onClose}
+            className="py-2 rounded-md bg-primary text-primary-foreground font-display text-[10px] tracking-widest"
+          >{t("particles.close")}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
