@@ -164,6 +164,28 @@ export function AsternalEditor() {
               ];
               updateScene({ ...s, entities: s.entities.map(e => e.id === selected.id ? { ...e, animations, texture: sprite.frames[0]?.composite ?? e.texture } : e) });
             }}
+            onPlaceOnScene={(sprite: SpriteAsset) => {
+              const s = activeScene;
+              const maxDim = 96;
+              const k = Math.min(1, maxDim / Math.max(sprite.width, sprite.height));
+              const w = Math.max(16, Math.round(sprite.width * k));
+              const h = Math.max(16, Math.round(sprite.height * k));
+              const ent: Entity = {
+                id: uid(),
+                kind: "platform",
+                x: Math.round(s.width / 2 - w / 2),
+                y: Math.round(s.height / 2 - h / 2),
+                w, h, vx: 0, vy: 0,
+                color: "#1e3a8a",
+                solid: false, gravity: false, controllable: false,
+                collectible: false, hazard: false, goal: false,
+                visible: true, opacity: 1,
+                texture: sprite.frames[0]?.composite ?? null,
+              };
+              updateScene({ ...s, entities: [...s.entities, ent] });
+              setSelectedId(ent.id);
+              setTab("inspect");
+            }}
           />
         )}
 
