@@ -77,7 +77,7 @@ export function GameRuntime({
     resize();
     window.addEventListener("resize", resize);
 
-    type Part = { x: number; y: number; vx: number; vy: number; life: number; color: string };
+    type Part = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number; gravity: number };
     const particles: Part[] = [];
     const flushParticles = () => {
       const list = state.particles ?? [];
@@ -86,11 +86,36 @@ export function GameRuntime({
         for (let i = 0; i < n; i++) {
           const a = Math.random() * Math.PI * 2;
           const s = 60 + Math.random() * 140;
-          particles.push({ x: p.x, y: p.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 0.6, color: p.color });
+          particles.push({ x: p.x, y: p.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 0.6, max: 0.6, color: p.color, size: 3, gravity: 400 });
         }
       }
       if (list.length) state.particles = [];
     };
+
+    const tickEmitters = (dt: number) => {
+      for (const e of work.entities) {
+        const em = e.emitter;
+        if (!em || !em.enabled) continue;
+        em._acc = (em._acc ?? 0) + (em.rate || 0) * dt;
+        while ((em._acc ?? 0) >= 1) {
+          em._acc = (em._acc ?? 0) - 1;
+          const dir = ((em.direction || 0) + (Math.random() - 0.5) * (em.spread || 0)) * Math.PI / 180;
+          const sp = em.speed || 80;
+          particles.push({
+            x: e.x + e.w / 2,
+            y: e.y + e.h / 2,
+            vx: Math.cos(dir) * sp,
+            vy: Math.sin(dir) * sp,
+            life: em.lifetime || 1,
+            max: em.lifetime || 1,
+            color: em.color || "#7dd3fc",
+            size: em.size || 3,
+            gravity: em.gravity ?? 0,
+          });
+        }
+      }
+    };
+
 
     const draw = () => {
       const W = canvas.clientWidth;
