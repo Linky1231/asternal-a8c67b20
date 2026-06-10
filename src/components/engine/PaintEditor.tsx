@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import type { SpriteAsset } from "@/lib/engine/core";
 import { uid } from "@/lib/engine/core";
 
-type Tool = "pencil" | "eraser" | "fill" | "line" | "rect" | "picker";
+type Tool = "brush" | "eraser" | "fill" | "line" | "rect" | "circle" | "picker";
 
 interface Props {
   onSave: (sprite: SpriteAsset) => void;
   onClose: () => void;
-  initialSize?: number;
+  size?: number; // canvas resolution (square)
 }
 
 const PALETTE = [
@@ -17,201 +17,261 @@ const PALETTE = [
   "#ec4899", "#7c2d12", "#fde68a", "#0ea5e9",
 ];
 
-export function PaintEditor({ onSave, onClose, initialSize = 32 }: Props) {
-  const [size] = useState(initialSize);
-  const [tool, setTool] = useState<Tool>("pencil");
+// Free-form (non-pixel) drawing canvas. Persistent buffer for 60fps perf.
+export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
+  const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#38bdf8");
-  const [brush, setBrush] = useState(1);
-  const [name, setName] = useState("sprite");
+  const [width, setWidth] = useState(6);
+  const [name, setName] = useState("drawing");
 
-  // pixel buffer: RGBA string "rgba(r,g,b,a)" or "" for transparent
-  const [pixels, setPixels] = useState<string[]>(() => Array(size * size).fill(""));
-  const undoStack = useRef<string[][]>([]);
-  const redoStack = useRef<string[][]>([]);
+  // Persistent drawing buffer
+  const bufferRef = useRef<HTMLCanvasElement | null>(null);
+  // Visible canvas (shows buffer + live preview)
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
 
-  const pushHistory = (prev: string[]) => {
-    undoStack.current.push(prev);
-    if (undoStack.current.length > 64) undoStack.current.shift();
+  // Undo history (PNG snapshots)
+  const undoStack = useRef<string[]>([]);
+  const redoStack = useRef<string[]>([]);
+
+  // Initialize buffer
+  useEffect(() => {
+    const buf = document.createElement("canvas");
+    buf.width = size; buf.height = size;
+    bufferRef.current = buf;
+    blit();
+    pushSnapshot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [size]);
+
+  const pushSnapshot = () => {
+    const buf = bufferRef.current; if (!buf) return;
+    undoStack.current.push(buf.toDataURL("image/png"));
+    if (undoStack.current.length > 32) undoStack.current.shift();
     redoStack.current = [];
   };
 
-  // draw to canvas
-  useEffect(() => {
-    const c = canvasRef.current!;
+  // Repaint visible canvas from buffer + optional preview shape
+  const blit = (preview?: (ctx: CanvasRenderingContext2D) => void) => {
+    const c = canvasRef.current; const buf = bufferRef.current;
+    if (!c || !buf) return;
     const ctx = c.getContext("2d")!;
     const W = c.clientWidth;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    c.width = W * dpr;
-    c.height = W * dpr;
+    if (c.width !== W * dpr) { c.width = W * dpr; c.height = W * dpr; }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const cell = W / size;
-
     // checker bg
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        ctx.fillStyle = ((x + y) & 1) ? "#1e293b" : "#0f172a";
-        ctx.fillRect(x * cell, y * cell, cell, cell);
+    const cell = 16;
+    for (let y = 0; y < W; y += cell) {
+      for (let x = 0; x < W; x += cell) {
+        ctx.fillStyle = ((x / cell + y / cell) & 1) ? "#0f172a" : "#1e293b";
+        ctx.fillRect(x, y, cell, cell);
       }
     }
-    // pixels
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const p = pixels[y * size + x];
-        if (p) { ctx.fillStyle = p; ctx.fillRect(x * cell, y * cell, cell, cell); }
-      }
+    ctx.drawImage(buf, 0, 0, W, W);
+    if (preview) {
+      ctx.save();
+      ctx.scale(W / size, W / size);
+      preview(ctx);
+      ctx.restore();
     }
-    // grid
-    ctx.strokeStyle = "rgba(125,211,252,0.10)";
+    // grid hint
+    ctx.strokeStyle = "rgba(125,211,252,0.08)";
     ctx.lineWidth = 1;
-    for (let i = 0; i <= size; i++) {
-      ctx.beginPath(); ctx.moveTo(i * cell, 0); ctx.lineTo(i * cell, W); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, i * cell); ctx.lineTo(W, i * cell); ctx.stroke();
+    ctx.strokeRect(0.5, 0.5, W - 1, W - 1);
+    // preview thumb
+    const pv = previewRef.current;
+    if (pv) {
+      pv.width = 32; pv.height = 32;
+      const pctx = pv.getContext("2d")!;
+      pctx.clearRect(0, 0, 32, 32);
+      pctx.drawImage(buf, 0, 0, 32, 32);
     }
+  };
 
-    // preview
-    const pv = previewRef.current!;
-    const pctx = pv.getContext("2d")!;
-    pv.width = size; pv.height = size;
-    pctx.clearRect(0, 0, size, size);
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const p = pixels[y * size + x];
-        if (p) { pctx.fillStyle = p; pctx.fillRect(x, y, 1, 1); }
-      }
-    }
-  }, [pixels, size]);
-
-  const getCell = (e: React.PointerEvent) => {
+  // Map pointer to buffer-space coords
+  const getPos = (e: React.PointerEvent) => {
     const c = canvasRef.current!;
-    const rect = c.getBoundingClientRect();
-    const x = Math.floor(((e.clientX - rect.left) / rect.width) * size);
-    const y = Math.floor(((e.clientY - rect.top) / rect.height) * size);
-    return { x: Math.max(0, Math.min(size - 1, x)), y: Math.max(0, Math.min(size - 1, y)) };
+    const r = c.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * size;
+    const y = ((e.clientY - r.top) / r.height) * size;
+    return { x, y };
   };
 
-  const paintBrush = (buf: string[], cx: number, cy: number, val: string) => {
-    const r = brush - 1;
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        const x = cx + dx, y = cy + dy;
-        if (x < 0 || y < 0 || x >= size || y >= size) continue;
-        buf[y * size + x] = val;
-      }
-    }
+  const drag = useRef<{
+    active: boolean; tool: Tool;
+    last: { x: number; y: number };
+    start: { x: number; y: number };
+    snapshot: ImageData | null;
+  }>({ active: false, tool: "brush", last: { x: 0, y: 0 }, start: { x: 0, y: 0 }, snapshot: null });
+
+  const bctx = () => bufferRef.current!.getContext("2d")!;
+
+  const strokeSegment = (x0: number, y0: number, x1: number, y1: number, erase: boolean) => {
+    const c = bctx();
+    c.save();
+    c.globalCompositeOperation = erase ? "destination-out" : "source-over";
+    c.strokeStyle = color;
+    c.lineWidth = width;
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    c.beginPath();
+    c.moveTo(x0, y0);
+    c.lineTo(x1, y1);
+    c.stroke();
+    c.restore();
   };
 
-  const floodFill = (buf: string[], sx: number, sy: number, target: string, replace: string) => {
-    if (target === replace) return;
-    const stack = [[sx, sy]];
+  const floodFill = (sx: number, sy: number, hex: string) => {
+    const c = bctx();
+    const img = c.getImageData(0, 0, size, size);
+    const data = img.data;
+    const idx = (x: number, y: number) => (y * size + x) * 4;
+    const startX = Math.floor(sx), startY = Math.floor(sy);
+    if (startX < 0 || startY < 0 || startX >= size || startY >= size) return;
+    const i0 = idx(startX, startY);
+    const tr = data[i0], tg = data[i0 + 1], tb = data[i0 + 2], ta = data[i0 + 3];
+    // parse fill color
+    const fr = parseInt(hex.slice(1, 3), 16);
+    const fg = parseInt(hex.slice(3, 5), 16);
+    const fb = parseInt(hex.slice(5, 7), 16);
+    if (tr === fr && tg === fg && tb === fb && ta === 255) return;
+    const stack: number[] = [startX, startY];
     while (stack.length) {
-      const [x, y] = stack.pop()!;
+      const y = stack.pop()!, x = stack.pop()!;
       if (x < 0 || y < 0 || x >= size || y >= size) continue;
-      if (buf[y * size + x] !== target) continue;
-      buf[y * size + x] = replace;
-      stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+      const i = idx(x, y);
+      if (data[i] !== tr || data[i + 1] !== tg || data[i + 2] !== tb || data[i + 3] !== ta) continue;
+      data[i] = fr; data[i + 1] = fg; data[i + 2] = fb; data[i + 3] = 255;
+      stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
     }
+    c.putImageData(img, 0, 0);
   };
 
-  const drawLine = (buf: string[], x0: number, y0: number, x1: number, y1: number, val: string) => {
-    const dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    const dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-    let err = dx + dy;
-    let x = x0, y = y0;
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      paintBrush(buf, x, y, val);
-      if (x === x1 && y === y1) break;
-      const e2 = 2 * err;
-      if (e2 >= dy) { err += dy; x += sx; }
-      if (e2 <= dx) { err += dx; y += sy; }
+  const drawPreviewShape = (ctx: CanvasRenderingContext2D, t: Tool, x0: number, y0: number, x1: number, y1: number) => {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    if (t === "line") {
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    } else if (t === "rect") {
+      ctx.strokeRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0));
+    } else if (t === "circle") {
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      const rx = Math.abs(x1 - x0) / 2, ry = Math.abs(y1 - y0) / 2;
+      ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
     }
+    ctx.restore();
   };
 
-  const drawRect = (buf: string[], x0: number, y0: number, x1: number, y1: number, val: string) => {
-    const lx = Math.min(x0, x1), rx = Math.max(x0, x1);
-    const ty = Math.min(y0, y1), by = Math.max(y0, y1);
-    for (let x = lx; x <= rx; x++) { paintBrush(buf, x, ty, val); paintBrush(buf, x, by, val); }
-    for (let y = ty; y <= by; y++) { paintBrush(buf, lx, y, val); paintBrush(buf, rx, y, val); }
+  const commitShape = (t: Tool, x0: number, y0: number, x1: number, y1: number) => {
+    const c = bctx();
+    c.save();
+    c.strokeStyle = color;
+    c.lineWidth = width;
+    c.lineCap = "round";
+    if (t === "line") {
+      c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+    } else if (t === "rect") {
+      c.strokeRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0));
+    } else if (t === "circle") {
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      const rx = Math.abs(x1 - x0) / 2, ry = Math.abs(y1 - y0) / 2;
+      c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); c.stroke();
+    }
+    c.restore();
   };
 
-  const dragRef = useRef<{ active: boolean; lastX: number; lastY: number; startX: number; startY: number; snapshot: string[] | null }>({
-    active: false, lastX: 0, lastY: 0, startX: 0, startY: 0, snapshot: null,
-  });
+  const pickColorAt = (x: number, y: number) => {
+    const c = bctx();
+    const d = c.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+    if (d[3] === 0) return;
+    const hex = "#" + [d[0], d[1], d[2]].map(n => n.toString(16).padStart(2, "0")).join("");
+    setColor(hex);
+  };
 
   const onDown = (e: React.PointerEvent) => {
     (e.target as Element).setPointerCapture(e.pointerId);
-    const { x, y } = getCell(e);
-    if (tool === "picker") {
-      const p = pixels[y * size + x];
-      if (p) setColor(p);
-      return;
-    }
-    pushHistory(pixels);
-    const val = tool === "eraser" ? "" : color;
-    const buf = [...pixels];
-    if (tool === "pencil" || tool === "eraser") {
-      paintBrush(buf, x, y, val);
+    const p = getPos(e);
+    if (tool === "picker") { pickColorAt(p.x, p.y); return; }
+    pushSnapshot();
+    drag.current = { active: true, tool, last: p, start: p, snapshot: null };
+    if (tool === "brush" || tool === "eraser") {
+      strokeSegment(p.x, p.y, p.x + 0.01, p.y + 0.01, tool === "eraser");
+      blit();
     } else if (tool === "fill") {
-      floodFill(buf, x, y, pixels[y * size + x] ?? "", val);
+      floodFill(p.x, p.y, color);
+      blit();
     }
-    setPixels(buf);
-    dragRef.current = { active: true, lastX: x, lastY: y, startX: x, startY: y, snapshot: tool === "line" || tool === "rect" ? pixels : null };
   };
+
   const onMove = (e: React.PointerEvent) => {
-    if (!dragRef.current.active) return;
-    const { x, y } = getCell(e);
-    if (x === dragRef.current.lastX && y === dragRef.current.lastY) return;
-    const val = tool === "eraser" ? "" : color;
-    if (tool === "pencil" || tool === "eraser") {
-      const buf = [...pixels];
-      drawLine(buf, dragRef.current.lastX, dragRef.current.lastY, x, y, val);
-      setPixels(buf);
-      dragRef.current.lastX = x; dragRef.current.lastY = y;
-    } else if (tool === "line" && dragRef.current.snapshot) {
-      const buf = [...dragRef.current.snapshot];
-      drawLine(buf, dragRef.current.startX, dragRef.current.startY, x, y, val);
-      setPixels(buf);
-    } else if (tool === "rect" && dragRef.current.snapshot) {
-      const buf = [...dragRef.current.snapshot];
-      drawRect(buf, dragRef.current.startX, dragRef.current.startY, x, y, val);
-      setPixels(buf);
+    if (!drag.current.active) return;
+    const p = getPos(e);
+    if (drag.current.tool === "brush" || drag.current.tool === "eraser") {
+      strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, drag.current.tool === "eraser");
+      drag.current.last = p;
+      blit();
+    } else if (drag.current.tool === "line" || drag.current.tool === "rect" || drag.current.tool === "circle") {
+      const t = drag.current.tool;
+      blit(ctx => drawPreviewShape(ctx, t, drag.current.start.x, drag.current.start.y, p.x, p.y));
     }
   };
-  const onUp = () => { dragRef.current.active = false; dragRef.current.snapshot = null; };
+
+  const onUp = (e: React.PointerEvent) => {
+    if (!drag.current.active) return;
+    const p = getPos(e);
+    const t = drag.current.tool;
+    if (t === "line" || t === "rect" || t === "circle") {
+      commitShape(t, drag.current.start.x, drag.current.start.y, p.x, p.y);
+    }
+    drag.current.active = false;
+    blit();
+  };
 
   const undo = () => {
+    const buf = bufferRef.current; if (!buf) return;
     const prev = undoStack.current.pop();
     if (!prev) return;
-    redoStack.current.push(pixels);
-    setPixels(prev);
+    redoStack.current.push(buf.toDataURL("image/png"));
+    const img = new Image();
+    img.onload = () => {
+      const c = bctx();
+      c.clearRect(0, 0, size, size);
+      c.drawImage(img, 0, 0);
+      blit();
+    };
+    img.src = prev;
   };
   const redo = () => {
+    const buf = bufferRef.current; if (!buf) return;
     const next = redoStack.current.pop();
     if (!next) return;
-    undoStack.current.push(pixels);
-    setPixels(next);
+    undoStack.current.push(buf.toDataURL("image/png"));
+    const img = new Image();
+    img.onload = () => {
+      const c = bctx();
+      c.clearRect(0, 0, size, size);
+      c.drawImage(img, 0, 0);
+      blit();
+    };
+    img.src = next;
   };
   const clearAll = () => {
-    pushHistory(pixels);
-    setPixels(Array(size * size).fill(""));
+    if (!confirm("Clear the canvas?")) return;
+    pushSnapshot();
+    const c = bctx();
+    c.clearRect(0, 0, size, size);
+    blit();
   };
 
   const save = () => {
-    const off = document.createElement("canvas");
-    off.width = size; off.height = size;
-    const c = off.getContext("2d")!;
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const p = pixels[y * size + x];
-        if (p) { c.fillStyle = p; c.fillRect(x, y, 1, 1); }
-      }
-    }
-    const dataUrl = off.toDataURL("image/png");
+    const buf = bufferRef.current; if (!buf) return;
+    const dataUrl = buf.toDataURL("image/png");
     const asset: SpriteAsset = {
       id: uid(),
-      name: name.trim() || "sprite",
+      name: name.trim() || "drawing",
       width: size,
       height: size,
       fps: 8,
@@ -222,11 +282,12 @@ export function PaintEditor({ onSave, onClose, initialSize = 32 }: Props) {
   };
 
   const TOOLS: { id: Tool; label: string }[] = [
-    { id: "pencil", label: "✎" },
+    { id: "brush", label: "✎" },
     { id: "eraser", label: "⌫" },
     { id: "fill", label: "▣" },
     { id: "line", label: "／" },
     { id: "rect", label: "▭" },
+    { id: "circle", label: "◯" },
     { id: "picker", label: "◎" },
   ];
 
@@ -234,17 +295,17 @@ export function PaintEditor({ onSave, onClose, initialSize = 32 }: Props) {
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col">
       <div className="flex items-center justify-between px-3 py-2 panel border-b">
         <div className="flex items-center gap-2 min-w-0">
-          <canvas ref={previewRef} className="w-8 h-8 rounded border border-border" style={{ imageRendering: "pixelated" }} />
+          <canvas ref={previewRef} className="w-8 h-8 rounded border border-border bg-card" />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="bg-input/60 border border-border rounded-md px-2 py-1 text-sm font-mono w-32"
           />
-          <span className="text-[10px] font-mono text-muted-foreground">{size}×{size}</span>
+          <span className="text-[10px] font-mono text-muted-foreground">{size}px</span>
         </div>
         <div className="flex items-center gap-1.5">
           <button onClick={onClose} className="text-xs font-display px-3 py-1.5 rounded-md border border-border text-muted-foreground">CANCEL</button>
-          <button onClick={save} className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-primary to-accent text-primary-foreground glow-border">✓ SAVE SPRITE</button>
+          <button onClick={save} className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-primary to-accent text-primary-foreground glow-border">✓ SAVE</button>
         </div>
       </div>
 
@@ -252,8 +313,7 @@ export function PaintEditor({ onSave, onClose, initialSize = 32 }: Props) {
         <div className="mx-auto w-full max-w-[480px] aspect-square">
           <canvas
             ref={canvasRef}
-            className="w-full h-full rounded-md border border-border touch-none"
-            style={{ imageRendering: "pixelated" }}
+            className="w-full h-full rounded-md border border-border touch-none bg-card"
             onPointerDown={onDown}
             onPointerMove={onMove}
             onPointerUp={onUp}
@@ -290,15 +350,11 @@ export function PaintEditor({ onSave, onClose, initialSize = 32 }: Props) {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 justify-center text-xs font-display tracking-widest text-muted-foreground">
-          <span>BRUSH</span>
-          {[1, 2, 3, 4].map(n => (
-            <button
-              key={n}
-              onClick={() => setBrush(n)}
-              className={`w-9 h-9 rounded-md border ${brush === n ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"}`}
-            >{n}</button>
-          ))}
+        <div className="flex items-center gap-3 justify-center text-xs font-display tracking-widest text-muted-foreground px-2">
+          <span>SIZE</span>
+          <input type="range" min={1} max={48} value={width} onChange={e => setWidth(Number(e.target.value))}
+            className="flex-1 max-w-[260px] accent-[oklch(0.68_0.21_250)]" />
+          <span className="font-mono text-primary-glow w-6 text-right">{width}</span>
         </div>
       </div>
     </div>
