@@ -550,8 +550,10 @@ function ScenesPanel({
 }
 
 function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: Project) => void }) {
+  useT();
   const set = (patch: Partial<Project["settings"]>) =>
     onChange({ ...project, settings: { ...project.settings, ...patch } });
+
 
   return (
     <div className="h-full overflow-auto p-4 space-y-4">
