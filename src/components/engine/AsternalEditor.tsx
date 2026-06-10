@@ -827,10 +827,14 @@ function AssetsPanel({
               <div className="text-xs font-display truncate text-primary-glow">{sp.name}</div>
               <div className="text-[9px] font-mono text-muted-foreground">{sp.width}×{sp.height} · {sp.frames.length}f</div>
             </div>
-            <div className="mt-1.5">
+            <div className="mt-1.5 grid grid-cols-2 gap-1">
+              <button
+                onClick={() => onPlaceOnScene(sp)}
+                className="text-[10px] py-1.5 rounded bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/50 text-primary-glow font-display tracking-widest glow-border"
+              >＋ PLACE</button>
               <button
                 onClick={() => removeSprite(sp.id)}
-                className="w-full text-[10px] py-1.5 rounded bg-destructive/15 border border-destructive/40 text-destructive font-display tracking-widest"
+                className="text-[10px] py-1.5 rounded bg-destructive/15 border border-destructive/40 text-destructive font-display tracking-widest"
               >✕ DELETE</button>
             </div>
             {selectedEntity && (
