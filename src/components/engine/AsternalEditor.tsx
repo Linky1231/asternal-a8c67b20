@@ -330,6 +330,9 @@ function InspectorPanel({
               <span className="text-[10px] font-mono text-muted-foreground">×{pl.speed}</span>
             </div>
           ))}
+        </div>
+
+
 
 
 
