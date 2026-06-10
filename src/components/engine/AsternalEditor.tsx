@@ -710,13 +710,14 @@ function AnimationsButton({ entity, onUpdate }: { entity: import("@/lib/engine/c
 }
 
 function AssetsPanel({
-  project, onChange, selectedEntity, onAssignTexture, onAssignAnimation,
+  project, onChange, selectedEntity, onAssignTexture, onAssignAnimation, onPlaceOnScene,
 }: {
   project: Project;
   onChange: (p: Project) => void;
   selectedEntity: Entity | null;
   onAssignTexture: (dataUrl: string) => void;
   onAssignAnimation: (sprite: SpriteAsset) => void;
+  onPlaceOnScene: (sprite: SpriteAsset) => void;
 }) {
   const sprites = project.assets?.sprites ?? [];
   const fileRef = useRef<HTMLInputElement>(null);
