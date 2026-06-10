@@ -240,12 +240,13 @@ export function GameRuntime({
             scripts.step(work, state, inputRef.current, hooks, targetDt);
           }
           if (shake.time > 0) shake.time = Math.max(0, shake.time - targetDt);
+          tickEmitters(targetDt);
           // particle physics
           for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
             p.x += p.vx * targetDt;
             p.y += p.vy * targetDt;
-            p.vy += 400 * targetDt;
+            p.vy += p.gravity * targetDt;
             p.life -= targetDt;
             if (p.life <= 0) particles.splice(i, 1);
           }
