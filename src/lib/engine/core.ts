@@ -122,6 +122,7 @@ export interface ProjectSettings {
   touchControls?: boolean;
   autoPause?: boolean;
   showHitboxes?: boolean;
+  language?: "es" | "en" | "pt" | "fr" | "de";
 }
 
 export interface Project {
