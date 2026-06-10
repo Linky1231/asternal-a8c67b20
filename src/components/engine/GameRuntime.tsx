@@ -77,11 +77,38 @@ export function GameRuntime({
     resize();
     window.addEventListener("resize", resize);
 
+    type Part = { x: number; y: number; vx: number; vy: number; life: number; color: string };
+    const particles: Part[] = [];
+    const flushParticles = () => {
+      const list = state.particles ?? [];
+      for (const p of list) {
+        const n = p.count ?? 8;
+        for (let i = 0; i < n; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const s = 60 + Math.random() * 140;
+          particles.push({ x: p.x, y: p.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 0.6, color: p.color });
+        }
+      }
+      if (list.length) state.particles = [];
+    };
+
     const draw = () => {
       const W = canvas.clientWidth;
       const H = canvas.clientHeight;
       ctx.fillStyle = work.bg || "#0b1e3f";
       ctx.fillRect(0, 0, W, H);
+
+      // Parallax bands
+      if (work.parallax?.length) {
+        for (const pl of work.parallax) {
+          ctx.fillStyle = pl.color;
+          const off = (-state.cameraX * (pl.speed ?? 0.3)) % W;
+          const y = (pl.y ?? H * 0.6);
+          ctx.fillRect(off, y, W, pl.height ?? 60);
+          ctx.fillRect(off + W, y, W, pl.height ?? 60);
+          ctx.fillRect(off - W, y, W, pl.height ?? 60);
+        }
+      }
 
       ctx.strokeStyle = "rgba(56,189,248,0.10)";
       ctx.lineWidth = 1;
@@ -105,10 +132,24 @@ export function GameRuntime({
       for (const e of work.entities) {
         if (e.visible === false) continue;
         const a = e.opacity ?? 1;
-        if (a !== 1) ctx.globalAlpha = a;
+        // invuln blink
+        if (e.controllable && state.invulnT > 0 && Math.floor(state.invulnT * 16) % 2 === 0) {
+          ctx.globalAlpha = 0.4;
+        } else if (a !== 1) ctx.globalAlpha = a;
         drawEntity(ctx, e, tSec);
-        if (a !== 1) ctx.globalAlpha = 1;
+        ctx.globalAlpha = 1;
       }
+
+      // particles
+      flushParticles();
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        ctx.globalAlpha = Math.max(0, p.life / 0.6);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, 3, 3);
+      }
+      ctx.globalAlpha = 1;
+
       if (showHitboxes) {
         ctx.lineWidth = 1.5;
         ctx.strokeStyle = "#f43f5e";
@@ -124,12 +165,18 @@ export function GameRuntime({
 
       if (showHUD) {
         ctx.fillStyle = "rgba(2,6,23,0.6)";
-        ctx.fillRect(12, 12, 140, 36);
+        ctx.fillRect(12, 12, 260, 36);
         ctx.strokeStyle = "rgba(125,211,252,0.5)";
-        ctx.strokeRect(12, 12, 140, 36);
+        ctx.strokeRect(12, 12, 260, 36);
         ctx.fillStyle = "#7dd3fc";
         ctx.font = "600 14px Rajdhani, sans-serif";
         ctx.fillText(`SCORE ${state.score}`, 22, 35);
+        ctx.fillText(`♥ ${state.lives}`, 130, 35);
+        if (work.timeLimit && work.timeLimit > 0) {
+          const left = Math.max(0, Math.ceil(work.timeLimit - state.time));
+          ctx.fillStyle = left < 10 ? "#f43f5e" : "#7dd3fc";
+          ctx.fillText(`⏱ ${left}`, 190, 35);
+        }
       }
     };
 
