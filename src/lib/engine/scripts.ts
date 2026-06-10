@@ -1,15 +1,17 @@
 // Block-based scripting (events + actions) for Asternal Engine
 import type { Entity, EntityKind, RuntimeInput, RuntimeState, Scene } from "./core";
-import { intersects } from "./core";
-import { playSound, vibrate, type SoundName } from "./sfx";
+import { intersects, KIND_PRESETS, uid as makeId } from "./core";
+import { playSound, vibrate, type SoundName, SOUND_NAMES } from "./sfx";
 
 export type EventType =
   | "onStart"
+  | "onCreate"
   | "onUpdate"
   | "onCollide"
   | "onKeyDown"
   | "onScoreReach"
   | "onDestroyed"
+  | "onDestroy"
   | "onTimer"
   | "onLeaveScreen"
   | "onLand"
@@ -17,6 +19,7 @@ export type EventType =
   | "onLose";
 
 export type BlockKind =
+  // existing
   | "jump"
   | "setVx"
   | "setVy"
@@ -38,7 +41,38 @@ export type BlockKind =
   | "setVisible"
   | "restartScene"
   | "setBg"
-  | "if";
+  | "if"
+  // 30 new
+  | "setX"
+  | "setY"
+  | "moveX"
+  | "moveY"
+  | "flipVx"
+  | "flipVy"
+  | "bounceY"
+  | "stop"
+  | "setSpeed"
+  | "setOpacity"
+  | "setHazard"
+  | "setSolid"
+  | "setCollectible"
+  | "setGoalFlag"
+  | "addLives"
+  | "setLives"
+  | "setScore"
+  | "resetScore"
+  | "spawnEntity"
+  | "cloneSelf"
+  | "setSceneGravity"
+  | "playRandomSound"
+  | "wrapScreen"
+  | "faceTarget"
+  | "chase"
+  | "setHitbox"
+  | "clearHitbox"
+  | "removeAllOf"
+  | "comment"
+  | "hurtPlayer";
 
 export interface Block {
   id: string;
@@ -46,6 +80,8 @@ export interface Block {
   value?: number;
   x?: number;
   y?: number;
+  w?: number;
+  h?: number;
   text?: string;
   sound?: SoundName;
   color?: string;
@@ -66,11 +102,13 @@ export interface Script {
 
 export const EVENT_LABELS: Record<EventType, string> = {
   onStart: "On Start",
+  onCreate: "On Create",
   onUpdate: "On Update",
   onCollide: "On Collide",
   onKeyDown: "On Key Press",
   onScoreReach: "On Score Reach",
   onDestroyed: "On Destroyed",
+  onDestroy: "On Destroy",
   onTimer: "On Timer",
   onLeaveScreen: "On Leave Screen",
   onLand: "On Land",
@@ -101,16 +139,51 @@ export const BLOCK_LABELS: Record<BlockKind, string> = {
   restartScene: "Restart scene",
   setBg: "Set background",
   if: "If condition",
+  // new
+  setX: "Set X",
+  setY: "Set Y",
+  moveX: "Move X by",
+  moveY: "Move Y by",
+  flipVx: "Flip velocity X",
+  flipVy: "Flip velocity Y",
+  bounceY: "Bounce Y (%)",
+  stop: "Stop motion",
+  setSpeed: "Set speed",
+  setOpacity: "Set opacity %",
+  setHazard: "Set hazard",
+  setSolid: "Set solid",
+  setCollectible: "Set collectible",
+  setGoalFlag: "Set goal flag",
+  addLives: "Add lives",
+  setLives: "Set lives",
+  setScore: "Set score",
+  resetScore: "Reset score",
+  spawnEntity: "Spawn entity",
+  cloneSelf: "Clone self",
+  setSceneGravity: "Set scene gravity",
+  playRandomSound: "Random sound",
+  wrapScreen: "Wrap screen",
+  faceTarget: "Face target",
+  chase: "Chase target",
+  setHitbox: "Set hitbox",
+  clearHitbox: "Clear hitbox",
+  removeAllOf: "Remove all of kind",
+  comment: "Comment",
+  hurtPlayer: "Hurt player",
 };
 
 export const ALL_BLOCKS: BlockKind[] = [
-  "jump", "impulse", "setVx", "setVy",
-  "addScore", "destroySelf", "destroyOther",
-  "win", "lose", "restartScene", "teleport",
-  "playSound", "vibrate", "shake",
-  "setColor", "setBg", "setVisible", "setSize",
-  "setGravity", "setControllable",
-  "log", "if",
+  "jump", "impulse", "setVx", "setVy", "setSpeed", "stop", "flipVx", "flipVy", "bounceY",
+  "setX", "setY", "moveX", "moveY", "teleport", "wrapScreen",
+  "addScore", "setScore", "resetScore", "addLives", "setLives",
+  "destroySelf", "destroyOther", "cloneSelf", "spawnEntity", "removeAllOf",
+  "win", "lose", "restartScene", "hurtPlayer",
+  "playSound", "playRandomSound", "vibrate", "shake",
+  "setColor", "setBg", "setVisible", "setOpacity", "setSize",
+  "setGravity", "setControllable", "setHazard", "setSolid", "setCollectible", "setGoalFlag",
+  "setSceneGravity", "setHitbox", "clearHitbox",
+  "faceTarget", "chase",
+  "log", "comment", "if",
 ];
 
 export interface RuntimeHooks {
@@ -124,6 +197,11 @@ interface ExecCtx {
   scene: Scene;
   state: RuntimeState;
   hooks: RuntimeHooks;
+}
+
+function findFirstOfKind(scene: Scene, kind: EntityKind) {
+  for (const e of scene.entities) if (e.kind === kind && e.x > -9000) return e;
+  return null;
 }
 
 function execBlock(b: Block, ctx: ExecCtx) {
@@ -158,6 +236,89 @@ function execBlock(b: Block, ctx: ExecCtx) {
       break;
     case "setGravity": ctx.self.gravity = b.bool ?? !ctx.self.gravity; break;
     case "setControllable": ctx.self.controllable = b.bool ?? !ctx.self.controllable; break;
+
+    // --- new ---
+    case "setX": ctx.self.x = b.value ?? ctx.self.x; break;
+    case "setY": ctx.self.y = b.value ?? ctx.self.y; break;
+    case "moveX": ctx.self.x += b.value ?? 0; break;
+    case "moveY": ctx.self.y += b.value ?? 0; break;
+    case "flipVx": ctx.self.vx = -ctx.self.vx; break;
+    case "flipVy": ctx.self.vy = -ctx.self.vy; break;
+    case "bounceY": ctx.self.vy = -ctx.self.vy * ((b.value ?? 80) / 100); break;
+    case "stop": ctx.self.vx = 0; ctx.self.vy = 0; break;
+    case "setSpeed": {
+      const s = b.value ?? 0;
+      const dir = ctx.self.vx === 0 ? 1 : Math.sign(ctx.self.vx);
+      ctx.self.vx = s * dir;
+      break;
+    }
+    case "setOpacity": ctx.self.opacity = Math.max(0, Math.min(1, (b.value ?? 100) / 100)); break;
+    case "setHazard": ctx.self.hazard = b.bool ?? !ctx.self.hazard; break;
+    case "setSolid": ctx.self.solid = b.bool ?? !ctx.self.solid; break;
+    case "setCollectible": ctx.self.collectible = b.bool ?? !ctx.self.collectible; break;
+    case "setGoalFlag": ctx.self.goal = b.bool ?? !ctx.self.goal; break;
+    case "addLives": ctx.state.lives += b.value ?? 1; break;
+    case "setLives": ctx.state.lives = b.value ?? 1; break;
+    case "setScore": ctx.state.score = b.value ?? 0; break;
+    case "resetScore": ctx.state.score = 0; break;
+    case "spawnEntity": {
+      const k = (b.text as EntityKind) || "coin";
+      const preset = KIND_PRESETS[k];
+      if (preset) {
+        ctx.scene.entities.push({
+          ...preset,
+          id: makeId(),
+          x: b.x ?? ctx.self.x,
+          y: b.y ?? ctx.self.y,
+        });
+      }
+      break;
+    }
+    case "cloneSelf": {
+      ctx.scene.entities.push({
+        ...ctx.self,
+        id: makeId(),
+        x: ctx.self.x + (b.x ?? 20),
+        y: ctx.self.y + (b.y ?? 0),
+        scripts: [], // no script inheritance to avoid runaway
+      });
+      break;
+    }
+    case "setSceneGravity": ctx.scene.gravity = Math.max(0, b.value ?? 1400); break;
+    case "playRandomSound": playSound(SOUND_NAMES[Math.floor(Math.random() * SOUND_NAMES.length)]); break;
+    case "wrapScreen": {
+      const e = ctx.self;
+      if (e.x + e.w < 0) e.x = ctx.scene.width;
+      else if (e.x > ctx.scene.width) e.x = -e.w;
+      if (e.y + e.h < 0) e.y = ctx.scene.height;
+      else if (e.y > ctx.scene.height) e.y = -e.h;
+      break;
+    }
+    case "faceTarget": {
+      const t = findFirstOfKind(ctx.scene, (b.text as EntityKind) || "player");
+      if (t) ctx.self.vx = Math.sign(t.x - ctx.self.x) * Math.abs(ctx.self.vx || 60);
+      break;
+    }
+    case "chase": {
+      const t = findFirstOfKind(ctx.scene, (b.text as EntityKind) || "player");
+      if (t) {
+        const sp = b.value ?? 80;
+        ctx.self.vx = Math.sign(t.x - ctx.self.x) * sp;
+      }
+      break;
+    }
+    case "setHitbox":
+      ctx.self.hitbox = { x: b.x ?? 0, y: b.y ?? 0, w: Math.max(1, b.w ?? ctx.self.w), h: Math.max(1, b.h ?? ctx.self.h) };
+      break;
+    case "clearHitbox": ctx.self.hitbox = null; break;
+    case "removeAllOf": {
+      const k = (b.text as EntityKind) || "coin";
+      for (const e of ctx.scene.entities) if (e.kind === k) e.x = -99999;
+      break;
+    }
+    case "comment": break;
+    case "hurtPlayer": ctx.state.dead = true; break;
+
     case "if": {
       const v = b.value ?? 0;
       const ok =
@@ -198,23 +359,21 @@ export function createScriptRunner(): ScriptRunner {
         jump: input.jump && !prevInput.jump,
       };
 
-      // global edges
       const winEdge = state.win && !prevWin;
       const loseEdge = state.dead && !prevDead;
 
-      for (const e of live) {
+      for (let i = 0; i < live.length; i++) {
+        const e = live[i];
         const scripts = e.scripts ?? [];
         if (!scripts.length) { prevVy.set(e.id, e.vy); continue; }
 
-        // onDestroyed (edge: moved off-world)
         if (e.x < -9000 && !destroyed.has(e.id)) {
           destroyed.add(e.id);
-          for (const s of scripts) if (s.event === "onDestroyed")
+          for (const s of scripts) if (s.event === "onDestroyed" || s.event === "onDestroy")
             runScript(s, { self: e, scene, state, hooks });
         }
         if (e.x < -9000) continue;
 
-        // onLeaveScreen (edge)
         const outside = e.x + e.w < 0 || e.x > scene.width || e.y > scene.height + 200 || e.y + e.h < -200;
         if (outside && !left.has(e.id)) {
           left.add(e.id);
@@ -225,12 +384,11 @@ export function createScriptRunner(): ScriptRunner {
         }
 
         if (!started.has(e.id)) {
-          for (const s of scripts) if (s.event === "onStart")
+          for (const s of scripts) if (s.event === "onStart" || s.event === "onCreate")
             runScript(s, { self: e, scene, state, hooks });
           started.add(e.id);
         }
 
-        // onLand (edge: was falling, now grounded)
         const pv = prevVy.get(e.id) ?? 0;
         const landed = pv > 80 && e.vy === 0;
 
@@ -246,12 +404,8 @@ export function createScriptRunner(): ScriptRunner {
           } else if (s.event === "onTimer") {
             const iv = Math.max(0.05, (s.interval ?? 1000) / 1000);
             const acc = (timerAcc.get(s.id) ?? 0) + dt;
-            if (acc >= iv) {
-              timerAcc.set(s.id, 0);
-              runScript(s, { self: e, scene, state, hooks });
-            } else {
-              timerAcc.set(s.id, acc);
-            }
+            if (acc >= iv) { timerAcc.set(s.id, 0); runScript(s, { self: e, scene, state, hooks }); }
+            else timerAcc.set(s.id, acc);
           } else if (s.event === "onLand" && landed) {
             runScript(s, { self: e, scene, state, hooks });
           } else if (s.event === "onWin" && winEdge) {
