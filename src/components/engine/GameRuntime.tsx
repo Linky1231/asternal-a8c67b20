@@ -190,11 +190,12 @@ export function GameRuntime({
       flushParticles();
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        ctx.globalAlpha = Math.max(0, p.life / 0.6);
+        ctx.globalAlpha = Math.max(0, p.life / p.max);
         ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, 3, 3);
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
       }
       ctx.globalAlpha = 1;
+
 
       if (showHitboxes) {
         ctx.lineWidth = 1.5;
