@@ -7,6 +7,7 @@ import {
 import { SOUND_NAMES, type SoundName, playSound } from "@/lib/engine/sfx";
 
 const KIND_OPTIONS: (EntityKind | "any")[] = ["any", "player", "platform", "enemy", "coin", "goal"];
+const KIND_ONLY: EntityKind[] = ["player", "platform", "enemy", "coin", "goal"];
 
 interface Props {
   entity: Entity;
@@ -25,27 +26,20 @@ export function ScriptEditor({ entity, onChange, onClose }: Props) {
 
   const addScript = () => {
     const s: Script = { id: uid(), event: "onStart", blocks: [] };
-    const next = [...scripts, s];
-    commit(next);
+    commit([...scripts, s]);
     setOpenId(s.id);
   };
 
   const updateScript = (id: string, patch: Partial<Script>) =>
     commit(scripts.map(s => s.id === id ? { ...s, ...patch } : s));
-
-  const removeScript = (id: string) =>
-    commit(scripts.filter(s => s.id !== id));
-
+  const removeScript = (id: string) => commit(scripts.filter(s => s.id !== id));
   const addBlock = (sid: string, kind: BlockKind) => {
-    const def = defaultBlock(kind);
-    commit(scripts.map(s => s.id === sid ? { ...s, blocks: [...s.blocks, def] } : s));
+    commit(scripts.map(s => s.id === sid ? { ...s, blocks: [...s.blocks, defaultBlock(kind)] } : s));
   };
-
   const updateBlock = (sid: string, bid: string, patch: Partial<Block>) =>
     commit(scripts.map(s => s.id === sid
       ? { ...s, blocks: s.blocks.map(b => b.id === bid ? { ...b, ...patch } : b) }
       : s));
-
   const removeBlock = (sid: string, bid: string) =>
     commit(scripts.map(s => s.id === sid
       ? { ...s, blocks: s.blocks.filter(b => b.id !== bid) }
@@ -126,26 +120,19 @@ export function ScriptEditor({ entity, onChange, onClose }: Props) {
                     {s.event === "onScoreReach" && (
                       <label className="text-[10px] font-display tracking-widest text-muted-foreground">
                         SCORE ≥
-                        <input
-                          type="number"
-                          value={s.threshold ?? 0}
+                        <input type="number" value={s.threshold ?? 0}
                           onChange={e => updateScript(s.id, { threshold: Number(e.target.value) })}
-                          className="mt-1 w-full bg-input/60 border border-border rounded-md px-2 py-1.5 text-sm font-mono"
-                        />
+                          className="mt-1 w-full bg-input/60 border border-border rounded-md px-2 py-1.5 text-sm font-mono" />
                       </label>
                     )}
                     {s.event === "onTimer" && (
                       <label className="text-[10px] font-display tracking-widest text-muted-foreground">
                         EVERY (MS)
-                        <input
-                          type="number"
-                          value={s.interval ?? 1000}
+                        <input type="number" value={s.interval ?? 1000}
                           onChange={e => updateScript(s.id, { interval: Number(e.target.value) })}
-                          className="mt-1 w-full bg-input/60 border border-border rounded-md px-2 py-1.5 text-sm font-mono"
-                        />
+                          className="mt-1 w-full bg-input/60 border border-border rounded-md px-2 py-1.5 text-sm font-mono" />
                       </label>
                     )}
-
                   </div>
 
                   <div className="space-y-1.5">
@@ -202,10 +189,32 @@ function defaultBlock(k: BlockKind): Block {
     case "setControllable": return { ...base, bool: true };
     case "setVisible": return { ...base, bool: true };
     case "if": return { ...base, cond: "scoreGte", value: 10, thenBlocks: [] };
+    // new
+    case "setX": return { ...base, value: 100 };
+    case "setY": return { ...base, value: 100 };
+    case "moveX": return { ...base, value: 20 };
+    case "moveY": return { ...base, value: -20 };
+    case "bounceY": return { ...base, value: 80 };
+    case "setSpeed": return { ...base, value: 200 };
+    case "setOpacity": return { ...base, value: 100 };
+    case "setHazard": return { ...base, bool: true };
+    case "setSolid": return { ...base, bool: true };
+    case "setCollectible": return { ...base, bool: true };
+    case "setGoalFlag": return { ...base, bool: true };
+    case "addLives": return { ...base, value: 1 };
+    case "setLives": return { ...base, value: 3 };
+    case "setScore": return { ...base, value: 0 };
+    case "setSceneGravity": return { ...base, value: 1400 };
+    case "spawnEntity": return { ...base, text: "coin", x: 0, y: 0 };
+    case "cloneSelf": return { ...base, x: 30, y: 0 };
+    case "faceTarget": return { ...base, text: "player" };
+    case "chase": return { ...base, text: "player", value: 80 };
+    case "removeAllOf": return { ...base, text: "coin" };
+    case "setHitbox": return { ...base, x: 0, y: 0, w: 32, h: 32 };
+    case "comment": return { ...base, text: "note" };
     default: return base;
   }
 }
-
 
 function BlockRow({ block, onChange, onRemove }: { block: Block; onChange: (p: Partial<Block>) => void; onRemove: () => void }) {
   return (
@@ -222,19 +231,33 @@ function BlockRow({ block, onChange, onRemove }: { block: Block; onChange: (p: P
 function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<Block>) => void }) {
   const num = (k: keyof Block, v: string) => onChange({ [k]: Number(v) } as Partial<Block>);
   switch (block.kind) {
+    // single value
     case "jump":
     case "setVx":
     case "setVy":
     case "addScore":
     case "vibrate":
     case "shake":
+    case "setX":
+    case "setY":
+    case "moveX":
+    case "moveY":
+    case "bounceY":
+    case "setSpeed":
+    case "setOpacity":
+    case "addLives":
+    case "setLives":
+    case "setScore":
+    case "setSceneGravity":
       return (
         <input type="number" value={block.value ?? 0} onChange={e => num("value", e.target.value)}
           className="w-full bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
       );
+
     case "teleport":
     case "setSize":
     case "impulse":
+    case "cloneSelf":
       return (
         <div className="grid grid-cols-2 gap-2">
           <input type="number" value={block.x ?? 0} onChange={e => num("x", e.target.value)}
@@ -244,11 +267,63 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<
         </div>
       );
 
+    case "setHitbox":
+      return (
+        <div className="grid grid-cols-4 gap-1.5">
+          {(["x", "y", "w", "h"] as const).map(k => (
+            <label key={k} className="text-[10px] font-mono text-muted-foreground">
+              {k}
+              <input type="number" value={block[k] ?? 0} onChange={e => num(k, e.target.value)}
+                className="w-full bg-input/60 border border-border rounded px-1.5 py-1 text-xs font-mono" />
+            </label>
+          ))}
+        </div>
+      );
+
+    case "spawnEntity":
+      return (
+        <div className="space-y-1.5">
+          <select value={block.text ?? "coin"} onChange={e => onChange({ text: e.target.value })}
+            className="w-full bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono">
+            {KIND_ONLY.map(k => <option key={k} value={k}>{k}</option>)}
+          </select>
+          <div className="grid grid-cols-2 gap-2">
+            <input type="number" value={block.x ?? 0} onChange={e => num("x", e.target.value)}
+              placeholder="x" className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
+            <input type="number" value={block.y ?? 0} onChange={e => num("y", e.target.value)}
+              placeholder="y" className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
+          </div>
+        </div>
+      );
+
+    case "faceTarget":
+    case "removeAllOf":
+      return (
+        <select value={block.text ?? "player"} onChange={e => onChange({ text: e.target.value })}
+          className="w-full bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono">
+          {KIND_ONLY.map(k => <option key={k} value={k}>{k}</option>)}
+        </select>
+      );
+
+    case "chase":
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          <select value={block.text ?? "player"} onChange={e => onChange({ text: e.target.value })}
+            className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono">
+            {KIND_ONLY.map(k => <option key={k} value={k}>{k}</option>)}
+          </select>
+          <input type="number" value={block.value ?? 80} onChange={e => num("value", e.target.value)}
+            placeholder="speed" className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
+        </div>
+      );
+
     case "log":
+    case "comment":
       return (
         <input value={block.text ?? ""} onChange={e => onChange({ text: e.target.value })}
           className="w-full bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
       );
+
     case "playSound":
       return (
         <div className="flex gap-2">
@@ -260,15 +335,21 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<
             className="px-2 py-1 text-xs rounded border border-primary/40 text-primary-glow font-display">▶</button>
         </div>
       );
+
     case "setColor":
     case "setBg":
       return (
         <input type="color" value={block.color ?? "#7dd3fc"} onChange={e => onChange({ color: e.target.value })}
           className="w-full h-9 bg-transparent border border-border rounded" />
       );
+
     case "setGravity":
     case "setControllable":
     case "setVisible":
+    case "setHazard":
+    case "setSolid":
+    case "setCollectible":
+    case "setGoalFlag":
       return (
         <button onClick={() => onChange({ bool: !block.bool })}
           className={`w-full py-1.5 rounded border text-xs font-display tracking-widest ${
@@ -286,18 +367,21 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (p: Partial<
           </select>
           <input type="number" value={block.value ?? 0} onChange={e => num("value", e.target.value)}
             className="bg-input/60 border border-border rounded px-2 py-1 text-sm font-mono" />
-          <div className="col-span-2 text-[10px] font-mono text-muted-foreground">
-            then-blocks unsupported in this version — gate scripts by adding multiple separate scripts.
-          </div>
         </div>
       );
+
+    // no fields
     default:
-      return null;
+      return <div className="text-[10px] font-mono text-muted-foreground">no parameters</div>;
   }
 }
 
 function AddBlock({ onAdd }: { onAdd: (k: BlockKind) => void }) {
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState("");
+  const filtered = filter
+    ? ALL_BLOCKS.filter(k => BLOCK_LABELS[k].toLowerCase().includes(filter.toLowerCase()))
+    : ALL_BLOCKS;
   return (
     <div>
       <button
@@ -305,13 +389,21 @@ function AddBlock({ onAdd }: { onAdd: (k: BlockKind) => void }) {
         className="w-full py-2 rounded-md border border-dashed border-primary/40 text-primary-glow font-display text-xs tracking-widest"
       >+ ADD BLOCK</button>
       {open && (
-        <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-          {ALL_BLOCKS.map(k => (
-            <button key={k}
-              onClick={() => { onAdd(k); setOpen(false); }}
-              className="text-[11px] py-1.5 rounded panel border border-border/60 text-left px-2 font-mono"
-            >{BLOCK_LABELS[k]}</button>
-          ))}
+        <div className="mt-1.5 space-y-1.5">
+          <input
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            placeholder="search blocks…"
+            className="w-full bg-input/60 border border-border rounded px-2 py-1 text-xs font-mono"
+          />
+          <div className="grid grid-cols-2 gap-1.5 max-h-72 overflow-auto">
+            {filtered.map(k => (
+              <button key={k}
+                onClick={() => { onAdd(k); setOpen(false); setFilter(""); }}
+                className="text-[11px] py-1.5 rounded panel border border-border/60 text-left px-2 font-mono"
+              >{BLOCK_LABELS[k]}</button>
+            ))}
+          </div>
         </div>
       )}
     </div>
