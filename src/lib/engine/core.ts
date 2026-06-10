@@ -34,6 +34,13 @@ export interface Hitbox {
   h: number;
 }
 
+export type PowerupKind = "speed" | "djump" | "invuln";
+
+export interface MovingSpec { axis: "x" | "y"; range: number; speed: number; _origin?: number; _dir?: number }
+export interface CrumbleSpec { delay: number; respawn: number; _t?: number; _state?: "idle" | "break" | "gone"; _rt?: number }
+export interface SpringSpec { force: number }
+export interface PatrolSpec { range: number; _origin?: number }
+
 export interface Entity {
   id: string;
   kind: EntityKind;
@@ -57,8 +64,21 @@ export interface Entity {
   animations?: AnimationClip[];
   scripts?: Script[];
   hitbox?: Hitbox | null;
+  // advanced behaviors
+  value?: number;
+  moving?: MovingSpec | null;
+  crumble?: CrumbleSpec | null;
+  spring?: SpringSpec | null;
+  patrol?: PatrolSpec | null;
+  checkpoint?: boolean;
+  slippery?: boolean;
+  sticky?: boolean;
+  powerup?: PowerupKind | null;
+  switchId?: string;
+  doorId?: string;
 }
 
+export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
 
 export interface Scene {
   id: string;
@@ -68,6 +88,9 @@ export interface Scene {
   width: number;
   height: number;
   entities: Entity[];
+  timeLimit?: number;            // seconds; 0 = no limit
+  parallax?: ParallaxLayer[];
+  startLives?: number;
 }
 
 export interface ProjectSettings {
