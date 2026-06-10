@@ -364,12 +364,16 @@ function InspectorPanel({
         <Toggle label="Gravity" on={ent.gravity} onChange={v => update({ gravity: v })} />
         <Toggle label="Hazard" on={ent.hazard} onChange={v => update({ hazard: v })} />
         <Toggle label="Collectible" on={ent.collectible} onChange={v => update({ collectible: v })} />
+        <Toggle label="Slippery" on={!!ent.slippery} onChange={v => update({ slippery: v })} />
+        <Toggle label="Checkpoint" on={!!ent.checkpoint} onChange={v => update({ checkpoint: v })} />
       </div>
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Toggle label="Visible" on={ent.visible ?? true} onChange={v => update({ visible: v })} />
         <Slider label="Opacity" value={Math.round((ent.opacity ?? 1) * 100)} min={0} max={100} step={5}
           onChange={v => update({ opacity: v / 100 })} />
       </div>
+      <BehaviorsPanel ent={ent} onUpdate={update} />
+
       <button
         onClick={() => update({ x: scene.width / 2 - ent.w / 2, y: scene.height / 2 - ent.h / 2 })}
         className="w-full py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
