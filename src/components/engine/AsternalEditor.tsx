@@ -417,6 +417,7 @@ function InspectorPanel({
           onChange={v => update({ opacity: v / 100 })} />
       </div>
       <BehaviorsPanel ent={ent} onUpdate={update} />
+      <ParticlesButton entity={ent} onUpdate={update} />
 
       <button
         onClick={() => update({ x: scene.width / 2 - ent.w / 2, y: scene.height / 2 - ent.h / 2 })}
