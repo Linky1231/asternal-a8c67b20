@@ -1010,3 +1010,121 @@ function HitboxEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: 
     </div>
   );
 }
+
+function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Partial<Entity>) => void }) {
+  return (
+    <div className="space-y-2 pt-2 border-t border-border">
+      <div className="text-[10px] font-display tracking-widest text-primary-glow">BEHAVIORS</div>
+
+      {/* Moving platform */}
+      <div className="panel rounded-md p-2 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-display tracking-widest text-muted-foreground">MOVING</span>
+          <button
+            onClick={() => onUpdate({ moving: ent.moving ? null : { axis: "x", range: 120, speed: 80 } })}
+            className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
+          >{ent.moving ? "OFF" : "ON"}</button>
+        </div>
+        {ent.moving && (
+          <>
+            <div className="grid grid-cols-2 gap-1">
+              <button onClick={() => onUpdate({ moving: { ...ent.moving!, axis: "x" } })}
+                className={`py-1 rounded text-[10px] font-display tracking-widest border ${ent.moving.axis === "x" ? "bg-primary/20 border-primary" : "border-border"}`}>X</button>
+              <button onClick={() => onUpdate({ moving: { ...ent.moving!, axis: "y" } })}
+                className={`py-1 rounded text-[10px] font-display tracking-widest border ${ent.moving.axis === "y" ? "bg-primary/20 border-primary" : "border-border"}`}>Y</button>
+            </div>
+            <Slider label="Range" value={ent.moving.range} min={20} max={800} step={10}
+              onChange={v => onUpdate({ moving: { ...ent.moving!, range: v } })} />
+            <Slider label="Speed" value={ent.moving.speed} min={10} max={400} step={10}
+              onChange={v => onUpdate({ moving: { ...ent.moving!, speed: v } })} />
+          </>
+        )}
+      </div>
+
+      {/* Crumble */}
+      <div className="panel rounded-md p-2 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-display tracking-widest text-muted-foreground">CRUMBLE</span>
+          <button
+            onClick={() => onUpdate({ crumble: ent.crumble ? null : { delay: 0.6, respawn: 3 } })}
+            className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
+          >{ent.crumble ? "OFF" : "ON"}</button>
+        </div>
+        {ent.crumble && (
+          <>
+            <Slider label="Delay s" value={Math.round(ent.crumble.delay * 10) / 10} min={0.1} max={3} step={0.1}
+              onChange={v => onUpdate({ crumble: { ...ent.crumble!, delay: v } })} />
+            <Slider label="Respawn s" value={ent.crumble.respawn} min={0} max={10} step={0.5}
+              onChange={v => onUpdate({ crumble: { ...ent.crumble!, respawn: v } })} />
+          </>
+        )}
+      </div>
+
+      {/* Spring */}
+      <div className="panel rounded-md p-2 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-display tracking-widest text-muted-foreground">SPRING</span>
+          <button
+            onClick={() => onUpdate({ spring: ent.spring ? null : { force: 820 } })}
+            className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
+          >{ent.spring ? "OFF" : "ON"}</button>
+        </div>
+        {ent.spring && (
+          <Slider label="Force" value={ent.spring.force} min={200} max={1600} step={20}
+            onChange={v => onUpdate({ spring: { force: v } })} />
+        )}
+      </div>
+
+      {/* Patrol (enemy) */}
+      {ent.kind === "enemy" && (
+        <div className="panel rounded-md p-2 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-display tracking-widest text-muted-foreground">PATROL</span>
+            <button
+              onClick={() => onUpdate({ patrol: ent.patrol ? null : { range: 120 } })}
+              className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
+            >{ent.patrol ? "OFF" : "ON"}</button>
+          </div>
+          {ent.patrol && (
+            <Slider label="Range" value={ent.patrol.range} min={20} max={600} step={10}
+              onChange={v => onUpdate({ patrol: { range: v } })} />
+          )}
+        </div>
+      )}
+
+      {/* Coin/pickup options */}
+      {ent.collectible && (
+        <div className="panel rounded-md p-2 space-y-1.5">
+          <Slider label="Value" value={ent.value ?? 10} min={1} max={100} step={1}
+            onChange={v => onUpdate({ value: v })} />
+          <div className="text-[10px] font-display tracking-widest text-muted-foreground">POWER-UP</div>
+          <div className="grid grid-cols-4 gap-1">
+            {(["none","speed","djump","invuln"] as const).map(p => (
+              <button key={p}
+                onClick={() => onUpdate({ powerup: p === "none" ? null : p })}
+                className={`py-1 rounded text-[10px] font-display tracking-widest border ${(ent.powerup ?? "none") === p ? "bg-primary/20 border-primary" : "border-border"}`}>
+                {p.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Switch / Door linkage */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">SWITCH ID</label>
+          <input value={ent.switchId ?? ""} onChange={e => onUpdate({ switchId: e.target.value || undefined })}
+            placeholder="e.g. A"
+            className="w-full mt-1 px-2 py-1 rounded bg-background border border-border text-xs font-mono" />
+        </div>
+        <div>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">DOOR ID</label>
+          <input value={ent.doorId ?? ""} onChange={e => onUpdate({ doorId: e.target.value || undefined })}
+            placeholder="e.g. A"
+            className="w-full mt-1 px-2 py-1 rounded bg-background border border-border text-xs font-mono" />
+        </div>
+      </div>
+    </div>
+  );
+}
