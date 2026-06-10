@@ -9,6 +9,7 @@ import { AnimationEditor } from "./AnimationEditor";
 import { PaintEditor } from "./PaintEditor";
 
 import { ScriptEditor } from "./ScriptEditor";
+import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
 
 
 
