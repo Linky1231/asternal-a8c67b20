@@ -557,6 +557,23 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
       <SectionTitle>PROJECT</SectionTitle>
       <Field label="Game name" value={project.name} onChange={v => onChange({ ...project, name: v })} />
 
+      <SectionTitle>LANGUAGE · IDIOMA</SectionTitle>
+      <div className="grid grid-cols-5 gap-1.5">
+        {LANGS.map(l => (
+          <button
+            key={l.id}
+            onClick={() => { setLang(l.id); set({ language: l.id }); }}
+            className={`py-2 rounded-md border text-[10px] font-display tracking-widest flex flex-col items-center gap-0.5 ${
+              getLang() === l.id ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"
+            }`}
+          >
+            <span className="text-lg leading-none">{l.flag}</span>
+            <span>{l.id.toUpperCase()}</span>
+          </button>
+        ))}
+      </div>
+
+
       <SectionTitle>RUNTIME</SectionTitle>
       <div>
         <label className="text-[10px] font-display tracking-widest text-muted-foreground">FPS CAP</label>
