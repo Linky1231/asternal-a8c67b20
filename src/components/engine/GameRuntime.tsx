@@ -42,7 +42,7 @@ export function GameRuntime({
     const ctx = canvas.getContext("2d")!;
     const initial: Scene = JSON.parse(JSON.stringify(scene));
     let work: Scene = JSON.parse(JSON.stringify(initial));
-    const state: RuntimeState = { score: 0, lives: 1, win: false, dead: false, cameraX: 0 };
+    const state: RuntimeState = newRuntimeState(initial);
     let scripts = createScriptRunner();
     const shake = { intensity: 0, time: 0 };
     const hooks = {
@@ -52,7 +52,7 @@ export function GameRuntime({
       },
       restart: () => {
         work = JSON.parse(JSON.stringify(initial));
-        state.score = 0; state.win = false; state.dead = false; state.cameraX = 0;
+        Object.assign(state, newRuntimeState(initial));
         scripts = createScriptRunner();
       },
     };
