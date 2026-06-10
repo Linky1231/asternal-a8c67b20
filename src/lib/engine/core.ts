@@ -89,6 +89,7 @@ export interface Entity {
   powerup?: PowerupKind | null;
   switchId?: string;
   doorId?: string;
+  emitter?: ParticleEmitter | null;
 }
 
 export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
@@ -97,6 +98,8 @@ export interface Scene {
   id: string;
   name: string;
   bg: string;
+  bgImage?: string | null;       // dataURL or CDN URL
+  bgImageMode?: "cover" | "contain" | "stretch" | "tile";
   gravity: number;
   width: number;
   height: number;
