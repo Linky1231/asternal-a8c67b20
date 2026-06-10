@@ -41,6 +41,19 @@ export interface CrumbleSpec { delay: number; respawn: number; _t?: number; _sta
 export interface SpringSpec { force: number }
 export interface PatrolSpec { range: number; _origin?: number }
 
+export interface ParticleEmitter {
+  enabled: boolean;
+  rate: number;       // particles/sec
+  lifetime: number;   // seconds
+  speed: number;      // px/sec
+  direction: number;  // degrees, 0 = right, 90 = down
+  spread: number;     // degrees (total cone)
+  size: number;       // px
+  gravity: number;    // px/s^2 applied to y
+  color: string;
+  _acc?: number;
+}
+
 export interface Entity {
   id: string;
   kind: EntityKind;
