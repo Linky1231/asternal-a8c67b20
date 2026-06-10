@@ -34,6 +34,13 @@ export interface Hitbox {
   h: number;
 }
 
+export type PowerupKind = "speed" | "djump" | "invuln";
+
+export interface MovingSpec { axis: "x" | "y"; range: number; speed: number; _origin?: number; _dir?: number }
+export interface CrumbleSpec { delay: number; respawn: number; _t?: number; _state?: "idle" | "break" | "gone"; _rt?: number }
+export interface SpringSpec { force: number }
+export interface PatrolSpec { range: number; _origin?: number }
+
 export interface Entity {
   id: string;
   kind: EntityKind;
@@ -57,8 +64,21 @@ export interface Entity {
   animations?: AnimationClip[];
   scripts?: Script[];
   hitbox?: Hitbox | null;
+  // advanced behaviors
+  value?: number;
+  moving?: MovingSpec | null;
+  crumble?: CrumbleSpec | null;
+  spring?: SpringSpec | null;
+  patrol?: PatrolSpec | null;
+  checkpoint?: boolean;
+  slippery?: boolean;
+  sticky?: boolean;
+  powerup?: PowerupKind | null;
+  switchId?: string;
+  doorId?: string;
 }
 
+export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
 
 export interface Scene {
   id: string;
@@ -68,6 +88,9 @@ export interface Scene {
   width: number;
   height: number;
   entities: Entity[];
+  timeLimit?: number;            // seconds; 0 = no limit
+  parallax?: ParallaxLayer[];
+  startLives?: number;
 }
 
 export interface ProjectSettings {
@@ -169,21 +192,95 @@ export interface RuntimeInput {
   jump: boolean;
 }
 
+export interface ParticleSpec { x: number; y: number; color: string; count?: number }
+
 export interface RuntimeState {
   score: number;
   lives: number;
   win: boolean;
   dead: boolean;
   cameraX: number;
+  time: number;
+  jumpPrev: boolean;
+  djumpAvailable: boolean;
+  invulnT: number;
+  speedT: number;
+  switches: Record<string, boolean>;
+  checkpoint?: { x: number; y: number } | null;
+  particles?: ParticleSpec[];
+}
+
+export function newRuntimeState(scene?: Scene): RuntimeState {
+  return {
+    score: 0,
+    lives: scene?.startLives ?? 1,
+    win: false, dead: false, cameraX: 0,
+    time: 0,
+    jumpPrev: false,
+    djumpAvailable: false,
+    invulnT: 0, speedT: 0,
+    switches: {},
+    checkpoint: null,
+    particles: [],
+  };
+}
+
+function emit(state: RuntimeState, p: ParticleSpec) {
+  if (!state.particles) state.particles = [];
+  state.particles.push(p);
 }
 
 export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState, dt: number) {
-  const SPEED = 220;
+  const BASE_SPEED = 220;
   const JUMP = 520;
+  state.time += dt;
 
+  // time limit
+  if (scene.timeLimit && scene.timeLimit > 0 && state.time > scene.timeLimit && !state.win) {
+    state.dead = true;
+  }
+
+  // power-up timers
+  if (state.invulnT > 0) state.invulnT = Math.max(0, state.invulnT - dt);
+  if (state.speedT > 0) state.speedT = Math.max(0, state.speedT - dt);
+
+  // Moving platforms
+  for (const e of scene.entities) {
+    const m = e.moving;
+    if (!m) continue;
+    if (m._origin === undefined) { m._origin = m.axis === "x" ? e.x : e.y; m._dir = 1; }
+    const v = (m.speed || 60) * (m._dir ?? 1);
+    if (m.axis === "x") {
+      e.x += v * dt;
+      if (e.x - (m._origin) > m.range) { e.x = m._origin + m.range; m._dir = -1; }
+      else if (e.x - m._origin < -m.range) { e.x = m._origin - m.range; m._dir = 1; }
+    } else {
+      e.y += v * dt;
+      if (e.y - m._origin > m.range) { e.y = m._origin + m.range; m._dir = -1; }
+      else if (e.y - m._origin < -m.range) { e.y = m._origin - m.range; m._dir = 1; }
+    }
+  }
+
+  // Crumble respawn
+  for (const e of scene.entities) {
+    const c = e.crumble;
+    if (!c) continue;
+    if (c._state === "gone") {
+      c._rt = (c._rt ?? 0) + dt;
+      if (c._rt >= (c.respawn || 3)) { c._state = "idle"; c._t = 0; c._rt = 0; e.solid = true; e.visible = true; e.opacity = 1; }
+    } else if (c._state === "break") {
+      c._t = (c._t ?? 0) + dt;
+      e.opacity = Math.max(0.2, 1 - (c._t / (c.delay || 1)));
+      if (c._t >= (c.delay || 1)) { c._state = "gone"; e.solid = false; e.visible = false; }
+    }
+  }
+
+  // Player input
+  const speedMul = state.speedT > 0 ? 1.6 : 1;
   for (const e of scene.entities) {
     if (e.controllable) {
-      e.vx = (input.right ? 1 : 0) * SPEED - (input.left ? 1 : 0) * SPEED;
+      const target = (input.right ? 1 : 0) * BASE_SPEED * speedMul - (input.left ? 1 : 0) * BASE_SPEED * speedMul;
+      e.vx = target;
     }
     if (e.gravity) e.vy += scene.gravity * dt;
   }
@@ -206,6 +303,7 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
 
   // Vertical pass
   const grounded = new Set<string>();
+  const groundedOn = new Map<string, Entity>();
   for (const e of scene.entities) {
     if (e.kind === "platform") continue;
     e.y += e.vy * dt;
@@ -216,8 +314,14 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
         const oy = e.hitbox?.y ?? 0;
         if (e.vy > 0) {
           e.y = B.y - A.h - oy;
-          e.vy = 0;
-          grounded.add(e.id);
+          // spring bounce
+          if (o.spring) {
+            e.vy = -(o.spring.force || 720);
+          } else {
+            e.vy = 0;
+            grounded.add(e.id);
+            groundedOn.set(e.id, o);
+          }
         } else if (e.vy < 0) {
           e.y = B.y + B.h - oy;
           e.vy = 0;
@@ -226,29 +330,89 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     }
   }
 
-  // Jump + interactions for player
+  // Enemy patrol
+  for (const e of scene.entities) {
+    if (e.kind !== "enemy" || !e.patrol) continue;
+    if (e.patrol._origin === undefined) e.patrol._origin = e.x;
+    if (e.x - e.patrol._origin > e.patrol.range) { e.x = e.patrol._origin + e.patrol.range; e.vx = -Math.abs(e.vx || 60); }
+    else if (e.x - e.patrol._origin < -e.patrol.range) { e.x = e.patrol._origin - e.patrol.range; e.vx = Math.abs(e.vx || 60); }
+  }
+
+  // Player jump + interactions
   for (const e of scene.entities) {
     if (!e.controllable) continue;
-    if (input.jump && grounded.has(e.id)) e.vy = -JUMP;
+    const onGround = grounded.has(e.id);
+    if (onGround) state.djumpAvailable = true;
+
+    // slippery: keep momentum on slippery ground (ignore zero-input snap)
+    const floor = groundedOn.get(e.id);
+    if (floor?.slippery && !input.left && !input.right) {
+      // don't actually do anything—input was zero already, vx set to 0 above
+    }
+
+    const jumpEdge = input.jump && !state.jumpPrev;
+    if (input.jump && onGround) { e.vy = -JUMP; }
+    else if (jumpEdge && !onGround && state.djumpAvailable) {
+      // double jump (powerup)
+      // available only if djump pickup was collected before? we set djumpAvailable on ground; track separately
+      // We use a stricter flag: only when invulnT acts as marker? Use a dedicated state.canDjump
+      // (Simplification: powerup always grants single mid-air jump)
+      if ((state as RuntimeState & { canDjump?: boolean }).canDjump) {
+        e.vy = -JUMP;
+        (state as RuntimeState & { canDjump?: boolean }).canDjump = false;
+      }
+    }
+
     // world bounds
     if (e.y > scene.height + 200) {
-      state.dead = true;
+      if (state.checkpoint) { e.x = state.checkpoint.x; e.y = state.checkpoint.y; e.vx = 0; e.vy = 0; }
+      else state.dead = true;
     }
+
     // interact
     for (const o of scene.entities) {
       if (o === e) continue;
-      if (intersects(e, o)) {
-        if (o.collectible) {
-          o.x = -9999;
-          state.score += 10;
-        } else if (o.hazard) {
-          state.dead = true;
-        } else if (o.goal) {
-          state.win = true;
+      if (o.x < -9000) continue;
+      if (!intersects(e, o)) continue;
+      // Crumble start when stood on
+      if (o.crumble && grounded.has(e.id) && groundedOn.get(e.id) === o && o.crumble._state !== "break" && o.crumble._state !== "gone") {
+        o.crumble._state = "break"; o.crumble._t = 0;
+      }
+      if (o.checkpoint) {
+        state.checkpoint = { x: o.x, y: o.y - e.h };
+        o.color = "#22c55e";
+      }
+      if (o.collectible) {
+        emit(state, { x: o.x + o.w / 2, y: o.y + o.h / 2, color: o.color, count: 8 });
+        const pu = o.powerup;
+        if (pu === "speed") state.speedT = 6;
+        else if (pu === "djump") (state as RuntimeState & { canDjump?: boolean }).canDjump = true;
+        else if (pu === "invuln") state.invulnT = 5;
+        else state.score += o.value ?? 10;
+        o.x = -9999;
+      } else if (o.hazard) {
+        if (state.invulnT <= 0) {
+          emit(state, { x: e.x + e.w / 2, y: e.y + e.h / 2, color: "#f43f5e", count: 14 });
+          if (state.lives > 1) { state.lives -= 1; state.invulnT = 1.2; if (state.checkpoint) { e.x = state.checkpoint.x; e.y = state.checkpoint.y; e.vx = 0; e.vy = 0; } }
+          else state.dead = true;
+        }
+      } else if (o.goal) {
+        state.win = true;
+      } else if (o.switchId) {
+        if (!state.switches[o.switchId]) {
+          state.switches[o.switchId] = true;
+          o.color = "#22c55e";
+          // open matching doors
+          for (const d of scene.entities) {
+            if (d.doorId === o.switchId) { d.solid = false; d.opacity = 0.25; }
+          }
         }
       }
     }
     // camera follow
     state.cameraX = Math.max(0, Math.min(scene.width - 360, e.x - 160));
   }
+
+  state.jumpPrev = input.jump;
 }
+

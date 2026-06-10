@@ -296,6 +296,45 @@ function InspectorPanel({
           </div>
         </div>
 
+        <Slider label="Time Limit (s · 0=off)" value={scene.timeLimit ?? 0} min={0} max={300} step={5}
+          onChange={v => onChangeScene({ ...scene, timeLimit: v })} />
+        <Slider label="Start Lives" value={scene.startLives ?? 1} min={1} max={9} step={1}
+          onChange={v => onChangeScene({ ...scene, startLives: v })} />
+
+        <div className="panel rounded-md p-2 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-display tracking-widest text-muted-foreground">PARALLAX LAYERS · {scene.parallax?.length ?? 0}</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => onChangeScene({
+                  ...scene,
+                  parallax: [...(scene.parallax ?? []), { color: "#1e293b", speed: 0.3, y: scene.height * 0.6, height: 80 }],
+                })}
+                className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
+              >+ ADD</button>
+              <button
+                onClick={() => onChangeScene({ ...scene, parallax: [] })}
+                className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
+              >CLEAR</button>
+            </div>
+          </div>
+          {(scene.parallax ?? []).map((pl, i) => (
+            <div key={i} className="grid grid-cols-[1fr_auto] gap-1 items-center">
+              <input type="color" value={pl.color}
+                onChange={e => {
+                  const arr = [...(scene.parallax ?? [])];
+                  arr[i] = { ...pl, color: e.target.value };
+                  onChangeScene({ ...scene, parallax: arr });
+                }}
+                className="w-full h-7 rounded border border-border" />
+              <span className="text-[10px] font-mono text-muted-foreground">×{pl.speed}</span>
+            </div>
+          ))}
+        </div>
+
+
+
+
 
         <div className="pt-4">
           <SectionTitle>ENTITIES · {scene.entities.length}</SectionTitle>
@@ -364,12 +403,16 @@ function InspectorPanel({
         <Toggle label="Gravity" on={ent.gravity} onChange={v => update({ gravity: v })} />
         <Toggle label="Hazard" on={ent.hazard} onChange={v => update({ hazard: v })} />
         <Toggle label="Collectible" on={ent.collectible} onChange={v => update({ collectible: v })} />
+        <Toggle label="Slippery" on={!!ent.slippery} onChange={v => update({ slippery: v })} />
+        <Toggle label="Checkpoint" on={!!ent.checkpoint} onChange={v => update({ checkpoint: v })} />
       </div>
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Toggle label="Visible" on={ent.visible ?? true} onChange={v => update({ visible: v })} />
         <Slider label="Opacity" value={Math.round((ent.opacity ?? 1) * 100)} min={0} max={100} step={5}
           onChange={v => update({ opacity: v / 100 })} />
       </div>
+      <BehaviorsPanel ent={ent} onUpdate={update} />
+
       <button
         onClick={() => update({ x: scene.width / 2 - ent.w / 2, y: scene.height / 2 - ent.h / 2 })}
         className="w-full py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
@@ -1003,6 +1046,124 @@ function HitboxEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: 
           <div className="text-[9px] font-mono text-muted-foreground">Offset is relative to entity origin. Red dashed box = collision area.</div>
         </>
       )}
+    </div>
+  );
+}
+
+function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Partial<Entity>) => void }) {
+  return (
+    <div className="space-y-2 pt-2 border-t border-border">
+      <div className="text-[10px] font-display tracking-widest text-primary-glow">BEHAVIORS</div>
+
+      {/* Moving platform */}
+      <div className="panel rounded-md p-2 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-display tracking-widest text-muted-foreground">MOVING</span>
+          <button
+            onClick={() => onUpdate({ moving: ent.moving ? null : { axis: "x", range: 120, speed: 80 } })}
+            className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
+          >{ent.moving ? "OFF" : "ON"}</button>
+        </div>
+        {ent.moving && (
+          <>
+            <div className="grid grid-cols-2 gap-1">
+              <button onClick={() => onUpdate({ moving: { ...ent.moving!, axis: "x" } })}
+                className={`py-1 rounded text-[10px] font-display tracking-widest border ${ent.moving.axis === "x" ? "bg-primary/20 border-primary" : "border-border"}`}>X</button>
+              <button onClick={() => onUpdate({ moving: { ...ent.moving!, axis: "y" } })}
+                className={`py-1 rounded text-[10px] font-display tracking-widest border ${ent.moving.axis === "y" ? "bg-primary/20 border-primary" : "border-border"}`}>Y</button>
+            </div>
+            <Slider label="Range" value={ent.moving.range} min={20} max={800} step={10}
+              onChange={v => onUpdate({ moving: { ...ent.moving!, range: v } })} />
+            <Slider label="Speed" value={ent.moving.speed} min={10} max={400} step={10}
+              onChange={v => onUpdate({ moving: { ...ent.moving!, speed: v } })} />
+          </>
+        )}
+      </div>
+
+      {/* Crumble */}
+      <div className="panel rounded-md p-2 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-display tracking-widest text-muted-foreground">CRUMBLE</span>
+          <button
+            onClick={() => onUpdate({ crumble: ent.crumble ? null : { delay: 0.6, respawn: 3 } })}
+            className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
+          >{ent.crumble ? "OFF" : "ON"}</button>
+        </div>
+        {ent.crumble && (
+          <>
+            <Slider label="Delay s" value={Math.round(ent.crumble.delay * 10) / 10} min={0.1} max={3} step={0.1}
+              onChange={v => onUpdate({ crumble: { ...ent.crumble!, delay: v } })} />
+            <Slider label="Respawn s" value={ent.crumble.respawn} min={0} max={10} step={0.5}
+              onChange={v => onUpdate({ crumble: { ...ent.crumble!, respawn: v } })} />
+          </>
+        )}
+      </div>
+
+      {/* Spring */}
+      <div className="panel rounded-md p-2 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-display tracking-widest text-muted-foreground">SPRING</span>
+          <button
+            onClick={() => onUpdate({ spring: ent.spring ? null : { force: 820 } })}
+            className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
+          >{ent.spring ? "OFF" : "ON"}</button>
+        </div>
+        {ent.spring && (
+          <Slider label="Force" value={ent.spring.force} min={200} max={1600} step={20}
+            onChange={v => onUpdate({ spring: { force: v } })} />
+        )}
+      </div>
+
+      {/* Patrol (enemy) */}
+      {ent.kind === "enemy" && (
+        <div className="panel rounded-md p-2 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-display tracking-widest text-muted-foreground">PATROL</span>
+            <button
+              onClick={() => onUpdate({ patrol: ent.patrol ? null : { range: 120 } })}
+              className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
+            >{ent.patrol ? "OFF" : "ON"}</button>
+          </div>
+          {ent.patrol && (
+            <Slider label="Range" value={ent.patrol.range} min={20} max={600} step={10}
+              onChange={v => onUpdate({ patrol: { range: v } })} />
+          )}
+        </div>
+      )}
+
+      {/* Coin/pickup options */}
+      {ent.collectible && (
+        <div className="panel rounded-md p-2 space-y-1.5">
+          <Slider label="Value" value={ent.value ?? 10} min={1} max={100} step={1}
+            onChange={v => onUpdate({ value: v })} />
+          <div className="text-[10px] font-display tracking-widest text-muted-foreground">POWER-UP</div>
+          <div className="grid grid-cols-4 gap-1">
+            {(["none","speed","djump","invuln"] as const).map(p => (
+              <button key={p}
+                onClick={() => onUpdate({ powerup: p === "none" ? null : p })}
+                className={`py-1 rounded text-[10px] font-display tracking-widest border ${(ent.powerup ?? "none") === p ? "bg-primary/20 border-primary" : "border-border"}`}>
+                {p.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Switch / Door linkage */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">SWITCH ID</label>
+          <input value={ent.switchId ?? ""} onChange={e => onUpdate({ switchId: e.target.value || undefined })}
+            placeholder="e.g. A"
+            className="w-full mt-1 px-2 py-1 rounded bg-background border border-border text-xs font-mono" />
+        </div>
+        <div>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">DOOR ID</label>
+          <input value={ent.doorId ?? ""} onChange={e => onUpdate({ doorId: e.target.value || undefined })}
+            placeholder="e.g. A"
+            className="w-full mt-1 px-2 py-1 rounded bg-background border border-border text-xs font-mono" />
+        </div>
+      </div>
     </div>
   );
 }
