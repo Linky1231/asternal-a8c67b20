@@ -123,6 +123,27 @@ export function GameRuntime({
       ctx.fillStyle = work.bg || "#0b1e3f";
       ctx.fillRect(0, 0, W, H);
 
+      // Background image
+      if (work.bgImage) {
+        const img = getImage(work.bgImage);
+        if (img && img.width) {
+          const mode = work.bgImageMode || "cover";
+          if (mode === "stretch") {
+            ctx.drawImage(img, 0, 0, W, H);
+          } else if (mode === "tile") {
+            for (let x = 0; x < W; x += img.width) for (let y = 0; y < H; y += img.height) ctx.drawImage(img, x, y);
+          } else {
+            const sa = img.width / img.height;
+            const da = W / H;
+            const fit = mode === "cover" ? sa > da : sa < da;
+            const dw = fit ? H * sa : W;
+            const dh = fit ? H : W / sa;
+            ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+          }
+        }
+      }
+
+
       // Parallax bands
       if (work.parallax?.length) {
         for (const pl of work.parallax) {
