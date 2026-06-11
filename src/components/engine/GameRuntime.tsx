@@ -175,7 +175,8 @@ export function GameRuntime({
       ctx.translate(-state.cameraX, 0);
 
       const tSec = performance.now() / 1000;
-      for (const e of work.entities) {
+      const sorted = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+      for (const e of sorted) {
         if (e.visible === false) continue;
         const a = e.opacity ?? 1;
         // invuln blink
