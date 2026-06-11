@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { Entity } from "@/lib/engine/core";
+import type { Entity, SpriteAsset } from "@/lib/engine/core";
 import { uid } from "@/lib/engine/core";
 import type { AnimationClip, AnimState } from "@/lib/engine/animations";
-import { DEFAULT_ANIM_NAMES, currentFrameImage, findClip } from "@/lib/engine/animations";
+import { DEFAULT_ANIM_NAMES, currentFrameImage } from "@/lib/engine/animations";
 import { fileToDataURL, preloadImage } from "@/lib/engine/images";
+import { PaintEditor } from "./PaintEditor";
+import { useT } from "@/lib/i18n";
 
 interface Props {
   entity: Entity;
