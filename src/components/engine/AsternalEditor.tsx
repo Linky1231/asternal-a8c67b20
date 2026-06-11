@@ -16,14 +16,14 @@ import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
 type Tool = EntityKind | "select" | "erase";
 type Tab = "build" | "inspect" | "scenes" | "assets" | "settings";
 
-const TOOL_LIST: { id: Tool; label: string; icon: string }[] = [
-  { id: "select", label: "Select", icon: "⌖" },
-  { id: "platform", label: "Block", icon: "▭" },
-  { id: "coin", label: "Coin", icon: "◉" },
-  { id: "enemy", label: "Enemy", icon: "▲" },
-  { id: "goal", label: "Goal", icon: "▮" },
-  { id: "player", label: "Player", icon: "☻" },
-  { id: "erase", label: "Erase", icon: "✕" },
+const TOOL_LIST: { id: Tool; tKey: string; icon: string }[] = [
+  { id: "select", tKey: "tool.select", icon: "⌖" },
+  { id: "platform", tKey: "tool.platform", icon: "▭" },
+  { id: "coin", tKey: "tool.coin", icon: "◉" },
+  { id: "enemy", tKey: "tool.enemy", icon: "▲" },
+  { id: "goal", tKey: "tool.goal", icon: "▮" },
+  { id: "player", tKey: "tool.player", icon: "☻" },
+  { id: "erase", tKey: "tool.erase", icon: "✕" },
 ];
 
 export function AsternalEditor() {
@@ -200,18 +200,18 @@ export function AsternalEditor() {
       {tab === "build" && (
         <div className="px-2 pt-2 panel border-t">
           <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
-            {TOOL_LIST.map(t => (
+            {TOOL_LIST.map(toolItem => (
               <button
-                key={t.id}
-                onClick={() => setTool(t.id)}
+                key={toolItem.id}
+                onClick={() => setTool(toolItem.id)}
                 className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border transition ${
-                  tool === t.id
+                  tool === toolItem.id
                     ? "bg-primary/20 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.68_0.21_250/0.5)]"
                     : "border-border/40 text-muted-foreground"
                 }`}
               >
-                <span className="text-lg leading-none">{t.icon}</span>
-                <span className="text-[9px] font-display tracking-wider">{t.label.toUpperCase()}</span>
+                <span className="text-lg leading-none">{toolItem.icon}</span>
+                <span className="text-[9px] font-display tracking-wider">{t(toolItem.tKey).toUpperCase()}</span>
               </button>
             ))}
           </div>
@@ -394,15 +394,21 @@ function InspectorPanel({
 
       <TexturePicker
         texture={ent.texture ?? null}
+        fit={ent.textureFit ?? "stretch"}
         onPick={(dataUrl) => update({ texture: dataUrl })}
         onClear={() => update({ texture: null })}
+        onFit={(f) => update({ textureFit: f })}
       />
 
       <AnimationsButton entity={ent} onUpdate={update} />
       <ScriptsButton entity={ent} onUpdate={update} />
       <HitboxEditor entity={ent} onUpdate={update} />
 
-
+      <div className="grid grid-cols-2 gap-2">
+        <Slider label="Depth (Z)" value={ent.z ?? 0} min={-20} max={20} step={1}
+          onChange={v => update({ z: v })} />
+        <Toggle label="Flip X" on={!!ent.flipX} onChange={v => update({ flipX: v })} />
+      </div>
 
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Toggle label="Solid" on={ent.solid} onChange={v => update({ solid: v })} />
@@ -703,7 +709,13 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
   );
 }
 
-function TexturePicker({ texture, onPick, onClear }: { texture: string | null; onPick: (dataUrl: string) => void; onClear: () => void }) {
+function TexturePicker({ texture, fit = "stretch", onPick, onClear, onFit }: {
+  texture: string | null;
+  fit?: "stretch" | "contain" | "cover";
+  onPick: (dataUrl: string) => void;
+  onClear: () => void;
+  onFit?: (f: "stretch" | "contain" | "cover") => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div>
@@ -712,9 +724,10 @@ function TexturePicker({ texture, onPick, onClear }: { texture: string | null; o
         <button
           onClick={() => inputRef.current?.click()}
           className="relative w-16 h-16 rounded-md border border-border bg-input/40 grid place-items-center overflow-hidden glow-border"
+          style={{ backgroundImage: "linear-gradient(45deg,#1f2937 25%,transparent 25%),linear-gradient(-45deg,#1f2937 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1f2937 75%),linear-gradient(-45deg,transparent 75%,#1f2937 75%)", backgroundSize: "12px 12px", backgroundPosition: "0 0,0 6px,6px -6px,-6px 0" }}
         >
           {texture ? (
-            <img src={texture} alt="texture" className="absolute inset-0 w-full h-full object-cover" />
+            <img src={texture} alt="texture" className="absolute inset-0 w-full h-full" style={{ objectFit: fit === "stretch" ? "fill" : fit }} />
           ) : (
             <span className="text-xl text-muted-foreground">＋</span>
           )}
@@ -724,7 +737,7 @@ function TexturePicker({ texture, onPick, onClear }: { texture: string | null; o
             onClick={() => inputRef.current?.click()}
             className="text-xs font-display tracking-widest px-3 py-2 rounded-md bg-primary/15 border border-primary/50 text-primary-glow"
           >
-            {texture ? "REPLACE FROM GALLERY" : "PICK FROM GALLERY"}
+            {texture ? "REPLACE FROM GALLERY" : "PICK PNG / IMAGE"}
           </button>
           {texture && (
             <button
@@ -736,10 +749,22 @@ function TexturePicker({ texture, onPick, onClear }: { texture: string | null; o
           )}
         </div>
       </div>
+      {texture && onFit && (
+        <div className="grid grid-cols-3 gap-1 mt-2">
+          {(["stretch","contain","cover"] as const).map(m => (
+            <button key={m}
+              onClick={() => onFit(m)}
+              className={`py-1 rounded text-[9px] font-display tracking-widest border ${
+                fit === m ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"
+              }`}
+            >{m.toUpperCase()}</button>
+          ))}
+        </div>
+      )}
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/gif,image/*"
         className="hidden"
         onChange={async (e) => {
           const f = e.target.files?.[0];

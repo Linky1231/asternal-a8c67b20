@@ -90,6 +90,11 @@ export interface Entity {
   switchId?: string;
   doorId?: string;
   emitter?: ParticleEmitter | null;
+  // depth / rendering
+  z?: number;                // higher = drawn on top
+  facing?: 1 | -1;           // last horizontal direction
+  flipX?: boolean;           // force horizontal flip
+  textureFit?: "stretch" | "contain" | "cover";
 }
 
 export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
@@ -300,6 +305,10 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       e.vx = target;
     }
     if (e.gravity) e.vy += scene.gravity * dt;
+    // facing direction follows velocity
+    if ((e.controllable || e.kind === "enemy") && Math.abs(e.vx) > 1) {
+      e.facing = e.vx > 0 ? 1 : -1;
+    }
   }
 
   // Horizontal pass

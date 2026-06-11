@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { Entity } from "@/lib/engine/core";
+import type { Entity, SpriteAsset } from "@/lib/engine/core";
 import { uid } from "@/lib/engine/core";
 import type { AnimationClip, AnimState } from "@/lib/engine/animations";
-import { DEFAULT_ANIM_NAMES, currentFrameImage, findClip } from "@/lib/engine/animations";
+import { DEFAULT_ANIM_NAMES, currentFrameImage } from "@/lib/engine/animations";
 import { fileToDataURL, preloadImage } from "@/lib/engine/images";
+import { PaintEditor } from "./PaintEditor";
+import { useT } from "@/lib/i18n";
 
 interface Props {
   entity: Entity;
@@ -133,6 +135,7 @@ function ClipPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const [playing, setPlaying] = useState(true);
   const [t0, setT0] = useState(performance.now());
+  const [paintOpen, setPaintOpen] = useState(false);
   const previewRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef(0);
 
@@ -294,15 +297,33 @@ function ClipPanel({
 
       {/* Timeline */}
       <div>
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center justify-between mb-1.5 gap-1.5">
           <h3 className="font-display text-xs tracking-[0.25em] text-primary-glow glow-text">TIMELINE</h3>
-          <button
-            onClick={() => inputRef.current?.click()}
-            className="text-[10px] font-display tracking-widest px-2 py-1 rounded-md bg-primary/15 border border-primary/50 text-primary-glow"
-          >
-            + IMPORT FRAMES
-          </button>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setPaintOpen(true)}
+              className="text-[10px] font-display tracking-widest px-2 py-1 rounded-md bg-gradient-to-r from-accent/30 to-primary/30 border border-accent/50 text-primary-glow glow-border"
+            >
+              ✎ DRAW FRAME
+            </button>
+            <button
+              onClick={() => inputRef.current?.click()}
+              className="text-[10px] font-display tracking-widest px-2 py-1 rounded-md bg-primary/15 border border-primary/50 text-primary-glow"
+            >
+              + IMPORT FRAMES
+            </button>
+          </div>
         </div>
+        {paintOpen && (
+          <PaintEditor
+            onClose={() => setPaintOpen(false)}
+            onSave={(sprite: SpriteAsset) => {
+              const composite = sprite.frames[0]?.composite;
+              if (composite) onUpdate({ frames: [...clip.frames, composite] });
+              setPaintOpen(false);
+            }}
+          />
+        )}
         <input
           ref={inputRef}
           type="file"
@@ -311,6 +332,7 @@ function ClipPanel({
           className="hidden"
           onChange={e => { importFrames(e.target.files); e.target.value = ""; }}
         />
+
 
         <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
           {clip.frames.map((src, i) => (
