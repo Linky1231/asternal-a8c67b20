@@ -709,7 +709,13 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
   );
 }
 
-function TexturePicker({ texture, onPick, onClear }: { texture: string | null; onPick: (dataUrl: string) => void; onClear: () => void }) {
+function TexturePicker({ texture, fit = "stretch", onPick, onClear, onFit }: {
+  texture: string | null;
+  fit?: "stretch" | "contain" | "cover";
+  onPick: (dataUrl: string) => void;
+  onClear: () => void;
+  onFit?: (f: "stretch" | "contain" | "cover") => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div>
@@ -718,9 +724,10 @@ function TexturePicker({ texture, onPick, onClear }: { texture: string | null; o
         <button
           onClick={() => inputRef.current?.click()}
           className="relative w-16 h-16 rounded-md border border-border bg-input/40 grid place-items-center overflow-hidden glow-border"
+          style={{ backgroundImage: "linear-gradient(45deg,#1f2937 25%,transparent 25%),linear-gradient(-45deg,#1f2937 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1f2937 75%),linear-gradient(-45deg,transparent 75%,#1f2937 75%)", backgroundSize: "12px 12px", backgroundPosition: "0 0,0 6px,6px -6px,-6px 0" }}
         >
           {texture ? (
-            <img src={texture} alt="texture" className="absolute inset-0 w-full h-full object-cover" />
+            <img src={texture} alt="texture" className="absolute inset-0 w-full h-full" style={{ objectFit: fit === "stretch" ? "fill" : fit }} />
           ) : (
             <span className="text-xl text-muted-foreground">＋</span>
           )}
@@ -730,7 +737,7 @@ function TexturePicker({ texture, onPick, onClear }: { texture: string | null; o
             onClick={() => inputRef.current?.click()}
             className="text-xs font-display tracking-widest px-3 py-2 rounded-md bg-primary/15 border border-primary/50 text-primary-glow"
           >
-            {texture ? "REPLACE FROM GALLERY" : "PICK FROM GALLERY"}
+            {texture ? "REPLACE FROM GALLERY" : "PICK PNG / IMAGE"}
           </button>
           {texture && (
             <button
@@ -742,10 +749,22 @@ function TexturePicker({ texture, onPick, onClear }: { texture: string | null; o
           )}
         </div>
       </div>
+      {texture && onFit && (
+        <div className="grid grid-cols-3 gap-1 mt-2">
+          {(["stretch","contain","cover"] as const).map(m => (
+            <button key={m}
+              onClick={() => onFit(m)}
+              className={`py-1 rounded text-[9px] font-display tracking-widest border ${
+                fit === m ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"
+              }`}
+            >{m.toUpperCase()}</button>
+          ))}
+        </div>
+      )}
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/gif,image/*"
         className="hidden"
         onChange={async (e) => {
           const f = e.target.files?.[0];
