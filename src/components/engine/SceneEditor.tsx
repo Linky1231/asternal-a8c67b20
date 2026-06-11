@@ -131,24 +131,34 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       ctx.strokeRect(0, 0, scene.width, scene.height);
 
       const tSec = t / 1000;
-      for (const e of scene.entities) {
+      const sortedEnts = [...scene.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+      for (const e of sortedEnts) {
         ctx.save();
+        const flip = (e.facing === -1) !== !!e.flipX;
+        if (flip) { ctx.translate(e.x + e.w, e.y); ctx.scale(-1, 1); }
+        else ctx.translate(e.x, e.y);
         const animImg = currentFrameImage(e, tSec, "idle");
+        const drawFit = (img: HTMLImageElement) => {
+          const fit = e.textureFit ?? "stretch";
+          if (fit === "stretch") { ctx.drawImage(img, 0, 0, e.w, e.h); return; }
+          const sa = img.width / img.height;
+          const da = e.w / e.h;
+          const cover = fit === "cover" ? sa > da : sa < da;
+          const dw = cover ? e.h * sa : e.w;
+          const dh = cover ? e.h : e.w / sa;
+          ctx.drawImage(img, (e.w - dw) / 2, (e.h - dh) / 2, dw, dh);
+        };
         if (animImg) {
-          ctx.drawImage(animImg, e.x, e.y, e.w, e.h);
+          drawFit(animImg);
         } else if (e.texture) {
           const img = getImage(e.texture);
-          if (img) {
-            ctx.drawImage(img, e.x, e.y, e.w, e.h);
-          } else {
-            ctx.fillStyle = "rgba(56,189,248,0.15)";
-            ctx.fillRect(e.x, e.y, e.w, e.h);
-          }
+          if (img) drawFit(img);
+          else { ctx.fillStyle = "rgba(56,189,248,0.15)"; ctx.fillRect(0, 0, e.w, e.h); }
         } else {
           ctx.shadowColor = e.color;
           ctx.shadowBlur = 10 / scale;
           ctx.fillStyle = e.color;
-          ctx.fillRect(e.x, e.y, e.w, e.h);
+          ctx.fillRect(0, 0, e.w, e.h);
         }
         ctx.restore();
       }
