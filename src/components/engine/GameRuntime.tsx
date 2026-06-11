@@ -338,20 +338,32 @@ function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => v
 
 function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number) {
   ctx.save();
-  const animImg = currentFrameImage(e, time);
-  if (animImg) {
-    ctx.drawImage(animImg, e.x, e.y, e.w, e.h);
-    ctx.restore();
-    return;
+  const flip = (e.facing === -1) !== !!e.flipX;
+  if (flip) {
+    ctx.translate(e.x + e.w, e.y);
+    ctx.scale(-1, 1);
+  } else {
+    ctx.translate(e.x, e.y);
   }
+  const animImg = currentFrameImage(e, time);
+  const drawFit = (img: HTMLImageElement) => {
+    const fit = e.textureFit ?? "stretch";
+    if (fit === "stretch") { ctx.drawImage(img, 0, 0, e.w, e.h); return; }
+    const sa = img.width / img.height;
+    const da = e.w / e.h;
+    const cover = fit === "cover" ? sa > da : sa < da;
+    const dw = cover ? e.h * sa : e.w;
+    const dh = cover ? e.h : e.w / sa;
+    ctx.drawImage(img, (e.w - dw) / 2, (e.h - dh) / 2, dw, dh);
+  };
+  if (animImg) { drawFit(animImg); ctx.restore(); return; }
   if (e.texture) {
     const img = getImage(e.texture);
-    if (img) {
-      ctx.drawImage(img, e.x, e.y, e.w, e.h);
-      ctx.restore();
-      return;
-    }
+    if (img) { drawFit(img); ctx.restore(); return; }
   }
+  // fallback shape — restore translate to absolute coords for legacy drawing
+  ctx.restore();
+  ctx.save();
   ctx.shadowColor = e.color;
   ctx.shadowBlur = e.kind === "coin" ? 18 : e.kind === "goal" ? 24 : 8;
   ctx.fillStyle = e.color;
