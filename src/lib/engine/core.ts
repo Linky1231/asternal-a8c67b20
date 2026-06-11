@@ -99,6 +99,36 @@ export interface Entity {
 
 export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
 
+// ---- UI Overlay ----
+export type UIElementKind = "button" | "label" | "image" | "panel" | "bar" | "joystick";
+export type UIAnchor = "tl" | "tc" | "tr" | "cl" | "c" | "cr" | "bl" | "bc" | "br";
+export type UIAction = "none" | "left" | "right" | "jump" | "restart" | "exit" | "event";
+export type UIBind = "none" | "score" | "lives" | "time";
+
+export interface UIElement {
+  id: string;
+  kind: UIElementKind;
+  name: string;
+  x: number;            // offset from anchor (px)
+  y: number;
+  w: number;
+  h: number;
+  anchor: UIAnchor;
+  text?: string;
+  fontSize?: number;
+  color?: string;       // text / fg color
+  bg?: string;          // background
+  border?: string;
+  radius?: number;
+  opacity?: number;
+  image?: string | null;
+  action?: UIAction;
+  eventName?: string;
+  bind?: UIBind;
+  max?: number;
+  visible?: boolean;
+}
+
 export interface Scene {
   id: string;
   name: string;
@@ -112,6 +142,7 @@ export interface Scene {
   timeLimit?: number;            // seconds; 0 = no limit
   parallax?: ParallaxLayer[];
   startLives?: number;
+  ui?: UIElement[];
 }
 
 export interface ProjectSettings {
