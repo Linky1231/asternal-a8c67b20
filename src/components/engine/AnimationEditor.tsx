@@ -135,6 +135,7 @@ function ClipPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const [playing, setPlaying] = useState(true);
   const [t0, setT0] = useState(performance.now());
+  const [paintOpen, setPaintOpen] = useState(false);
   const previewRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef(0);
 
