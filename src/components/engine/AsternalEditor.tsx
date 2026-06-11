@@ -200,18 +200,18 @@ export function AsternalEditor() {
       {tab === "build" && (
         <div className="px-2 pt-2 panel border-t">
           <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
-            {TOOL_LIST.map(t => (
+            {TOOL_LIST.map(toolItem => (
               <button
-                key={t.id}
-                onClick={() => setTool(t.id)}
+                key={toolItem.id}
+                onClick={() => setTool(toolItem.id)}
                 className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border transition ${
-                  tool === t.id
+                  tool === toolItem.id
                     ? "bg-primary/20 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.68_0.21_250/0.5)]"
                     : "border-border/40 text-muted-foreground"
                 }`}
               >
-                <span className="text-lg leading-none">{t.icon}</span>
-                <span className="text-[9px] font-display tracking-wider">{t.label.toUpperCase()}</span>
+                <span className="text-lg leading-none">{toolItem.icon}</span>
+                <span className="text-[9px] font-display tracking-wider">{t(toolItem.tKey).toUpperCase()}</span>
               </button>
             ))}
           </div>
