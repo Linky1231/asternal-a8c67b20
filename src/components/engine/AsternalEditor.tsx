@@ -16,14 +16,14 @@ import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
 type Tool = EntityKind | "select" | "erase";
 type Tab = "build" | "inspect" | "scenes" | "assets" | "settings";
 
-const TOOL_LIST: { id: Tool; label: string; icon: string }[] = [
-  { id: "select", label: "Select", icon: "⌖" },
-  { id: "platform", label: "Block", icon: "▭" },
-  { id: "coin", label: "Coin", icon: "◉" },
-  { id: "enemy", label: "Enemy", icon: "▲" },
-  { id: "goal", label: "Goal", icon: "▮" },
-  { id: "player", label: "Player", icon: "☻" },
-  { id: "erase", label: "Erase", icon: "✕" },
+const TOOL_LIST: { id: Tool; tKey: string; icon: string }[] = [
+  { id: "select", tKey: "tool.select", icon: "⌖" },
+  { id: "platform", tKey: "tool.platform", icon: "▭" },
+  { id: "coin", tKey: "tool.coin", icon: "◉" },
+  { id: "enemy", tKey: "tool.enemy", icon: "▲" },
+  { id: "goal", tKey: "tool.goal", icon: "▮" },
+  { id: "player", tKey: "tool.player", icon: "☻" },
+  { id: "erase", tKey: "tool.erase", icon: "✕" },
 ];
 
 export function AsternalEditor() {
