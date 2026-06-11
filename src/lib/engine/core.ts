@@ -305,6 +305,10 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       e.vx = target;
     }
     if (e.gravity) e.vy += scene.gravity * dt;
+    // facing direction follows velocity
+    if ((e.controllable || e.kind === "enemy") && Math.abs(e.vx) > 1) {
+      e.facing = e.vx > 0 ? 1 : -1;
+    }
   }
 
   // Horizontal pass
