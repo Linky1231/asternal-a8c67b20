@@ -394,15 +394,21 @@ function InspectorPanel({
 
       <TexturePicker
         texture={ent.texture ?? null}
+        fit={ent.textureFit ?? "stretch"}
         onPick={(dataUrl) => update({ texture: dataUrl })}
         onClear={() => update({ texture: null })}
+        onFit={(f) => update({ textureFit: f })}
       />
 
       <AnimationsButton entity={ent} onUpdate={update} />
       <ScriptsButton entity={ent} onUpdate={update} />
       <HitboxEditor entity={ent} onUpdate={update} />
 
-
+      <div className="grid grid-cols-2 gap-2">
+        <Slider label="Depth (Z)" value={ent.z ?? 0} min={-20} max={20} step={1}
+          onChange={v => update({ z: v })} />
+        <Toggle label="Flip X" on={!!ent.flipX} onChange={v => update({ flipX: v })} />
+      </div>
 
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Toggle label="Solid" on={ent.solid} onChange={v => update({ solid: v })} />
