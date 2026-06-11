@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { Entity, RuntimeInput, RuntimeState, Scene } from "@/lib/engine/core";
-import { stepScene, newRuntimeState } from "@/lib/engine/core";
+import type { Entity, RuntimeInput, RuntimeState, Scene, UIElement } from "@/lib/engine/core";
+import { stepScene, newRuntimeState, resolveUIRect } from "@/lib/engine/core";
 import { getImage } from "@/lib/engine/images";
 import { currentFrameImage } from "@/lib/engine/animations";
 import { createScriptRunner } from "@/lib/engine/scripts";
 import { startMusic, stopMusic, setVolume, setMuted } from "@/lib/engine/sfx";
+import { drawUIElement } from "./UIEditor";
 
 interface Props {
   scene: Scene;
