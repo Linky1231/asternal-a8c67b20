@@ -90,6 +90,11 @@ export interface Entity {
   switchId?: string;
   doorId?: string;
   emitter?: ParticleEmitter | null;
+  // depth / rendering
+  z?: number;                // higher = drawn on top
+  facing?: 1 | -1;           // last horizontal direction
+  flipX?: boolean;           // force horizontal flip
+  textureFit?: "stretch" | "contain" | "cover";
 }
 
 export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
