@@ -35,7 +35,7 @@ const COMMON_KEYS = [
 ] as const;
 
 const ES: Dict = {
-  "tab.build": "CONSTRUIR","tab.inspect": "INSPECCIÓN","tab.assets": "ASSETS","tab.scenes": "ESCENAS","tab.settings": "AJUSTES",
+  "tab.build": "CONSTRUIR","tab.inspect": "INSPECCIÓN","tab.ui":"UI","tab.assets": "ASSETS","tab.scenes": "ESCENAS","tab.settings": "AJUSTES",
   "settings.project":"PROYECTO","settings.runtime":"EJECUCIÓN","settings.audio":"AUDIO","settings.grid":"CUADRÍCULA",
   "settings.data":"DATOS","settings.language":"IDIOMA","settings.gameName":"Nombre del juego","settings.fpsCap":"TOPE DE FPS",
   "settings.showHUD":"Mostrar HUD","settings.showFPS":"Mostrar FPS","settings.touch":"Controles táctiles","settings.autoPause":"Auto-pausa",
@@ -67,7 +67,7 @@ const ES: Dict = {
   "common.cancel":"CANCELAR","common.save":"✓ GUARDAR",
 };
 const EN: Dict = {
-  "tab.build":"BUILD","tab.inspect":"INSPECT","tab.assets":"ASSETS","tab.scenes":"SCENES","tab.settings":"CONFIG",
+  "tab.build":"BUILD","tab.inspect":"INSPECT","tab.ui":"UI","tab.assets":"ASSETS","tab.scenes":"SCENES","tab.settings":"CONFIG",
   "settings.project":"PROJECT","settings.runtime":"RUNTIME","settings.audio":"AUDIO","settings.grid":"GRID","settings.data":"DATA",
   "settings.language":"LANGUAGE","settings.gameName":"Game name","settings.fpsCap":"FPS CAP","settings.showHUD":"Show HUD",
   "settings.showFPS":"Show FPS","settings.touch":"Touch controls","settings.autoPause":"Auto-pause","settings.showHitbox":"Show hitbox",
@@ -98,7 +98,7 @@ const EN: Dict = {
 };
 // Build PT/FR/DE by overriding selected keys; rest falls back to EN.
 const PT: Dict = { ...EN,
-  "tab.build":"CRIAR","tab.inspect":"INSPEÇÃO","tab.scenes":"CENAS","tab.settings":"AJUSTES",
+  "tab.build":"CRIAR","tab.inspect":"INSPEÇÃO","tab.ui":"UI","tab.scenes":"CENAS","tab.settings":"AJUSTES",
   "settings.project":"PROJETO","settings.runtime":"EXECUÇÃO","settings.audio":"ÁUDIO","settings.grid":"GRADE","settings.data":"DADOS",
   "settings.language":"IDIOMA","settings.gameName":"Nome do jogo","settings.resetProject":"REINICIAR PROJETO",
   "scene.bgImage":"IMAGEM DE FUNDO","scene.props":"PROPRIEDADES","scene.entities":"ENTIDADES",
@@ -110,7 +110,7 @@ const PT: Dict = { ...EN,
   "help.title":"AJUDA RÁPIDA","help.gotIt":"ENTENDI","common.cancel":"CANCELAR","common.save":"✓ SALVAR","common.back":"← Voltar",
 };
 const FR: Dict = { ...EN,
-  "tab.build":"CRÉER","tab.inspect":"INSPECTION","tab.scenes":"SCÈNES","tab.settings":"CONFIG",
+  "tab.build":"CRÉER","tab.inspect":"INSPECTION","tab.ui":"UI","tab.scenes":"SCÈNES","tab.settings":"CONFIG",
   "settings.project":"PROJET","settings.runtime":"EXÉCUTION","settings.grid":"GRILLE","settings.data":"DONNÉES","settings.language":"LANGUE",
   "settings.gameName":"Nom du jeu","settings.resetProject":"RÉINIT. PROJET",
   "scene.bgImage":"IMAGE DE FOND","scene.props":"PROPRIÉTÉS","scene.entities":"ENTITÉS",
@@ -122,7 +122,7 @@ const FR: Dict = { ...EN,
   "help.title":"AIDE RAPIDE","help.gotIt":"COMPRIS","common.cancel":"ANNULER","common.save":"✓ ENREGISTRER","common.back":"← Retour",
 };
 const DE: Dict = { ...EN,
-  "tab.build":"BAUEN","tab.inspect":"PRÜFEN","tab.scenes":"SZENEN","tab.settings":"EINSTELL.",
+  "tab.build":"BAUEN","tab.inspect":"PRÜFEN","tab.ui":"UI","tab.scenes":"SZENEN","tab.settings":"EINSTELL.",
   "settings.project":"PROJEKT","settings.runtime":"LAUFZEIT","settings.grid":"RASTER","settings.data":"DATEN","settings.language":"SPRACHE",
   "settings.gameName":"Spielname","settings.resetProject":"PROJEKT RESET",
   "scene.bgImage":"HINTERGRUNDBILD","scene.props":"EIGENSCHAFTEN","scene.entities":"ENTITÄTEN",
