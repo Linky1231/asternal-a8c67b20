@@ -133,6 +133,10 @@ export function AsternalEditor() {
           />
         )}
 
+        {tab === "ui" && (
+          <UIEditor scene={activeScene} onChange={updateScene} />
+        )}
+
         {tab === "scenes" && (
           <ScenesPanel
             project={project}
