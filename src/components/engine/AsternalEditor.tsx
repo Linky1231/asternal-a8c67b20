@@ -7,6 +7,7 @@ import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
 import { AnimationEditor } from "./AnimationEditor";
 import { PaintEditor } from "./PaintEditor";
+import { UIEditor } from "./UIEditor";
 
 import { ScriptEditor } from "./ScriptEditor";
 import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
@@ -14,7 +15,7 @@ import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
 
 
 type Tool = EntityKind | "select" | "erase";
-type Tab = "build" | "inspect" | "scenes" | "assets" | "settings";
+type Tab = "build" | "inspect" | "ui" | "scenes" | "assets" | "settings";
 
 const TOOL_LIST: { id: Tool; tKey: string; icon: string }[] = [
   { id: "select", tKey: "tool.select", icon: "⌖" },
