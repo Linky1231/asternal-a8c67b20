@@ -224,10 +224,11 @@ export function AsternalEditor() {
       )}
 
       {/* Bottom tabs */}
-      <nav className="grid grid-cols-5 panel border-t pb-[env(safe-area-inset-bottom)]">
+      <nav className="grid grid-cols-6 panel border-t pb-[env(safe-area-inset-bottom)]">
         {([
           ["build", t("tab.build"), "▦"],
           ["inspect", t("tab.inspect"), "◈"],
+          ["ui", t("tab.ui"), "▢"],
           ["assets", t("tab.assets"), "◆"],
           ["scenes", t("tab.scenes"), "▤"],
           ["settings", t("tab.settings"), "⚙"],
