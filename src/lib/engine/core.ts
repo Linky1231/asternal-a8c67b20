@@ -99,6 +99,36 @@ export interface Entity {
 
 export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
 
+// ---- UI Overlay ----
+export type UIElementKind = "button" | "label" | "image" | "panel" | "bar" | "joystick";
+export type UIAnchor = "tl" | "tc" | "tr" | "cl" | "c" | "cr" | "bl" | "bc" | "br";
+export type UIAction = "none" | "left" | "right" | "jump" | "restart" | "exit" | "event";
+export type UIBind = "none" | "score" | "lives" | "time";
+
+export interface UIElement {
+  id: string;
+  kind: UIElementKind;
+  name: string;
+  x: number;            // offset from anchor (px)
+  y: number;
+  w: number;
+  h: number;
+  anchor: UIAnchor;
+  text?: string;
+  fontSize?: number;
+  color?: string;       // text / fg color
+  bg?: string;          // background
+  border?: string;
+  radius?: number;
+  opacity?: number;
+  image?: string | null;
+  action?: UIAction;
+  eventName?: string;
+  bind?: UIBind;
+  max?: number;
+  visible?: boolean;
+}
+
 export interface Scene {
   id: string;
   name: string;
@@ -112,6 +142,7 @@ export interface Scene {
   timeLimit?: number;            // seconds; 0 = no limit
   parallax?: ParallaxLayer[];
   startLives?: number;
+  ui?: UIElement[];
 }
 
 export interface ProjectSettings {
@@ -442,3 +473,37 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
   state.jumpPrev = input.jump;
 }
 
+
+// ---- UI helpers ----
+export function resolveUIRect(el: UIElement, screenW: number, screenH: number) {
+  let ax = 0, ay = 0;
+  const a = el.anchor;
+  if (a.includes("c") && a.length === 1) { ax = screenW / 2; ay = screenH / 2; }
+  else {
+    if (a[0] === "t") ay = 0;
+    else if (a[0] === "c") ay = screenH / 2;
+    else if (a[0] === "b") ay = screenH;
+    if (a[1] === "l") ax = 0;
+    else if (a[1] === "c") ax = screenW / 2;
+    else if (a[1] === "r") ax = screenW;
+  }
+  return { x: ax + el.x, y: ay + el.y, w: el.w, h: el.h };
+}
+
+export function newUIElement(kind: UIElementKind): UIElement {
+  const base = { id: uid(), kind, name: kind, x: 20, y: 20, w: 120, h: 48, anchor: "tl" as UIAnchor, opacity: 1, visible: true };
+  switch (kind) {
+    case "button":
+      return { ...base, anchor: "br", x: -100, y: -100, w: 80, h: 80, radius: 999, bg: "#0ea5e9", color: "#fff", border: "#7dd3fc", text: "JUMP", fontSize: 14, action: "jump" };
+    case "label":
+      return { ...base, anchor: "tl", x: 16, y: 16, w: 160, h: 28, color: "#7dd3fc", text: "SCORE: 0", fontSize: 16, bind: "score" };
+    case "image":
+      return { ...base, anchor: "tr", x: -80, y: 16, w: 64, h: 64, image: null };
+    case "panel":
+      return { ...base, anchor: "tc", x: -120, y: 12, w: 240, h: 40, bg: "rgba(2,6,23,0.6)", border: "#7dd3fc", radius: 8 };
+    case "bar":
+      return { ...base, anchor: "tl", x: 16, y: 52, w: 180, h: 14, bg: "rgba(2,6,23,0.6)", color: "#22c55e", border: "#7dd3fc", radius: 6, bind: "lives", max: 3 };
+    case "joystick":
+      return { ...base, anchor: "bl", x: 24, y: -160, w: 140, h: 140, bg: "rgba(2,6,23,0.4)", border: "#7dd3fc", color: "#7dd3fc", radius: 999 };
+  }
+}

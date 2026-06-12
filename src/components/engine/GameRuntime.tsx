@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { Entity, RuntimeInput, RuntimeState, Scene } from "@/lib/engine/core";
-import { stepScene, newRuntimeState } from "@/lib/engine/core";
+import type { Entity, RuntimeInput, RuntimeState, Scene, UIElement } from "@/lib/engine/core";
+import { stepScene, newRuntimeState, resolveUIRect } from "@/lib/engine/core";
 import { getImage } from "@/lib/engine/images";
 import { currentFrameImage } from "@/lib/engine/animations";
 import { createScriptRunner } from "@/lib/engine/scripts";
 import { startMusic, stopMusic, setVolume, setMuted } from "@/lib/engine/sfx";
+import { drawUIElement } from "./UIEditor";
 
 interface Props {
   scene: Scene;
@@ -226,6 +227,15 @@ export function GameRuntime({
           ctx.fillText(`⏱ ${left}`, 190, 35);
         }
       }
+
+      // UI overlay (screen-space)
+      const W2 = canvas.clientWidth, H2 = canvas.clientHeight;
+      const tick = performance.now() / 16;
+      const uiState = { score: state.score, lives: state.lives, time: state.time, timeLimit: work.timeLimit };
+      for (const el of (work.ui ?? [])) {
+        if (el.visible === false) continue;
+        drawUIElement(ctx, el, W2, H2, tick, uiState);
+      }
     };
 
     const loop = (now: number) => {
@@ -276,9 +286,56 @@ export function GameRuntime({
     inputRef.current[k] = v;
   };
 
+  // UI button hit handling
+  const uiButtons = (scene.ui ?? []).filter(e => e.kind === "button" && (e.visible ?? true));
+  const hasCustomInput = (act: "left" | "right" | "jump") => uiButtons.some(b => b.action === act);
+  const showDefaultTouch = touchControls && !(hasCustomInput("left") && hasCustomInput("right") && hasCustomInput("jump"));
+  const activePointers = useRef<Map<number, UIElement>>(new Map());
+
+  const hitUIButton = (sx: number, sy: number): UIElement | null => {
+    const canvas = canvasRef.current; if (!canvas) return null;
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    for (let i = uiButtons.length - 1; i >= 0; i--) {
+      const b = uiButtons[i];
+      const r = resolveUIRect(b, W, H);
+      if (sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h) return b;
+    }
+    return null;
+  };
+
+  const handleButton = (b: UIElement, down: boolean) => {
+    const act = b.action ?? "none";
+    if (act === "left" || act === "right" || act === "jump") press(act, down);
+    else if (down && act === "restart") window.dispatchEvent(new CustomEvent("asternal:restart"));
+    else if (down && act === "exit") onExit();
+    else if (down && act === "event" && b.eventName) window.dispatchEvent(new CustomEvent("asternal:ui-event", { detail: b.eventName }));
+  };
+
+  const onCanvasDown = (ev: React.PointerEvent) => {
+    const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    const sx = ev.clientX - rect.left, sy = ev.clientY - rect.top;
+    const b = hitUIButton(sx, sy);
+    if (b) {
+      (ev.target as Element).setPointerCapture(ev.pointerId);
+      activePointers.current.set(ev.pointerId, b);
+      handleButton(b, true);
+      ev.preventDefault();
+    }
+  };
+  const onCanvasUp = (ev: React.PointerEvent) => {
+    const b = activePointers.current.get(ev.pointerId);
+    if (b) { handleButton(b, false); activePointers.current.delete(ev.pointerId); }
+  };
+
   return (
     <div className="relative h-full w-full">
-      <canvas ref={canvasRef} className="h-full w-full block" />
+      <canvas
+        ref={canvasRef}
+        className="h-full w-full block touch-none"
+        onPointerDown={onCanvasDown}
+        onPointerUp={onCanvasUp}
+        onPointerCancel={onCanvasUp}
+      />
 
       <div className="pointer-events-none absolute top-3 right-3 flex gap-2">
         {showFPS && (
@@ -292,13 +349,13 @@ export function GameRuntime({
         >STOP</button>
       </div>
 
-      {touchControls && (
+      {showDefaultTouch && (
         <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between select-none">
           <div className="flex gap-3">
-            <TouchBtn label="◀" onDown={() => press("left", true)} onUp={() => press("left", false)} />
-            <TouchBtn label="▶" onDown={() => press("right", true)} onUp={() => press("right", false)} />
+            {!hasCustomInput("left") && <TouchBtn label="◀" onDown={() => press("left", true)} onUp={() => press("left", false)} />}
+            {!hasCustomInput("right") && <TouchBtn label="▶" onDown={() => press("right", true)} onUp={() => press("right", false)} />}
           </div>
-          <TouchBtn label="JUMP" big onDown={() => press("jump", true)} onUp={() => press("jump", false)} />
+          {!hasCustomInput("jump") && <TouchBtn label="JUMP" big onDown={() => press("jump", true)} onUp={() => press("jump", false)} />}
         </div>
       )}
 

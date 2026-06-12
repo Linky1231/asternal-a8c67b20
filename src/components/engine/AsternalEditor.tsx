@@ -7,6 +7,7 @@ import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
 import { AnimationEditor } from "./AnimationEditor";
 import { PaintEditor } from "./PaintEditor";
+import { UIEditor } from "./UIEditor";
 
 import { ScriptEditor } from "./ScriptEditor";
 import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
@@ -14,7 +15,7 @@ import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
 
 
 type Tool = EntityKind | "select" | "erase";
-type Tab = "build" | "inspect" | "scenes" | "assets" | "settings";
+type Tab = "build" | "inspect" | "ui" | "scenes" | "assets" | "settings";
 
 const TOOL_LIST: { id: Tool; tKey: string; icon: string }[] = [
   { id: "select", tKey: "tool.select", icon: "⌖" },
@@ -132,6 +133,10 @@ export function AsternalEditor() {
           />
         )}
 
+        {tab === "ui" && (
+          <UIEditor scene={activeScene} onChange={updateScene} />
+        )}
+
         {tab === "scenes" && (
           <ScenesPanel
             project={project}
@@ -219,10 +224,11 @@ export function AsternalEditor() {
       )}
 
       {/* Bottom tabs */}
-      <nav className="grid grid-cols-5 panel border-t pb-[env(safe-area-inset-bottom)]">
+      <nav className="grid grid-cols-6 panel border-t pb-[env(safe-area-inset-bottom)]">
         {([
           ["build", t("tab.build"), "▦"],
           ["inspect", t("tab.inspect"), "◈"],
+          ["ui", t("tab.ui"), "▢"],
           ["assets", t("tab.assets"), "◆"],
           ["scenes", t("tab.scenes"), "▤"],
           ["settings", t("tab.settings"), "⚙"],
