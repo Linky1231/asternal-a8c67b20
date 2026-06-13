@@ -249,7 +249,7 @@ export function GameRuntime({
       // UI overlay (screen-space)
       const W2 = canvas.clientWidth, H2 = canvas.clientHeight;
       const tick = performance.now() / 16;
-      const uiState = { score: state.score, lives: state.lives, time: state.time, timeLimit: work.timeLimit };
+      const uiState = { score: state.score, lives: state.lives, time: state.time, timeLimit: work.timeLimit, startLives: work.startLives };
       for (const el of (work.ui ?? [])) {
         if (el.visible === false) continue;
         drawUIElement(ctx, el, W2, H2, tick, uiState);
