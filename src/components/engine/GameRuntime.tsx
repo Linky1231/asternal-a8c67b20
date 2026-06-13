@@ -288,12 +288,20 @@ export function GameRuntime({
   const press = (k: keyof RuntimeInput, v: boolean) => {
     inputRef.current[k] = v;
   };
+  // need access in effect — expose via ref-like getter
+  // (inputRef already shared)
 
-  // UI button hit handling
+  // UI element hit handling (buttons + joysticks)
   const uiButtons = (scene.ui ?? []).filter(e => e.kind === "button" && (e.visible ?? true));
-  const hasCustomInput = (act: "left" | "right" | "jump") => uiButtons.some(b => b.action === act);
+  const uiJoysticks = (scene.ui ?? []).filter(e => e.kind === "joystick" && (e.visible ?? true));
+  const hasCustomInput = (act: "left" | "right" | "jump") =>
+    uiButtons.some(b => b.action === act) || (act !== "jump" && uiJoysticks.length > 0);
   const showDefaultTouch = touchControls && !(hasCustomInput("left") && hasCustomInput("right") && hasCustomInput("jump"));
-  const activePointers = useRef<Map<number, UIElement>>(new Map());
+
+  type JoyDrag = { kind: "btn"; el: UIElement } | { kind: "joy"; el: UIElement; cx: number; cy: number; r: number };
+  const activePointers = useRef<Map<number, JoyDrag>>(new Map());
+  // shared knob offsets so the draw loop can render them
+  const joyKnobs = useRef<Map<string, { dx: number; dy: number }>>(new Map());
 
   const hitUIButton = (sx: number, sy: number): UIElement | null => {
     const canvas = canvasRef.current; if (!canvas) return null;
@@ -304,6 +312,38 @@ export function GameRuntime({
       if (sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h) return b;
     }
     return null;
+  };
+  const hitJoystick = (sx: number, sy: number): { el: UIElement; cx: number; cy: number; r: number } | null => {
+    const canvas = canvasRef.current; if (!canvas) return null;
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    for (let i = uiJoysticks.length - 1; i >= 0; i--) {
+      const j = uiJoysticks[i];
+      const r = resolveUIRect(j, W, H);
+      const cx = r.x + r.w / 2, cy = r.y + r.h / 2, rad = Math.min(r.w, r.h) / 2;
+      const dx = sx - cx, dy = sy - cy;
+      if (dx * dx + dy * dy <= rad * rad) return { el: j, cx, cy, r: rad };
+    }
+    return null;
+  };
+
+  const applyJoystick = (id: string, dx: number, dy: number, r: number) => {
+    const len = Math.hypot(dx, dy);
+    const max = r;
+    const nx = len > max ? (dx / len) * max : dx;
+    const ny = len > max ? (dy / len) * max : dy;
+    joyKnobs.current.set(id, { dx: nx, dy: ny });
+    const ax = nx / max;
+    const ay = ny / max;
+    inputRef.current.left = ax < -0.25;
+    inputRef.current.right = ax > 0.25;
+    if (ay < -0.5) inputRef.current.jump = true;
+    else if (ay > -0.3) inputRef.current.jump = false;
+  };
+  const releaseJoystick = (id: string) => {
+    joyKnobs.current.delete(id);
+    inputRef.current.left = false;
+    inputRef.current.right = false;
+    inputRef.current.jump = false;
   };
 
   const handleButton = (b: UIElement, down: boolean) => {
@@ -320,14 +360,32 @@ export function GameRuntime({
     const b = hitUIButton(sx, sy);
     if (b) {
       (ev.target as Element).setPointerCapture(ev.pointerId);
-      activePointers.current.set(ev.pointerId, b);
+      activePointers.current.set(ev.pointerId, { kind: "btn", el: b });
       handleButton(b, true);
+      ev.preventDefault();
+      return;
+    }
+    const j = hitJoystick(sx, sy);
+    if (j) {
+      (ev.target as Element).setPointerCapture(ev.pointerId);
+      activePointers.current.set(ev.pointerId, { kind: "joy", el: j.el, cx: j.cx, cy: j.cy, r: j.r });
+      applyJoystick(j.el.id, sx - j.cx, sy - j.cy, j.r);
       ev.preventDefault();
     }
   };
+  const onCanvasMove = (ev: React.PointerEvent) => {
+    const d = activePointers.current.get(ev.pointerId);
+    if (!d || d.kind !== "joy") return;
+    const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    const sx = ev.clientX - rect.left, sy = ev.clientY - rect.top;
+    applyJoystick(d.el.id, sx - d.cx, sy - d.cy, d.r);
+  };
   const onCanvasUp = (ev: React.PointerEvent) => {
-    const b = activePointers.current.get(ev.pointerId);
-    if (b) { handleButton(b, false); activePointers.current.delete(ev.pointerId); }
+    const d = activePointers.current.get(ev.pointerId);
+    if (!d) return;
+    if (d.kind === "btn") handleButton(d.el, false);
+    else releaseJoystick(d.el.id);
+    activePointers.current.delete(ev.pointerId);
   };
 
   return (
