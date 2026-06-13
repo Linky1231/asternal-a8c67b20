@@ -169,13 +169,29 @@ export function GameRuntime({
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
       }
 
-      const scale = H / work.height;
+      // Fixed-size camera: the view does NOT shrink when the map grows.
+      const VIEW_H = 700;
+      const scale = H / VIEW_H;
+      const viewW = W / scale;
+      const viewH = VIEW_H;
+      const player = work.entities.find((e) => e.controllable);
+      let camX = state.cameraX;
+      let camY = 0;
+      if (player) {
+        camX = player.x + player.w / 2 - viewW / 2;
+        camY = player.y + player.h / 2 - viewH / 2;
+        if (work.width > viewW) camX = Math.max(0, Math.min(work.width - viewW, camX));
+        else camX = (work.width - viewW) / 2;
+        if (work.height > viewH) camY = Math.max(0, Math.min(work.height - viewH, camY));
+        else camY = (work.height - viewH) / 2;
+        state.cameraX = camX;
+      }
       const sx = shake.time > 0 ? (Math.random() - 0.5) * shake.intensity : 0;
       const sy = shake.time > 0 ? (Math.random() - 0.5) * shake.intensity : 0;
       ctx.save();
       ctx.translate(sx, sy);
       ctx.scale(scale, scale);
-      ctx.translate(-state.cameraX, 0);
+      ctx.translate(-camX, -camY);
 
       const tSec = performance.now() / 1000;
       const sorted = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
