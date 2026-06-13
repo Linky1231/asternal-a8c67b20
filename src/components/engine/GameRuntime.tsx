@@ -323,7 +323,10 @@ export function GameRuntime({
   const uiJoysticks = (scene.ui ?? []).filter(e => e.kind === "joystick" && (e.visible ?? true));
   const hasCustomInput = (act: "left" | "right" | "jump") =>
     uiButtons.some(b => b.action === act) || (act !== "jump" && uiJoysticks.length > 0);
-  const showDefaultTouch = touchControls && !(hasCustomInput("left") && hasCustomInput("right") && hasCustomInput("jump"));
+  // If the user placed ANY custom input UI, hide the default touch overlay entirely
+  // so it doesn't steal pointer events from custom buttons/joysticks.
+  const hasAnyCustomInput = uiButtons.some(b => ["left","right","jump"].includes(b.action ?? "")) || uiJoysticks.length > 0;
+  const showDefaultTouch = touchControls && !hasAnyCustomInput;
 
   type JoyDrag = { kind: "btn"; el: UIElement } | { kind: "joy"; el: UIElement; cx: number; cy: number; r: number };
   const activePointers = useRef<Map<number, JoyDrag>>(new Map());
