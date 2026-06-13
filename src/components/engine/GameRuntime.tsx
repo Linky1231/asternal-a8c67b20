@@ -61,6 +61,8 @@ export function GameRuntime({
     let paused = false;
     const onVis = () => { if (autoPause) paused = document.hidden; };
     document.addEventListener("visibilitychange", onVis);
+    const onRestart = () => hooks.restart();
+    window.addEventListener("asternal:restart", onRestart);
 
     let raf = 0;
     let last = performance.now();
