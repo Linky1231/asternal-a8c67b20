@@ -85,10 +85,18 @@ export function UIEditor({ scene, onChange }: Props) {
       ctx.strokeRect(8, 8, W - 16, H - 16);
       ctx.setLineDash([]);
 
+      // animated mock state so bound labels/bars actually move in the editor
+      const t = tickRef.current / 60;
+      const mockState = {
+        score: Math.floor(t * 5),
+        lives: Math.max(1, (scene.startLives ?? 3) - Math.floor(t / 4) % (scene.startLives ?? 3)),
+        time: t,
+        timeLimit: scene.timeLimit && scene.timeLimit > 0 ? scene.timeLimit : undefined,
+      };
       // render UI
       for (const el of ui) {
         if (el.visible === false) continue;
-        drawUIElement(ctx, el, W, H, tickRef.current);
+        drawUIElement(ctx, el, W, H, tickRef.current, mockState);
       }
 
       // selection highlight
