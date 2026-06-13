@@ -281,6 +281,7 @@ export function GameRuntime({
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("asternal:restart", onRestart);
     };
   }, [scene, fpsCap, showHUD, autoPause, showHitboxes]);
 
