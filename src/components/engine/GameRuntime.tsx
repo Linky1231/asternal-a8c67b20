@@ -237,6 +237,17 @@ export function GameRuntime({
       for (const el of (work.ui ?? [])) {
         if (el.visible === false) continue;
         drawUIElement(ctx, el, W2, H2, tick, uiState);
+        if (el.kind === "joystick") {
+          const r = resolveUIRect(el, W2, H2);
+          const rad = Math.min(r.w, r.h) / 2;
+          const k = joyKnobs.current.get(el.id);
+          const kx = r.x + r.w / 2 + (k?.dx ?? 0);
+          const ky = r.y + r.h / 2 + (k?.dy ?? 0);
+          ctx.fillStyle = el.color ?? "#7dd3fc";
+          ctx.globalAlpha = el.opacity ?? 1;
+          ctx.beginPath(); ctx.arc(kx, ky, rad / 2.2, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
       }
     };
 
