@@ -472,13 +472,18 @@ export function GameRuntime({
 function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => void; onUp: () => void; big?: boolean }) {
   return (
     <button
-      onTouchStart={(e) => { e.preventDefault(); onDown(); }}
-      onTouchEnd={(e) => { e.preventDefault(); onUp(); }}
-      onTouchCancel={(e) => { e.preventDefault(); onUp(); }}
-      onMouseDown={(e) => { e.preventDefault(); onDown(); }}
-      onMouseUp={(e) => { e.preventDefault(); onUp(); }}
-      onMouseLeave={onUp}
-      className={`${big ? "h-20 w-20 text-base" : "h-16 w-16 text-2xl"} rounded-full panel glow-border font-display text-primary-glow active:scale-95 active:bg-primary/30 transition-transform`}
+      onPointerDown={(e) => {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        onDown();
+      }}
+      onPointerUp={(e) => {
+        try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
+        onUp();
+      }}
+      onPointerCancel={() => onUp()}
+      onPointerLeave={(e) => { if (e.buttons) onUp(); }}
+      onContextMenu={(e) => e.preventDefault()}
+      className={`touch-none select-none ${big ? "h-20 w-20 text-base" : "h-16 w-16 text-2xl"} rounded-full panel glow-border font-display text-primary-glow active:scale-95 active:bg-primary/30 transition-transform`}
     >
       {label}
     </button>
