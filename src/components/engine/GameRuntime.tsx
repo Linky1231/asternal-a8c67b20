@@ -394,6 +394,7 @@ export function GameRuntime({
         ref={canvasRef}
         className="h-full w-full block touch-none"
         onPointerDown={onCanvasDown}
+        onPointerMove={onCanvasMove}
         onPointerUp={onCanvasUp}
         onPointerCancel={onCanvasUp}
       />
