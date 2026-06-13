@@ -85,10 +85,18 @@ export function UIEditor({ scene, onChange }: Props) {
       ctx.strokeRect(8, 8, W - 16, H - 16);
       ctx.setLineDash([]);
 
+      // animated mock state so bound labels/bars actually move in the editor
+      const t = tickRef.current / 60;
+      const mockState = {
+        score: Math.floor(t * 5),
+        lives: Math.max(1, (scene.startLives ?? 3) - Math.floor(t / 4) % (scene.startLives ?? 3)),
+        time: t,
+        timeLimit: scene.timeLimit && scene.timeLimit > 0 ? scene.timeLimit : undefined,
+      };
       // render UI
       for (const el of ui) {
         if (el.visible === false) continue;
-        drawUIElement(ctx, el, W, H, tickRef.current);
+        drawUIElement(ctx, el, W, H, tickRef.current, mockState);
       }
 
       // selection highlight
@@ -403,8 +411,13 @@ export function drawUIElement(ctx: CanvasRenderingContext2D, el: UIElement, W: n
     // value
     let v = 1;
     if (state && el.bind && el.bind !== "none") {
-      const max = el.max ?? 100;
-      const cur = el.bind === "score" ? state.score : el.bind === "lives" ? state.lives : (state.timeLimit ? Math.max(0, state.timeLimit - state.time) : state.time);
+      const max = el.max && el.max > 0
+        ? el.max
+        : (el.bind === "lives" ? Math.max(1, state.lives) : 100);
+      let cur = 0;
+      if (el.bind === "score") cur = state.score;
+      else if (el.bind === "lives") cur = state.lives;
+      else if (el.bind === "time") cur = state.timeLimit ? Math.max(0, state.timeLimit - state.time) : state.time;
       v = Math.max(0, Math.min(1, cur / Math.max(1, max)));
     }
     ctx.save(); path(); ctx.clip();
@@ -419,7 +432,12 @@ export function drawUIElement(ctx: CanvasRenderingContext2D, el: UIElement, W: n
       ctx.beginPath(); ctx.arc(r.x + r.w / 2, r.y + r.h / 2, Math.min(r.w, r.h) / 2 - 1, 0, Math.PI * 2); ctx.stroke(); }
     ctx.fillStyle = el.color ?? "#7dd3fc";
     ctx.globalAlpha = (el.opacity ?? 1) * 0.7;
-    ctx.beginPath(); ctx.arc(r.x + r.w / 2, r.y + r.h / 2, Math.min(r.w, r.h) / 5, 0, Math.PI * 2); ctx.fill();
+    // animated knob preview so it looks alive in the editor
+    const ang = (tick * 0.04);
+    const off = Math.min(r.w, r.h) / 6;
+    const kx = r.x + r.w / 2 + Math.cos(ang) * off * (state ? 0 : 1);
+    const ky = r.y + r.h / 2 + Math.sin(ang) * off * (state ? 0 : 1);
+    ctx.beginPath(); ctx.arc(kx, ky, Math.min(r.w, r.h) / 5, 0, Math.PI * 2); ctx.fill();
   } else if (el.kind === "label") {
     let text = el.text ?? "";
     if (state && el.bind && el.bind !== "none") {
