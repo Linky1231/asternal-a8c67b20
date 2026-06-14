@@ -312,25 +312,30 @@ export function GameRuntime({
     };
   }, [scene, fpsCap, showHUD, autoPause, showHitboxes]);
 
-  const press = (k: keyof RuntimeInput, v: boolean) => {
-    inputRef.current[k] = v;
+  // Input is the OR of multiple sources (buttons, joystick, keyboard) so
+  // pressing JUMP while moving the joystick keeps both active.
+  const btnSrc = useRef({ left: false, right: false, jump: false });
+  const joySrc = useRef({ left: false, right: false, jump: false });
+  const recomputeInput = () => {
+    inputRef.current.left = btnSrc.current.left || joySrc.current.left;
+    inputRef.current.right = btnSrc.current.right || joySrc.current.right;
+    inputRef.current.jump = btnSrc.current.jump || joySrc.current.jump;
   };
-  // need access in effect — expose via ref-like getter
-  // (inputRef already shared)
+  const press = (k: keyof RuntimeInput, v: boolean) => {
+    btnSrc.current[k] = v;
+    recomputeInput();
+  };
 
   // UI element hit handling (buttons + joysticks)
   const uiButtons = (scene.ui ?? []).filter(e => e.kind === "button" && (e.visible ?? true));
   const uiJoysticks = (scene.ui ?? []).filter(e => e.kind === "joystick" && (e.visible ?? true));
   const hasCustomInput = (act: "left" | "right" | "jump") =>
     uiButtons.some(b => b.action === act) || (act !== "jump" && uiJoysticks.length > 0);
-  // If the user placed ANY custom input UI, hide the default touch overlay entirely
-  // so it doesn't steal pointer events from custom buttons/joysticks.
   const hasAnyCustomInput = uiButtons.some(b => ["left","right","jump"].includes(b.action ?? "")) || uiJoysticks.length > 0;
   const showDefaultTouch = touchControls && !hasAnyCustomInput;
 
   type JoyDrag = { kind: "btn"; el: UIElement } | { kind: "joy"; el: UIElement; cx: number; cy: number; r: number };
   const activePointers = useRef<Map<number, JoyDrag>>(new Map());
-  // shared knob offsets so the draw loop can render them
   const joyKnobs = useRef<Map<string, { dx: number; dy: number }>>(new Map());
 
   const hitUIButton = (sx: number, sy: number): UIElement | null => {
@@ -351,7 +356,9 @@ export function GameRuntime({
       const r = resolveUIRect(j, W, H);
       const cx = r.x + r.w / 2, cy = r.y + r.h / 2, rad = Math.min(r.w, r.h) / 2;
       const dx = sx - cx, dy = sy - cy;
-      if (dx * dx + dy * dy <= rad * rad) return { el: j, cx, cy, r: rad };
+      // Use a slightly larger grab radius so the touch doesn't slip off
+      const grab = rad * 1.3;
+      if (dx * dx + dy * dy <= grab * grab) return { el: j, cx, cy, r: rad };
     }
     return null;
   };
@@ -364,16 +371,19 @@ export function GameRuntime({
     joyKnobs.current.set(id, { dx: nx, dy: ny });
     const ax = nx / max;
     const ay = ny / max;
-    inputRef.current.left = ax < -0.25;
-    inputRef.current.right = ax > 0.25;
-    if (ay < -0.5) inputRef.current.jump = true;
-    else if (ay > -0.3) inputRef.current.jump = false;
+    joySrc.current.left = ax < -0.25;
+    joySrc.current.right = ax > 0.25;
+    // joystick UP can also jump, but never RESETS a jump held by a button
+    if (ay < -0.6) joySrc.current.jump = true;
+    else if (ay > -0.3) joySrc.current.jump = false;
+    recomputeInput();
   };
   const releaseJoystick = (id: string) => {
     joyKnobs.current.delete(id);
-    inputRef.current.left = false;
-    inputRef.current.right = false;
-    inputRef.current.jump = false;
+    joySrc.current.left = false;
+    joySrc.current.right = false;
+    joySrc.current.jump = false;
+    recomputeInput();
   };
 
   const handleButton = (b: UIElement, down: boolean) => {

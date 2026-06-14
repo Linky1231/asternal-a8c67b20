@@ -24,6 +24,10 @@ export function UIEditor({ scene, onChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selId, setSelId] = useState<string | null>(null);
+  // `virt` = the size the game will actually render at (used for layout math
+  // so what you place here lands at the same spot in PLAY). `size` = the
+  // scaled-down on-screen size of the preview inside the editor.
+  const [virt, setVirt] = useState({ w: 360, h: 640 });
   const [size, setSize] = useState({ w: 360, h: 640 });
   const dragRef = useRef<{ id: string; mode: "move" | "resize"; sx: number; sy: number; ox: number; oy: number; ow: number; oh: number } | null>(null);
   const tickRef = useRef(0);
@@ -31,17 +35,19 @@ export function UIEditor({ scene, onChange }: Props) {
   const ui = scene.ui ?? [];
   const sel = ui.find(e => e.id === selId) ?? null;
 
-  // fit phone-like preview to wrap
+  // Fit preview to wrap while matching the REAL game canvas aspect (window
+  // minus header & tab bar), so anchored offsets are 1:1 with PLAY.
   useEffect(() => {
     const fit = () => {
       const w = wrapRef.current; if (!w) return;
-      const padded = { w: w.clientWidth - 24, h: w.clientHeight - 24 };
-      // preview aspect: device-portrait 9:16-ish; use scene proportion when smaller
-      const targetAR = 9 / 16;
-      let cw = padded.w, ch = padded.h;
-      if (cw / ch > targetAR) cw = ch * targetAR;
-      else ch = cw / targetAR;
-      setSize({ w: Math.round(cw), h: Math.round(ch) });
+      const aw = Math.max(80, w.clientWidth - 16);
+      const ah = Math.max(80, w.clientHeight - 16);
+      const HEADER = 56, TABS = 72;
+      const vw = Math.max(240, window.innerWidth);
+      const vh = Math.max(240, window.innerHeight - HEADER - TABS);
+      const sc = Math.min(aw / vw, ah / vh);
+      setVirt({ w: vw, h: vh });
+      setSize({ w: Math.round(vw * sc), h: Math.round(vh * sc) });
     };
     fit();
     window.addEventListener("resize", fit);
@@ -57,11 +63,12 @@ export function UIEditor({ scene, onChange }: Props) {
       raf = requestAnimationFrame(render);
       tickRef.current++;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      if (canvas.width !== size.w * dpr || canvas.height !== size.h * dpr) {
-        canvas.width = size.w * dpr; canvas.height = size.h * dpr;
+      // Canvas internal coords = virtual game size; CSS scales it to fit.
+      if (canvas.width !== virt.w * dpr || canvas.height !== virt.h * dpr) {
+        canvas.width = virt.w * dpr; canvas.height = virt.h * dpr;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const W = size.w, H = size.h;
+      const W = virt.w, H = virt.h;
       // game backdrop
       ctx.fillStyle = scene.bg || "#0b1e3f";
       ctx.fillRect(0, 0, W, H);
@@ -81,11 +88,11 @@ export function UIEditor({ scene, onChange }: Props) {
 
       // safe area + anchor crosshair
       ctx.strokeStyle = "rgba(125,211,252,0.18)";
-      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
       ctx.strokeRect(8, 8, W - 16, H - 16);
       ctx.setLineDash([]);
 
-      // animated mock state so bound labels/bars actually move in the editor
       const t = tickRef.current / 60;
       const mockState = {
         score: Math.floor(t * 5),
@@ -93,30 +100,29 @@ export function UIEditor({ scene, onChange }: Props) {
         time: t,
         timeLimit: scene.timeLimit && scene.timeLimit > 0 ? scene.timeLimit : undefined,
       };
-      // render UI
       for (const el of ui) {
         if (el.visible === false) continue;
         drawUIElement(ctx, el, W, H, tickRef.current, mockState);
       }
 
-      // selection highlight
       if (sel) {
         const r = resolveUIRect(sel, W, H);
         ctx.strokeStyle = "#7dd3fc";
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([6, 4]);
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
         ctx.strokeRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
         ctx.setLineDash([]);
-        // resize handle (BR)
+        // resize handle (scaled up so it stays grabbable when the canvas is scaled down)
+        const hs = Math.max(14, 16 / Math.max(0.001, size.w / virt.w));
         ctx.fillStyle = "#f8fafc";
         ctx.strokeStyle = "#0ea5e9";
-        ctx.fillRect(r.x + r.w - 6, r.y + r.h - 6, 12, 12);
-        ctx.strokeRect(r.x + r.w - 6 + 0.5, r.y + r.h - 6 + 0.5, 11, 11);
+        ctx.fillRect(r.x + r.w - hs / 2, r.y + r.h - hs / 2, hs, hs);
+        ctx.strokeRect(r.x + r.w - hs / 2 + 0.5, r.y + r.h - hs / 2 + 0.5, hs - 1, hs - 1);
       }
     };
     raf = requestAnimationFrame(render);
     return () => cancelAnimationFrame(raf);
-  }, [scene.bg, scene.bgImage, ui, sel, size]);
+  }, [scene.bg, scene.bgImage, ui, sel, size, virt]);
 
   const updateEl = (id: string, patch: Partial<UIElement>) => {
     onChange({ ...scene, ui: ui.map(e => e.id === id ? { ...e, ...patch } : e) });
@@ -140,23 +146,27 @@ export function UIEditor({ scene, onChange }: Props) {
     setSelId(copy.id);
   };
 
+  const toVirt = (ev: React.PointerEvent) => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const sx = (ev.clientX - rect.left) * (virt.w / Math.max(1, rect.width));
+    const sy = (ev.clientY - rect.top) * (virt.h / Math.max(1, rect.height));
+    return { sx, sy };
+  };
   const onPointerDown = (ev: React.PointerEvent) => {
     (ev.target as Element).setPointerCapture(ev.pointerId);
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const sx = ev.clientX - rect.left;
-    const sy = ev.clientY - rect.top;
-    // resize handle hit
+    const { sx, sy } = toVirt(ev);
+    // resize handle hit (use a generous grab radius in virtual coords)
     if (sel) {
-      const r = resolveUIRect(sel, size.w, size.h);
-      if (sx >= r.x + r.w - 10 && sx <= r.x + r.w + 10 && sy >= r.y + r.h - 10 && sy <= r.y + r.h + 10) {
+      const r = resolveUIRect(sel, virt.w, virt.h);
+      const grab = Math.max(18, 20 / Math.max(0.001, size.w / virt.w));
+      if (sx >= r.x + r.w - grab && sx <= r.x + r.w + grab && sy >= r.y + r.h - grab && sy <= r.y + r.h + grab) {
         dragRef.current = { id: sel.id, mode: "resize", sx, sy, ox: sel.x, oy: sel.y, ow: sel.w, oh: sel.h };
         return;
       }
     }
-    // hit test top-down
     for (let i = ui.length - 1; i >= 0; i--) {
       const el = ui[i];
-      const r = resolveUIRect(el, size.w, size.h);
+      const r = resolveUIRect(el, virt.w, virt.h);
       if (sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h) {
         setSelId(el.id);
         dragRef.current = { id: el.id, mode: "move", sx, sy, ox: el.x, oy: el.y, ow: el.w, oh: el.h };
@@ -167,9 +177,7 @@ export function UIEditor({ scene, onChange }: Props) {
   };
   const onPointerMove = (ev: React.PointerEvent) => {
     const d = dragRef.current; if (!d) return;
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const sx = ev.clientX - rect.left;
-    const sy = ev.clientY - rect.top;
+    const { sx, sy } = toVirt(ev);
     const dx = sx - d.sx, dy = sy - d.sy;
     if (d.mode === "move") updateEl(d.id, { x: Math.round(d.ox + dx), y: Math.round(d.oy + dy) });
     else updateEl(d.id, { w: Math.max(16, Math.round(d.ow + dx)), h: Math.max(16, Math.round(d.oh + dy)) });
@@ -211,12 +219,12 @@ export function UIEditor({ scene, onChange }: Props) {
           />
         </div>
         <div className="absolute top-2 left-2 panel rounded-md px-2 py-1 text-[10px] font-mono text-primary-glow">
-          UI · {ui.length} elements · {size.w}×{size.h}
+          UI · {ui.length} · {virt.w}×{virt.h}
         </div>
       </div>
 
-      {/* Inspector */}
-      <div className="panel border-t max-h-[42vh] overflow-auto p-3 space-y-2">
+      {/* Inspector — extra bottom padding so content never sits under the tab bar */}
+      <div className="panel border-t max-h-[42vh] overflow-auto p-3 pb-8 space-y-2">
         {!sel ? (
           <div className="text-[11px] font-mono text-muted-foreground text-center py-4">
             Tap an element to edit · use the toolbar above to add UI components
