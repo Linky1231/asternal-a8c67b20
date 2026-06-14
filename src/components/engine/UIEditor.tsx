@@ -24,6 +24,10 @@ export function UIEditor({ scene, onChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selId, setSelId] = useState<string | null>(null);
+  // `virt` = the size the game will actually render at (used for layout math
+  // so what you place here lands at the same spot in PLAY). `size` = the
+  // scaled-down on-screen size of the preview inside the editor.
+  const [virt, setVirt] = useState({ w: 360, h: 640 });
   const [size, setSize] = useState({ w: 360, h: 640 });
   const dragRef = useRef<{ id: string; mode: "move" | "resize"; sx: number; sy: number; ox: number; oy: number; ow: number; oh: number } | null>(null);
   const tickRef = useRef(0);
@@ -31,17 +35,19 @@ export function UIEditor({ scene, onChange }: Props) {
   const ui = scene.ui ?? [];
   const sel = ui.find(e => e.id === selId) ?? null;
 
-  // fit phone-like preview to wrap
+  // Fit preview to wrap while matching the REAL game canvas aspect (window
+  // minus header & tab bar), so anchored offsets are 1:1 with PLAY.
   useEffect(() => {
     const fit = () => {
       const w = wrapRef.current; if (!w) return;
-      const padded = { w: w.clientWidth - 24, h: w.clientHeight - 24 };
-      // preview aspect: device-portrait 9:16-ish; use scene proportion when smaller
-      const targetAR = 9 / 16;
-      let cw = padded.w, ch = padded.h;
-      if (cw / ch > targetAR) cw = ch * targetAR;
-      else ch = cw / targetAR;
-      setSize({ w: Math.round(cw), h: Math.round(ch) });
+      const aw = Math.max(80, w.clientWidth - 16);
+      const ah = Math.max(80, w.clientHeight - 16);
+      const HEADER = 56, TABS = 72;
+      const vw = Math.max(240, window.innerWidth);
+      const vh = Math.max(240, window.innerHeight - HEADER - TABS);
+      const sc = Math.min(aw / vw, ah / vh);
+      setVirt({ w: vw, h: vh });
+      setSize({ w: Math.round(vw * sc), h: Math.round(vh * sc) });
     };
     fit();
     window.addEventListener("resize", fit);
