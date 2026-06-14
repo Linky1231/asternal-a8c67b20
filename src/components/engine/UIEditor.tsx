@@ -197,7 +197,7 @@ export function UIEditor({ scene, onChange }: Props) {
             </button>
           ))}
           <button onClick={() => { if (confirm("Clear all UI?")) onChange({ ...scene, ui: [] }); }}
-            className="shrink-0 ml-auto flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md border border-destructive/30 text-destructive">
+            className="shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border border-destructive/30 text-destructive">
             <span className="text-lg leading-none">✕</span>
             <span className="text-[9px] font-display tracking-wider">CLEAR</span>
           </button>
