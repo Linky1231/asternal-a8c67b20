@@ -236,12 +236,12 @@ export function AsternalEditor() {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex flex-col items-center gap-0.5 py-2.5 ${
+            className={`min-w-0 flex flex-col items-center gap-0.5 py-2.5 px-0.5 ${
               tab === id ? "text-primary-glow" : "text-muted-foreground"
             }`}
           >
             <span className={`text-lg leading-none ${tab === id ? "glow-text" : ""}`}>{icon}</span>
-            <span className="text-[9px] font-display tracking-widest">{label}</span>
+            <span className="w-full text-center text-[8px] font-display tracking-wide truncate">{label}</span>
           </button>
         ))}
       </nav>
