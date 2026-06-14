@@ -146,23 +146,27 @@ export function UIEditor({ scene, onChange }: Props) {
     setSelId(copy.id);
   };
 
+  const toVirt = (ev: React.PointerEvent) => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const sx = (ev.clientX - rect.left) * (virt.w / Math.max(1, rect.width));
+    const sy = (ev.clientY - rect.top) * (virt.h / Math.max(1, rect.height));
+    return { sx, sy };
+  };
   const onPointerDown = (ev: React.PointerEvent) => {
     (ev.target as Element).setPointerCapture(ev.pointerId);
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const sx = ev.clientX - rect.left;
-    const sy = ev.clientY - rect.top;
-    // resize handle hit
+    const { sx, sy } = toVirt(ev);
+    // resize handle hit (use a generous grab radius in virtual coords)
     if (sel) {
-      const r = resolveUIRect(sel, size.w, size.h);
-      if (sx >= r.x + r.w - 10 && sx <= r.x + r.w + 10 && sy >= r.y + r.h - 10 && sy <= r.y + r.h + 10) {
+      const r = resolveUIRect(sel, virt.w, virt.h);
+      const grab = Math.max(18, 20 / Math.max(0.001, size.w / virt.w));
+      if (sx >= r.x + r.w - grab && sx <= r.x + r.w + grab && sy >= r.y + r.h - grab && sy <= r.y + r.h + grab) {
         dragRef.current = { id: sel.id, mode: "resize", sx, sy, ox: sel.x, oy: sel.y, ow: sel.w, oh: sel.h };
         return;
       }
     }
-    // hit test top-down
     for (let i = ui.length - 1; i >= 0; i--) {
       const el = ui[i];
-      const r = resolveUIRect(el, size.w, size.h);
+      const r = resolveUIRect(el, virt.w, virt.h);
       if (sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h) {
         setSelId(el.id);
         dragRef.current = { id: el.id, mode: "move", sx, sy, ox: el.x, oy: el.y, ow: el.w, oh: el.h };
@@ -173,9 +177,7 @@ export function UIEditor({ scene, onChange }: Props) {
   };
   const onPointerMove = (ev: React.PointerEvent) => {
     const d = dragRef.current; if (!d) return;
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const sx = ev.clientX - rect.left;
-    const sy = ev.clientY - rect.top;
+    const { sx, sy } = toVirt(ev);
     const dx = sx - d.sx, dy = sy - d.sy;
     if (d.mode === "move") updateEl(d.id, { x: Math.round(d.ox + dx), y: Math.round(d.oy + dy) });
     else updateEl(d.id, { w: Math.max(16, Math.round(d.ow + dx)), h: Math.max(16, Math.round(d.oh + dy)) });
