@@ -353,12 +353,12 @@ function ElementInspector({ el, update, remove, clone, back }: {
         </>
       )}
 
-      <div className="grid grid-cols-3 gap-2 pt-2">
-        <button onClick={clone} className="py-2 rounded border border-primary/50 bg-primary/10 text-primary-glow font-display text-[10px] tracking-widest">⧉ CLONE</button>
-        <button onClick={() => update({ visible: !(el.visible ?? true) })} className="py-2 rounded border border-border text-muted-foreground font-display text-[10px] tracking-widest">
+      <div className="grid grid-cols-3 gap-1.5 pt-2">
+        <button onClick={clone} className="min-w-0 py-2 px-1 rounded border border-primary/50 bg-primary/10 text-primary-glow font-display text-[10px] tracking-wide truncate">⧉ CLONE</button>
+        <button onClick={() => update({ visible: !(el.visible ?? true) })} className="min-w-0 py-2 px-1 rounded border border-border text-muted-foreground font-display text-[10px] tracking-wide truncate">
           {el.visible === false ? "SHOW" : "HIDE"}
         </button>
-        <button onClick={remove} className="py-2 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-widest">✕ DELETE</button>
+        <button onClick={remove} className="min-w-0 py-2 px-1 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-wide truncate">✕ DELETE</button>
       </div>
     </div>
   );
