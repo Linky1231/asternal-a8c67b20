@@ -63,11 +63,12 @@ export function UIEditor({ scene, onChange }: Props) {
       raf = requestAnimationFrame(render);
       tickRef.current++;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      if (canvas.width !== size.w * dpr || canvas.height !== size.h * dpr) {
-        canvas.width = size.w * dpr; canvas.height = size.h * dpr;
+      // Canvas internal coords = virtual game size; CSS scales it to fit.
+      if (canvas.width !== virt.w * dpr || canvas.height !== virt.h * dpr) {
+        canvas.width = virt.w * dpr; canvas.height = virt.h * dpr;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const W = size.w, H = size.h;
+      const W = virt.w, H = virt.h;
       // game backdrop
       ctx.fillStyle = scene.bg || "#0b1e3f";
       ctx.fillRect(0, 0, W, H);
@@ -87,11 +88,11 @@ export function UIEditor({ scene, onChange }: Props) {
 
       // safe area + anchor crosshair
       ctx.strokeStyle = "rgba(125,211,252,0.18)";
-      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
       ctx.strokeRect(8, 8, W - 16, H - 16);
       ctx.setLineDash([]);
 
-      // animated mock state so bound labels/bars actually move in the editor
       const t = tickRef.current / 60;
       const mockState = {
         score: Math.floor(t * 5),
@@ -99,30 +100,29 @@ export function UIEditor({ scene, onChange }: Props) {
         time: t,
         timeLimit: scene.timeLimit && scene.timeLimit > 0 ? scene.timeLimit : undefined,
       };
-      // render UI
       for (const el of ui) {
         if (el.visible === false) continue;
         drawUIElement(ctx, el, W, H, tickRef.current, mockState);
       }
 
-      // selection highlight
       if (sel) {
         const r = resolveUIRect(sel, W, H);
         ctx.strokeStyle = "#7dd3fc";
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([6, 4]);
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
         ctx.strokeRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
         ctx.setLineDash([]);
-        // resize handle (BR)
+        // resize handle (scaled up so it stays grabbable when the canvas is scaled down)
+        const hs = Math.max(14, 16 / Math.max(0.001, size.w / virt.w));
         ctx.fillStyle = "#f8fafc";
         ctx.strokeStyle = "#0ea5e9";
-        ctx.fillRect(r.x + r.w - 6, r.y + r.h - 6, 12, 12);
-        ctx.strokeRect(r.x + r.w - 6 + 0.5, r.y + r.h - 6 + 0.5, 11, 11);
+        ctx.fillRect(r.x + r.w - hs / 2, r.y + r.h - hs / 2, hs, hs);
+        ctx.strokeRect(r.x + r.w - hs / 2 + 0.5, r.y + r.h - hs / 2 + 0.5, hs - 1, hs - 1);
       }
     };
     raf = requestAnimationFrame(render);
     return () => cancelAnimationFrame(raf);
-  }, [scene.bg, scene.bgImage, ui, sel, size]);
+  }, [scene.bg, scene.bgImage, ui, sel, size, virt]);
 
   const updateEl = (id: string, patch: Partial<UIElement>) => {
     onChange({ ...scene, ui: ui.map(e => e.id === id ? { ...e, ...patch } : e) });
