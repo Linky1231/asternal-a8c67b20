@@ -197,7 +197,7 @@ export function UIEditor({ scene, onChange }: Props) {
             </button>
           ))}
           <button onClick={() => { if (confirm("Clear all UI?")) onChange({ ...scene, ui: [] }); }}
-            className="shrink-0 ml-auto flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md border border-destructive/30 text-destructive">
+            className="shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border border-destructive/30 text-destructive">
             <span className="text-lg leading-none">✕</span>
             <span className="text-[9px] font-display tracking-wider">CLEAR</span>
           </button>
@@ -224,7 +224,7 @@ export function UIEditor({ scene, onChange }: Props) {
       </div>
 
       {/* Inspector — extra bottom padding so content never sits under the tab bar */}
-      <div className="panel border-t max-h-[42vh] overflow-auto p-3 pb-8 space-y-2">
+      <div className="panel border-t max-h-[42vh] overflow-y-auto overflow-x-hidden p-3 pb-8 space-y-2">
         {!sel ? (
           <div className="text-[11px] font-mono text-muted-foreground text-center py-4">
             Tap an element to edit · use the toolbar above to add UI components
@@ -353,12 +353,12 @@ function ElementInspector({ el, update, remove, clone, back }: {
         </>
       )}
 
-      <div className="grid grid-cols-3 gap-2 pt-2">
-        <button onClick={clone} className="py-2 rounded border border-primary/50 bg-primary/10 text-primary-glow font-display text-[10px] tracking-widest">⧉ CLONE</button>
-        <button onClick={() => update({ visible: !(el.visible ?? true) })} className="py-2 rounded border border-border text-muted-foreground font-display text-[10px] tracking-widest">
+      <div className="grid grid-cols-3 gap-1.5 pt-2">
+        <button onClick={clone} className="min-w-0 py-2 px-1 rounded border border-primary/50 bg-primary/10 text-primary-glow font-display text-[10px] tracking-wide truncate">⧉ CLONE</button>
+        <button onClick={() => update({ visible: !(el.visible ?? true) })} className="min-w-0 py-2 px-1 rounded border border-border text-muted-foreground font-display text-[10px] tracking-wide truncate">
           {el.visible === false ? "SHOW" : "HIDE"}
         </button>
-        <button onClick={remove} className="py-2 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-widest">✕ DELETE</button>
+        <button onClick={remove} className="min-w-0 py-2 px-1 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-wide truncate">✕ DELETE</button>
       </div>
     </div>
   );
