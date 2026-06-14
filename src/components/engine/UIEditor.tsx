@@ -219,12 +219,12 @@ export function UIEditor({ scene, onChange }: Props) {
           />
         </div>
         <div className="absolute top-2 left-2 panel rounded-md px-2 py-1 text-[10px] font-mono text-primary-glow">
-          UI · {ui.length} elements · {size.w}×{size.h}
+          UI · {ui.length} · {virt.w}×{virt.h}
         </div>
       </div>
 
-      {/* Inspector */}
-      <div className="panel border-t max-h-[42vh] overflow-auto p-3 space-y-2">
+      {/* Inspector — extra bottom padding so content never sits under the tab bar */}
+      <div className="panel border-t max-h-[42vh] overflow-auto p-3 pb-8 space-y-2">
         {!sel ? (
           <div className="text-[11px] font-mono text-muted-foreground text-center py-4">
             Tap an element to edit · use the toolbar above to add UI components
