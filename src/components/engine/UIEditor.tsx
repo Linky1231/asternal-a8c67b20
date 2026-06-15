@@ -23,6 +23,7 @@ const ANCHORS: UIAnchor[] = ["tl","tc","tr","cl","c","cr","bl","bc","br"];
 export function UIEditor({ scene, onChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const inspectorRef = useRef<HTMLDivElement>(null);
   const [selId, setSelId] = useState<string | null>(null);
   // `virt` = the size the game will actually render at (used for layout math
   // so what you place here lands at the same spot in PLAY). `size` = the
@@ -55,6 +56,10 @@ export function UIEditor({ scene, onChange }: Props) {
     window.addEventListener("resize", fit);
     return () => { window.removeEventListener("resize", fit); ro.disconnect(); };
   }, []);
+
+  useEffect(() => {
+    inspectorRef.current?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }, [selId]);
 
   // render loop
   useEffect(() => {
@@ -187,7 +192,7 @@ export function UIEditor({ scene, onChange }: Props) {
   const onPointerUp = () => { dragRef.current = null; };
 
   return (
-    <div className="h-full w-full grid grid-rows-[auto_minmax(220px,40dvh)_minmax(0,1fr)] overflow-hidden sm:grid-rows-[auto_1fr_auto]">
+    <div className={`h-full w-full grid overflow-hidden sm:grid-rows-[auto_1fr_auto] ${sel ? "grid-rows-[auto_minmax(180px,32dvh)_minmax(0,1fr)]" : "grid-rows-[auto_minmax(220px,40dvh)_minmax(0,1fr)]"}`}>
       {/* Toolbar: add elements */}
       <div className="px-2 pt-2 panel border-b">
         <div className="grid grid-cols-7 gap-1 pb-2 sm:flex sm:gap-1.5 sm:overflow-x-auto sm:no-scrollbar">
@@ -226,7 +231,7 @@ export function UIEditor({ scene, onChange }: Props) {
       </div>
 
       {/* Inspector — extra bottom padding so content never sits under the tab bar */}
-      <div className="panel border-t overflow-y-auto overflow-x-hidden p-3 pb-24 space-y-2 sm:max-h-[38vh] sm:pb-10">
+      <div ref={inspectorRef} className="panel border-t overflow-y-auto overflow-x-hidden p-3 pb-24 space-y-2 sm:max-h-[38vh] sm:pb-10">
         {!sel ? (
           <div className="text-[11px] font-mono text-muted-foreground text-center py-4">
             Tap an element to edit · use the toolbar above to add UI components
