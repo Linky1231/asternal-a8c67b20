@@ -226,7 +226,7 @@ export function UIEditor({ scene, onChange }: Props) {
       </div>
 
       {/* Inspector — extra bottom padding so content never sits under the tab bar */}
-      <div className="panel border-t max-h-[42vh] overflow-y-auto overflow-x-hidden p-3 pb-8 space-y-2">
+      <div className="panel border-t max-h-[38vh] overflow-y-auto overflow-x-hidden p-3 pb-10 space-y-2">
         {!sel ? (
           <div className="text-[11px] font-mono text-muted-foreground text-center py-4">
             Tap an element to edit · use the toolbar above to add UI components
