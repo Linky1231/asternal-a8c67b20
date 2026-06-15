@@ -207,7 +207,7 @@ export function UIEditor({ scene, onChange }: Props) {
       </div>
 
       {/* Preview canvas */}
-      <div ref={wrapRef} className="relative w-full h-full grid place-items-center bg-background overflow-hidden">
+      <div ref={wrapRef} className="relative w-full h-full min-h-0 grid place-items-center bg-background overflow-hidden">
         <div className="relative rounded-2xl border-2 border-primary/30 shadow-[0_0_24px_oklch(0.68_0.21_250/0.3)] overflow-hidden bg-black"
           style={{ width: size.w, height: size.h }}>
           <canvas
