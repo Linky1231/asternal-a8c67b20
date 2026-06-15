@@ -195,16 +195,16 @@ export function UIEditor({ scene, onChange }: Props) {
     <div className={`h-full w-full grid overflow-hidden sm:grid-rows-[auto_1fr_auto] ${sel ? "grid-rows-[auto_minmax(180px,32dvh)_minmax(0,1fr)]" : "grid-rows-[auto_minmax(220px,40dvh)_minmax(0,1fr)]"}`}>
       {/* Toolbar: add elements */}
       <div className="px-2 pt-2 panel border-b">
-        <div className="grid grid-cols-7 gap-1 pb-2 sm:flex sm:gap-1.5 sm:overflow-x-auto sm:no-scrollbar">
+        <div className="grid grid-cols-4 gap-1 pb-2 sm:flex sm:gap-1.5 sm:overflow-x-auto sm:no-scrollbar">
           {KIND_LIST.map(k => (
             <button key={k.id} onClick={() => addEl(k.id)}
-              className="min-w-0 flex flex-col items-center gap-0.5 px-1.5 py-1.5 rounded-md border border-border/40 text-muted-foreground hover:border-primary/50 hover:text-primary-glow transition sm:shrink-0 sm:px-3 sm:min-w-[58px]">
+              className="min-w-0 w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-md border border-border/40 text-muted-foreground hover:border-primary/50 hover:text-primary-glow transition sm:shrink-0 sm:w-auto sm:px-3 sm:min-w-[58px]">
               <span className="text-lg leading-none">{k.icon}</span>
               <span className="w-full truncate text-center text-[8px] font-display tracking-wide sm:text-[9px] sm:tracking-wider">{k.label}</span>
             </button>
           ))}
           <button onClick={() => { if (confirm("Clear all UI?")) onChange({ ...scene, ui: [] }); }}
-            className="min-w-0 flex flex-col items-center gap-0.5 px-1.5 py-1.5 rounded-md border border-destructive/30 text-destructive sm:shrink-0 sm:px-3 sm:min-w-[58px]">
+            className="min-w-0 w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-md border border-destructive/30 text-destructive sm:shrink-0 sm:w-auto sm:px-3 sm:min-w-[58px]">
             <span className="text-lg leading-none">✕</span>
             <span className="w-full truncate text-center text-[8px] font-display tracking-wide sm:text-[9px] sm:tracking-wider">CLEAR</span>
           </button>
