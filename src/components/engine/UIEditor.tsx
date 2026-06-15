@@ -40,18 +40,20 @@ export function UIEditor({ scene, onChange }: Props) {
   useEffect(() => {
     const fit = () => {
       const w = wrapRef.current; if (!w) return;
-      const aw = Math.max(80, w.clientWidth - 16);
-      const ah = Math.max(80, w.clientHeight - 16);
+      const aw = Math.max(80, w.clientWidth - 8);
+      const ah = Math.max(80, w.clientHeight - 8);
       const HEADER = 56, TABS = 72;
       const vw = Math.max(240, window.innerWidth);
       const vh = Math.max(240, window.innerHeight - HEADER - TABS);
       const sc = Math.min(aw / vw, ah / vh);
       setVirt({ w: vw, h: vh });
-      setSize({ w: Math.round(vw * sc), h: Math.round(vh * sc) });
+      setSize({ w: Math.max(120, Math.round(vw * sc)), h: Math.max(120, Math.round(vh * sc)) });
     };
     fit();
+    const ro = new ResizeObserver(fit);
+    if (wrapRef.current) ro.observe(wrapRef.current);
     window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
+    return () => { window.removeEventListener("resize", fit); ro.disconnect(); };
   }, []);
 
   // render loop
@@ -205,7 +207,7 @@ export function UIEditor({ scene, onChange }: Props) {
       </div>
 
       {/* Preview canvas */}
-      <div ref={wrapRef} className="relative w-full h-full grid place-items-center bg-background overflow-hidden">
+      <div ref={wrapRef} className="relative w-full h-full min-h-0 grid place-items-center bg-background overflow-hidden">
         <div className="relative rounded-2xl border-2 border-primary/30 shadow-[0_0_24px_oklch(0.68_0.21_250/0.3)] overflow-hidden bg-black"
           style={{ width: size.w, height: size.h }}>
           <canvas
@@ -224,7 +226,7 @@ export function UIEditor({ scene, onChange }: Props) {
       </div>
 
       {/* Inspector — extra bottom padding so content never sits under the tab bar */}
-      <div className="panel border-t max-h-[42vh] overflow-y-auto overflow-x-hidden p-3 pb-8 space-y-2">
+      <div className="panel border-t max-h-[38vh] overflow-y-auto overflow-x-hidden p-3 pb-10 space-y-2">
         {!sel ? (
           <div className="text-[11px] font-mono text-muted-foreground text-center py-4">
             Tap an element to edit · use the toolbar above to add UI components
