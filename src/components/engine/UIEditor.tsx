@@ -40,18 +40,20 @@ export function UIEditor({ scene, onChange }: Props) {
   useEffect(() => {
     const fit = () => {
       const w = wrapRef.current; if (!w) return;
-      const aw = Math.max(80, w.clientWidth - 16);
-      const ah = Math.max(80, w.clientHeight - 16);
+      const aw = Math.max(80, w.clientWidth - 8);
+      const ah = Math.max(80, w.clientHeight - 8);
       const HEADER = 56, TABS = 72;
       const vw = Math.max(240, window.innerWidth);
       const vh = Math.max(240, window.innerHeight - HEADER - TABS);
       const sc = Math.min(aw / vw, ah / vh);
       setVirt({ w: vw, h: vh });
-      setSize({ w: Math.round(vw * sc), h: Math.round(vh * sc) });
+      setSize({ w: Math.max(120, Math.round(vw * sc)), h: Math.max(120, Math.round(vh * sc)) });
     };
     fit();
+    const ro = new ResizeObserver(fit);
+    if (wrapRef.current) ro.observe(wrapRef.current);
     window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
+    return () => { window.removeEventListener("resize", fit); ro.disconnect(); };
   }, []);
 
   // render loop
