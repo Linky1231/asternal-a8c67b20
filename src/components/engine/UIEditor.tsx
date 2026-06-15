@@ -23,6 +23,7 @@ const ANCHORS: UIAnchor[] = ["tl","tc","tr","cl","c","cr","bl","bc","br"];
 export function UIEditor({ scene, onChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const inspectorRef = useRef<HTMLDivElement>(null);
   const [selId, setSelId] = useState<string | null>(null);
   // `virt` = the size the game will actually render at (used for layout math
   // so what you place here lands at the same spot in PLAY). `size` = the
@@ -55,6 +56,10 @@ export function UIEditor({ scene, onChange }: Props) {
     window.addEventListener("resize", fit);
     return () => { window.removeEventListener("resize", fit); ro.disconnect(); };
   }, []);
+
+  useEffect(() => {
+    inspectorRef.current?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }, [selId]);
 
   // render loop
   useEffect(() => {
@@ -187,21 +192,21 @@ export function UIEditor({ scene, onChange }: Props) {
   const onPointerUp = () => { dragRef.current = null; };
 
   return (
-    <div className="h-full w-full grid grid-rows-[auto_1fr_auto] overflow-hidden">
+    <div className={`h-full w-full grid overflow-hidden sm:grid-rows-[auto_1fr_auto] ${sel ? "grid-rows-[auto_minmax(180px,32dvh)_minmax(0,1fr)]" : "grid-rows-[auto_minmax(220px,40dvh)_minmax(0,1fr)]"}`}>
       {/* Toolbar: add elements */}
       <div className="px-2 pt-2 panel border-b">
-        <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
+        <div className="grid grid-cols-4 gap-1 pb-2 sm:flex sm:gap-1.5 sm:overflow-x-auto sm:no-scrollbar">
           {KIND_LIST.map(k => (
             <button key={k.id} onClick={() => addEl(k.id)}
-              className="shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border border-border/40 text-muted-foreground hover:border-primary/50 hover:text-primary-glow transition">
+              className="min-w-0 w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-md border border-border/40 text-muted-foreground hover:border-primary/50 hover:text-primary-glow transition sm:shrink-0 sm:w-auto sm:px-3 sm:min-w-[58px]">
               <span className="text-lg leading-none">{k.icon}</span>
-              <span className="text-[9px] font-display tracking-wider">{k.label}</span>
+              <span className="w-full truncate text-center text-[8px] font-display tracking-wide sm:text-[9px] sm:tracking-wider">{k.label}</span>
             </button>
           ))}
           <button onClick={() => { if (confirm("Clear all UI?")) onChange({ ...scene, ui: [] }); }}
-            className="shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border border-destructive/30 text-destructive">
+            className="min-w-0 w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-md border border-destructive/30 text-destructive sm:shrink-0 sm:w-auto sm:px-3 sm:min-w-[58px]">
             <span className="text-lg leading-none">✕</span>
-            <span className="text-[9px] font-display tracking-wider">CLEAR</span>
+            <span className="w-full truncate text-center text-[8px] font-display tracking-wide sm:text-[9px] sm:tracking-wider">CLEAR</span>
           </button>
         </div>
       </div>
@@ -226,7 +231,7 @@ export function UIEditor({ scene, onChange }: Props) {
       </div>
 
       {/* Inspector — extra bottom padding so content never sits under the tab bar */}
-      <div className="panel border-t max-h-[38vh] overflow-y-auto overflow-x-hidden p-3 pb-10 space-y-2">
+      <div ref={inspectorRef} className="panel border-t overflow-y-auto overflow-x-hidden p-3 pb-24 space-y-2 sm:max-h-[38vh] sm:pb-10">
         {!sel ? (
           <div className="text-[11px] font-mono text-muted-foreground text-center py-4">
             Tap an element to edit · use the toolbar above to add UI components
@@ -278,7 +283,7 @@ function ElementInspector({ el, update, remove, clone, back }: {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <NumInput label="X" value={el.x} onChange={v => update({ x: v })} />
         <NumInput label="Y" value={el.y} onChange={v => update({ y: v })} />
         <NumInput label="W" value={el.w} onChange={v => update({ w: v })} />
@@ -324,7 +329,7 @@ function ElementInspector({ el, update, remove, clone, back }: {
       {el.kind === "button" && (
         <>
           <div className="text-[10px] font-display tracking-widest text-muted-foreground">ACTION</div>
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
             {(["none","left","right","jump","restart","exit","event"] as UIAction[]).map(a => (
               <button key={a} onClick={() => update({ action: a })}
                 className={`py-1.5 rounded text-[10px] font-display tracking-widest border ${(el.action ?? "none") === a ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"}`}>
@@ -341,7 +346,7 @@ function ElementInspector({ el, update, remove, clone, back }: {
       {(el.kind === "label" || el.kind === "bar") && (
         <>
           <div className="text-[10px] font-display tracking-widest text-muted-foreground">DATA BINDING</div>
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
             {(["none","score","lives","time"] as UIBind[]).map(b => (
               <button key={b} onClick={() => update({ bind: b })}
                 className={`py-1.5 rounded text-[10px] font-display tracking-widest border ${(el.bind ?? "none") === b ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"}`}>
@@ -355,12 +360,12 @@ function ElementInspector({ el, update, remove, clone, back }: {
         </>
       )}
 
-      <div className="grid grid-cols-3 gap-1.5 pt-2">
+      <div className="grid grid-cols-2 gap-1.5 pt-2 sm:grid-cols-3">
         <button onClick={clone} className="min-w-0 py-2 px-1 rounded border border-primary/50 bg-primary/10 text-primary-glow font-display text-[10px] tracking-wide truncate">⧉ CLONE</button>
         <button onClick={() => update({ visible: !(el.visible ?? true) })} className="min-w-0 py-2 px-1 rounded border border-border text-muted-foreground font-display text-[10px] tracking-wide truncate">
           {el.visible === false ? "SHOW" : "HIDE"}
         </button>
-        <button onClick={remove} className="min-w-0 py-2 px-1 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-wide truncate">✕ DELETE</button>
+        <button onClick={remove} className="col-span-2 min-w-0 py-2 px-1 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-wide truncate sm:col-span-1">✕ DELETE</button>
       </div>
     </div>
   );
