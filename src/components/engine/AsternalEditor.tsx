@@ -766,6 +766,7 @@ function TexturePicker({ texture, fit = "stretch", onPick, onClear, onFit }: {
   onFit?: (f: "stretch" | "contain" | "cover") => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [drawOpen, setDrawOpen] = useState(false);
   return (
     <div>
       <label className="text-[10px] font-display tracking-widest text-muted-foreground">TEXTURE</label>
@@ -782,12 +783,20 @@ function TexturePicker({ texture, fit = "stretch", onPick, onClear, onFit }: {
           )}
         </button>
         <div className="flex-1 flex flex-col gap-1.5">
-          <button
-            onClick={() => inputRef.current?.click()}
-            className="text-xs font-display tracking-widest px-3 py-2 rounded-md bg-primary/15 border border-primary/50 text-primary-glow"
-          >
-            {texture ? "REPLACE FROM GALLERY" : "PICK PNG / IMAGE"}
-          </button>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              onClick={() => inputRef.current?.click()}
+              className="text-[10px] font-display tracking-widest px-2 py-2 rounded-md bg-primary/15 border border-primary/50 text-primary-glow"
+            >
+              {texture ? "GALERÍA" : "GALERÍA"}
+            </button>
+            <button
+              onClick={() => setDrawOpen(true)}
+              className="text-[10px] font-display tracking-widest px-2 py-2 rounded-md bg-accent/20 border border-accent/50 text-primary-glow"
+            >
+              ✎ DIBUJAR
+            </button>
+          </div>
           {texture && (
             <button
               onClick={onClear}
@@ -798,6 +807,16 @@ function TexturePicker({ texture, fit = "stretch", onPick, onClear, onFit }: {
           )}
         </div>
       </div>
+      {drawOpen && (
+        <PaintEditor
+          onClose={() => setDrawOpen(false)}
+          onSave={(asset) => {
+            const url = asset.frames[0]?.composite;
+            if (url) onPick(url);
+            setDrawOpen(false);
+          }}
+        />
+      )}
       {texture && onFit && (
         <div className="grid grid-cols-3 gap-1 mt-2">
           {(["stretch","contain","cover"] as const).map(m => (
