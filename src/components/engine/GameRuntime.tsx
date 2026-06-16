@@ -284,6 +284,9 @@ export function GameRuntime({
           if (!state.win && !state.dead) {
             stepScene(work, inputRef.current, state, targetDt);
             scripts.step(work, state, inputRef.current, hooks, targetDt);
+            if (drawList.length !== work.entities.length) {
+              drawList = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+            }
           }
           if (shake.time > 0) shake.time = Math.max(0, shake.time - targetDt);
           tickEmitters(targetDt);
