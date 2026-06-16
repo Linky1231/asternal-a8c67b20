@@ -207,27 +207,27 @@ export function UIEditor({ scene, onChange }: Props) {
   const onPointerUp = () => { dragRef.current = null; };
 
   return (
-    <div className={`h-full w-full grid overflow-hidden sm:grid-rows-[auto_1fr_auto] ${sel ? "grid-rows-[auto_minmax(0,1fr)_minmax(180px,42dvh)]" : "grid-rows-[auto_minmax(0,1fr)_auto]"}`}>
-      {/* Toolbar: add elements */}
-      <div className="px-2 pt-2 panel border-b">
-        <div className="grid grid-cols-4 gap-1 pb-2 sm:flex sm:gap-1.5 sm:overflow-x-auto sm:no-scrollbar">
+    <div className={`h-full w-full grid overflow-hidden sm:grid-rows-[auto_1fr_auto] ${sel ? "grid-rows-[auto_minmax(0,1fr)_minmax(180px,48dvh)]" : "grid-rows-[auto_minmax(0,1fr)_auto]"}`}>
+      {/* Toolbar: add elements — compact single row on mobile */}
+      <div className="px-1.5 pt-1.5 panel border-b">
+        <div className="flex gap-1 pb-1.5 overflow-x-auto no-scrollbar sm:gap-1.5">
           {KIND_LIST.map(k => (
             <button key={k.id} onClick={() => addEl(k.id)}
-              className="min-w-0 w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-md border border-border/40 text-muted-foreground hover:border-primary/50 hover:text-primary-glow transition sm:shrink-0 sm:w-auto sm:px-3 sm:min-w-[58px]">
-              <span className="text-lg leading-none">{k.icon}</span>
-              <span className="w-full truncate text-center text-[8px] font-display tracking-wide sm:text-[9px] sm:tracking-wider">{k.label}</span>
+              className="shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-md border border-border/40 text-muted-foreground hover:border-primary/50 hover:text-primary-glow transition sm:px-3">
+              <span className="text-base leading-none">{k.icon}</span>
+              <span className="text-[9px] font-display tracking-wider">{k.label}</span>
             </button>
           ))}
           <button onClick={() => { if (confirm("Clear all UI?")) onChange({ ...scene, ui: [] }); }}
-            className="min-w-0 w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-md border border-destructive/30 text-destructive sm:shrink-0 sm:w-auto sm:px-3 sm:min-w-[58px]">
-            <span className="text-lg leading-none">✕</span>
-            <span className="w-full truncate text-center text-[8px] font-display tracking-wide sm:text-[9px] sm:tracking-wider">CLEAR</span>
+            className="shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-md border border-destructive/30 text-destructive sm:px-3">
+            <span className="text-base leading-none">✕</span>
+            <span className="text-[9px] font-display tracking-wider">CLEAR</span>
           </button>
         </div>
       </div>
 
-      {/* Preview canvas */}
-      <div ref={wrapRef} className="relative w-full h-full min-h-0 grid place-items-center bg-background overflow-hidden">
+      {/* Preview canvas — bigger on mobile */}
+      <div ref={wrapRef} className="relative w-full h-full min-h-0 grid place-items-center bg-background overflow-hidden p-1">
         <div className="relative rounded-2xl border-2 border-primary/30 shadow-[0_0_24px_oklch(0.68_0.21_250/0.3)] overflow-hidden bg-black"
           style={{ width: size.w, height: size.h }}>
           <canvas
@@ -240,26 +240,29 @@ export function UIEditor({ scene, onChange }: Props) {
             onPointerCancel={onPointerUp}
           />
         </div>
-        <div className="absolute top-2 left-2 panel rounded-md px-2 py-1 text-[10px] font-mono text-primary-glow">
-          UI · {ui.length} · {virt.w}×{virt.h}
+        <div className="absolute top-1.5 left-1.5 panel rounded-md px-1.5 py-0.5 text-[9px] font-mono text-primary-glow">
+          UI·{ui.length}·{virt.w}×{virt.h}
         </div>
       </div>
 
-      {/* Inspector — extra bottom padding so content never sits under the tab bar */}
-      <div ref={inspectorRef} className="panel border-t overflow-y-auto overflow-x-hidden p-3 pb-24 space-y-2 sm:max-h-[38vh] sm:pb-10">
+      {/* Inspector — compact chip list when nothing selected; full panel when editing */}
+      <div ref={inspectorRef} className={`panel border-t overflow-y-auto overflow-x-hidden ${sel ? "p-3 pb-24 sm:pb-10" : "px-2 py-1.5"} space-y-2 sm:max-h-[42vh]`}>
         {!sel ? (
-          <div className="text-[11px] font-mono text-muted-foreground text-center py-4">
-            Tap an element to edit · use the toolbar above to add UI components
-            <div className="mt-2 grid grid-cols-2 gap-1.5">
+          ui.length === 0 ? (
+            <div className="text-[10px] font-mono text-muted-foreground text-center py-1">
+              Add a component from the toolbar above
+            </div>
+          ) : (
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
               {ui.map(e => (
                 <button key={e.id} onClick={() => setSelId(e.id)}
-                  className="text-left px-2 py-1.5 rounded border border-border text-[10px] font-mono text-muted-foreground flex items-center gap-2">
+                  className="shrink-0 px-2 py-1.5 rounded border border-border text-[10px] font-mono text-muted-foreground flex items-center gap-1.5 hover:border-primary/50">
                   <span className="text-primary-glow">{e.kind.toUpperCase()}</span>
-                  <span className="truncate">{e.name}</span>
+                  <span className="max-w-[80px] truncate">{e.name}</span>
                 </button>
               ))}
             </div>
-          </div>
+          )
         ) : (
           <ElementInspector el={sel} update={(p) => updateEl(sel.id, p)} remove={() => removeEl(sel.id)} clone={() => cloneEl(sel.id)} back={() => setSelId(null)} />
         )}
