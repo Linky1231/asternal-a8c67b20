@@ -238,13 +238,29 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     if (activePointers.current.size > 1) { cancelStroke(); return; }
     const p = getPos(e);
     if (drag.current.tool === "brush" || drag.current.tool === "eraser") {
-      // Stabilization: low-pass filter the pointer
-      const alpha = stabilize ? 0.35 : 1;
-      const sx = drag.current.smooth.x + (p.x - drag.current.smooth.x) * alpha;
-      const sy = drag.current.smooth.y + (p.y - drag.current.smooth.y) * alpha;
-      drag.current.smooth = { x: sx, y: sy };
-      strokeSegment(drag.current.last.x, drag.current.last.y, sx, sy, drag.current.tool === "eraser");
-      drag.current.last = { x: sx, y: sy };
+      // Use coalesced events for full-resolution input, draw directly to the
+      // real pointer position (no lag). Light smoothing only when stabilize is on,
+      // applied via midpoint quadratic curves rather than a low-pass filter.
+      const events = (typeof e.nativeEvent.getCoalescedEvents === "function"
+        ? e.nativeEvent.getCoalescedEvents()
+        : []) as PointerEvent[];
+      const points = events.length ? events.map(ev => {
+        const c = canvasRef.current!;
+        const r = c.getBoundingClientRect();
+        return { x: ((ev.clientX - r.left) / r.width) * size, y: ((ev.clientY - r.top) / r.height) * size };
+      }) : [p];
+      const erase = drag.current.tool === "eraser";
+      for (const pt of points) {
+        if (stabilize) {
+          const mx = (drag.current.last.x + pt.x) / 2;
+          const my = (drag.current.last.y + pt.y) / 2;
+          strokeSegment(drag.current.last.x, drag.current.last.y, mx, my, erase);
+          drag.current.last = { x: mx, y: my };
+        } else {
+          strokeSegment(drag.current.last.x, drag.current.last.y, pt.x, pt.y, erase);
+          drag.current.last = pt;
+        }
+      }
       blit();
     } else if (drag.current.tool === "line" || drag.current.tool === "rect" || drag.current.tool === "circle") {
       const t = drag.current.tool;
@@ -252,13 +268,16 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     }
   };
 
+
   const onUp = (e: React.PointerEvent) => {
     activePointers.current.delete(e.pointerId);
     if (!drag.current.active) return;
     if (activePointerId.current !== e.pointerId) return;
     const p = getPos(e);
     const t = drag.current.tool;
-    if (t === "line" || t === "rect" || t === "circle") {
+    if (t === "brush" || t === "eraser") {
+      strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, t === "eraser");
+    } else if (t === "line" || t === "rect" || t === "circle") {
       commitShape(t, drag.current.start.x, drag.current.start.y, p.x, p.y);
     }
     drag.current.active = false;
@@ -266,6 +285,7 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     blit();
     setPreviewVersion(v => v + 1);
   };
+
 
   const commitText = () => {
     if (!textInput || !textInput.value.trim()) { setTextInput(null); return; }
