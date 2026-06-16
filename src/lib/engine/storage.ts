@@ -8,7 +8,10 @@ export function loadProject(): Project {
   if (typeof window === "undefined") return newProject();
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return newProject();
+    if (!raw) {
+      localStorage.setItem(FPS_60_MIGRATION_KEY, "1");
+      return newProject();
+    }
     const p = JSON.parse(raw) as Project;
     if (!p.scenes?.length) return newProject();
     if (!p.assets) p.assets = { sprites: [] };

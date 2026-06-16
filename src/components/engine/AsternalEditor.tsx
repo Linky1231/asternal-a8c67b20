@@ -133,7 +133,12 @@ export function AsternalEditor() {
             className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
           >?</button>
           <button
-            onClick={() => setPlaying(true)}
+            onClick={() => {
+              if (project.settings.fpsCap !== 60) {
+                setProject({ ...project, settings: { ...project.settings, fpsCap: 60 } });
+              }
+              setPlaying(true);
+            }}
             className="font-display text-sm px-4 py-1.5 rounded-md bg-gradient-to-r from-primary to-accent text-primary-foreground glow-border active:scale-95 transition"
           >
             ▶ PLAY
