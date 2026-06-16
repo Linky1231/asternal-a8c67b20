@@ -47,12 +47,19 @@ export function AsternalEditor() {
         saveProject(project);
         setSavedAt(Date.now());
       };
+      let idleId: number | null = null;
       const timer = window.setTimeout(() => {
-        const idle = (window as typeof window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
-        if (idle) idle(persist, { timeout: 1200 });
+        const win = window as typeof window & {
+          requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+          cancelIdleCallback?: (id: number) => void;
+        };
+        if (win.requestIdleCallback) idleId = win.requestIdleCallback(persist, { timeout: 1200 });
         else persist();
       }, 350);
-      return () => window.clearTimeout(timer);
+      return () => {
+        window.clearTimeout(timer);
+        if (idleId !== null) (window as typeof window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(idleId);
+      };
     }
   }, [project]);
 
