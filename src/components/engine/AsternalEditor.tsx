@@ -451,6 +451,30 @@ function InspectorPanel({
       <BehaviorsPanel ent={ent} onUpdate={update} />
       <ParticlesButton entity={ent} onUpdate={update} />
 
+      {ent.goal && (
+        <div className="panel rounded-md p-2 space-y-2 border border-primary/30">
+          <div className="text-[10px] font-display tracking-widest text-primary-glow">{t("goal.onReach") || "AL ALCANZAR"}</div>
+          <Toggle
+            label={t("goal.endsGame") || "GANAR PARTIDA"}
+            on={!!ent.endsGame}
+            onChange={v => update({ endsGame: v })}
+          />
+          <div>
+            <label className="text-[10px] font-display tracking-widest text-muted-foreground">{t("goal.nextScene") || "IR A ESCENA"}</label>
+            <select
+              value={ent.nextSceneId ?? ""}
+              onChange={e => update({ nextSceneId: e.target.value || null })}
+              className="w-full mt-1 bg-input/60 border border-border rounded-md px-2 py-2 text-xs font-mono"
+            >
+              <option value="">— {t("goal.none") || "Ninguna (solo ganar nivel)"} —</option>
+              {(project?.scenes ?? []).filter(s => s.id !== scene.id).map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={() => update({ x: scene.width / 2 - ent.w / 2, y: scene.height / 2 - ent.h / 2 })}
         className="w-full py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
