@@ -95,6 +95,9 @@ export interface Entity {
   facing?: 1 | -1;           // last horizontal direction
   flipX?: boolean;           // force horizontal flip
   textureFit?: "stretch" | "contain" | "cover";
+  // goal-specific
+  nextSceneId?: string | null;
+  endsGame?: boolean;
 }
 
 export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
