@@ -795,7 +795,7 @@ function TexturePicker({ texture, fit = "stretch", onPick, onClear, onFit }: {
               onClick={() => setDrawOpen(true)}
               className="text-[10px] font-display tracking-widest px-2 py-2 rounded-md bg-accent/20 border border-accent/50 text-primary-glow"
             >
-              ✎ DIBUJAR
+              {t("texture.draw")}
             </button>
           </div>
           {texture && (
