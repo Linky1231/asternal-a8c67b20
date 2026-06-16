@@ -91,21 +91,24 @@ export function AsternalEditor() {
     setProject({ ...project, scenes: project.scenes.map(x => x.id === s.id ? s : x) });
 
   const selected = activeScene.entities.find(e => e.id === selectedId) ?? null;
+  const playProject = project.settings.fpsCap === 60
+    ? project
+    : { ...project, settings: { ...project.settings, fpsCap: 60 as const } };
 
   if (playing) {
     return (
       <div className="h-screen w-screen">
         <GameRuntime
           scene={activeScene}
-          fpsCap={project.settings.fpsCap}
-          showHUD={project.settings.showHUD}
-          showFPS={project.settings.showFPS ?? true}
-          volume={project.settings.volume ?? 0.8}
-          muted={project.settings.muted ?? false}
-          music={project.settings.music ?? false}
-          touchControls={project.settings.touchControls ?? true}
-          autoPause={project.settings.autoPause ?? true}
-          showHitboxes={project.settings.showHitboxes ?? false}
+          fpsCap={60}
+          showHUD={playProject.settings.showHUD}
+          showFPS={playProject.settings.showFPS ?? true}
+          volume={playProject.settings.volume ?? 0.8}
+          muted={playProject.settings.muted ?? false}
+          music={playProject.settings.music ?? false}
+          touchControls={playProject.settings.touchControls ?? true}
+          autoPause={playProject.settings.autoPause ?? true}
+          showHitboxes={playProject.settings.showHitboxes ?? false}
           onExit={() => setPlaying(false)}
         />
       </div>
@@ -133,7 +136,14 @@ export function AsternalEditor() {
             className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
           >?</button>
           <button
-            onClick={() => setPlaying(true)}
+            onClick={() => {
+              if (project.settings.fpsCap !== 60) {
+                const next = { ...project, settings: { ...project.settings, fpsCap: 60 as const } };
+                saveProject(next);
+                setProject(next);
+              }
+              setPlaying(true);
+            }}
             className="font-display text-sm px-4 py-1.5 rounded-md bg-gradient-to-r from-primary to-accent text-primary-foreground glow-border active:scale-95 transition"
           >
             ▶ PLAY
