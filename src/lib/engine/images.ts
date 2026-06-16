@@ -4,6 +4,8 @@ const cache = new Map<string, HTMLImageElement>();
 const bitmapCache = new Map<string, ImageBitmap | HTMLImageElement>();
 const pendingBitmap = new Set<string>();
 
+export type RenderableImage = HTMLImageElement | ImageBitmap;
+
 export function getImage(src: string): HTMLImageElement | null {
   if (!src) return null;
   let img = cache.get(src);
@@ -15,7 +17,7 @@ export function getImage(src: string): HTMLImageElement | null {
   return null;
 }
 
-export function getRenderableImage(src: string): CanvasImageSource | null {
+export function getRenderableImage(src: string): RenderableImage | null {
   if (!src) return null;
   const bitmap = bitmapCache.get(src);
   if (bitmap) return bitmap;
