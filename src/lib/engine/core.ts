@@ -162,6 +162,7 @@ export interface ProjectSettings {
   autoPause?: boolean;
   showHitboxes?: boolean;
   language?: "es" | "en" | "pt" | "fr" | "de";
+  perfOptimized?: boolean;
 }
 
 export interface Project {
