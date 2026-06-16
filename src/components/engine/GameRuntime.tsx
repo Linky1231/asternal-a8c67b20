@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Entity, RuntimeInput, RuntimeState, Scene, UIElement } from "@/lib/engine/core";
 import { stepScene, newRuntimeState, resolveUIRect } from "@/lib/engine/core";
-import { getImage } from "@/lib/engine/images";
-import { currentFrameImage } from "@/lib/engine/animations";
+import { getRenderableImage } from "@/lib/engine/images";
+import { currentFrameRenderable } from "@/lib/engine/animations";
 import { createScriptRunner } from "@/lib/engine/scripts";
 import { startMusic, stopMusic, setVolume, setMuted } from "@/lib/engine/sfx";
 import { drawUIElement } from "./UIEditor";
@@ -43,6 +43,7 @@ export function GameRuntime({
     const ctx = canvas.getContext("2d")!;
     const initial: Scene = JSON.parse(JSON.stringify(scene));
     let work: Scene = JSON.parse(JSON.stringify(initial));
+    let drawList = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
     const state: RuntimeState = newRuntimeState(initial);
     let scripts = createScriptRunner();
     const shake = { intensity: 0, time: 0 };
@@ -53,6 +54,7 @@ export function GameRuntime({
       },
       restart: () => {
         work = JSON.parse(JSON.stringify(initial));
+        drawList = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
         Object.assign(state, newRuntimeState(initial));
         scripts = createScriptRunner();
       },
@@ -71,10 +73,16 @@ export function GameRuntime({
     let frames = 0;
     let fpsT = last;
 
+    let cssW = 0;
+    let cssH = 0;
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = canvas.clientWidth * dpr;
-      canvas.height = canvas.clientHeight * dpr;
+      const dpr = Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.25 : 1.5);
+      cssW = Math.max(1, canvas.clientWidth);
+      cssH = Math.max(1, canvas.clientHeight);
+      const nextW = Math.round(cssW * dpr);
+      const nextH = Math.round(cssH * dpr);
+      if (canvas.width !== nextW) canvas.width = nextW;
+      if (canvas.height !== nextH) canvas.height = nextH;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
@@ -121,14 +129,14 @@ export function GameRuntime({
 
 
     const draw = () => {
-      const W = canvas.clientWidth;
-      const H = canvas.clientHeight;
+      const W = cssW || canvas.clientWidth;
+      const H = cssH || canvas.clientHeight;
       ctx.fillStyle = work.bg || "#0b1e3f";
       ctx.fillRect(0, 0, W, H);
 
       // Background image
       if (work.bgImage) {
-        const img = getImage(work.bgImage);
+        const img = getRenderableImage(work.bgImage);
         if (img && img.width) {
           const mode = work.bgImageMode || "cover";
           if (mode === "stretch") {
@@ -162,12 +170,10 @@ export function GameRuntime({
       ctx.strokeStyle = "rgba(56,189,248,0.10)";
       ctx.lineWidth = 1;
       const off = -state.cameraX * 0.4;
-      for (let x = (off % 40); x < W; x += 40) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-      }
-      for (let y = 0; y < H; y += 40) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-      }
+      ctx.beginPath();
+      for (let x = (off % 40); x < W; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+      for (let y = 0; y < H; y += 40) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+      ctx.stroke();
 
       // Fixed-size camera: the view does NOT shrink when the map grows.
       const VIEW_H = 700;
@@ -194,15 +200,15 @@ export function GameRuntime({
       ctx.translate(-camX, -camY);
 
       const tSec = performance.now() / 1000;
-      const sorted = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
-      for (const e of sorted) {
+      const visualEffects = W >= 700;
+      for (const e of drawList) {
         if (e.visible === false) continue;
         const a = e.opacity ?? 1;
         // invuln blink
         if (e.controllable && state.invulnT > 0 && Math.floor(state.invulnT * 16) % 2 === 0) {
           ctx.globalAlpha = 0.4;
         } else if (a !== 1) ctx.globalAlpha = a;
-        drawEntity(ctx, e, tSec);
+        drawEntity(ctx, e, tSec, visualEffects);
         ctx.globalAlpha = 1;
       }
 
@@ -247,7 +253,7 @@ export function GameRuntime({
       }
 
       // UI overlay (screen-space)
-      const W2 = canvas.clientWidth, H2 = canvas.clientHeight;
+      const W2 = W, H2 = H;
       const tick = performance.now() / 16;
       const uiState = { score: state.score, lives: state.lives, time: state.time, timeLimit: work.timeLimit, startLives: work.startLives };
       for (const el of (work.ui ?? [])) {
@@ -278,6 +284,9 @@ export function GameRuntime({
           if (!state.win && !state.dead) {
             stepScene(work, inputRef.current, state, targetDt);
             scripts.step(work, state, inputRef.current, hooks, targetDt);
+            if (drawList.length !== work.entities.length) {
+              drawList = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+            }
           }
           if (shake.time > 0) shake.time = Math.max(0, shake.time - targetDt);
           tickEmitters(targetDt);
@@ -500,7 +509,7 @@ function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => v
   );
 }
 
-function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number) {
+function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number, visualEffects = true) {
   ctx.save();
   const flip = (e.facing === -1) !== !!e.flipX;
   if (flip) {
@@ -509,8 +518,8 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number) {
   } else {
     ctx.translate(e.x, e.y);
   }
-  const animImg = currentFrameImage(e, time);
-  const drawFit = (img: HTMLImageElement) => {
+  const animImg = currentFrameRenderable(e, time);
+  const drawFit = (img: HTMLImageElement | ImageBitmap) => {
     const fit = e.textureFit ?? "stretch";
     if (fit === "stretch") { ctx.drawImage(img, 0, 0, e.w, e.h); return; }
     const sa = img.width / img.height;
@@ -522,14 +531,16 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number) {
   };
   if (animImg) { drawFit(animImg); ctx.restore(); return; }
   if (e.texture) {
-    const img = getImage(e.texture);
+    const img = getRenderableImage(e.texture);
     if (img) { drawFit(img); ctx.restore(); return; }
   }
   // fallback shape — restore translate to absolute coords for legacy drawing
   ctx.restore();
   ctx.save();
-  ctx.shadowColor = e.color;
-  ctx.shadowBlur = e.kind === "coin" ? 18 : e.kind === "goal" ? 24 : 8;
+  if (visualEffects) {
+    ctx.shadowColor = e.color;
+    ctx.shadowBlur = e.kind === "coin" ? 10 : e.kind === "goal" ? 12 : 4;
+  }
   ctx.fillStyle = e.color;
   if (e.kind === "coin") {
     ctx.beginPath();

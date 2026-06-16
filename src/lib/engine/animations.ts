@@ -1,6 +1,6 @@
 // Animation system for Asternal Engine
 import type { Entity } from "./core";
-import { getImage } from "./images";
+import { getImage, getRenderableImage } from "./images";
 
 export type AnimState = "idle" | "walk" | "run" | "jump" | "fall" | "attack" | string;
 
@@ -54,4 +54,10 @@ export function currentFrameImage(e: Entity, time: number, state?: AnimState): H
   const src = currentFrameSrc(e, time, state);
   if (!src) return null;
   return getImage(src);
+}
+
+export function currentFrameRenderable(e: Entity, time: number, state?: AnimState): HTMLImageElement | ImageBitmap | null {
+  const src = currentFrameSrc(e, time, state);
+  if (!src) return null;
+  return getRenderableImage(src);
 }

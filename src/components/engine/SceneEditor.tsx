@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Entity, EntityKind, Scene } from "@/lib/engine/core";
 import { KIND_PRESETS, uid } from "@/lib/engine/core";
-import { getImage } from "@/lib/engine/images";
-import { currentFrameImage } from "@/lib/engine/animations";
+import { getRenderableImage } from "@/lib/engine/images";
+import { currentFrameRenderable } from "@/lib/engine/animations";
 
 interface Props {
   scene: Scene;
@@ -89,8 +89,10 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     const ctx = canvas.getContext("2d")!;
     let mounted = true;
 
+    const hasAnimated = scene.entities.some(e => (e.animations ?? []).some(c => c.frames.length > 1 && c.fps > 0));
+    const sortedEnts = [...scene.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
     const setupSize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       const w = canvas.clientWidth, h = canvas.clientHeight;
       if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
         canvas.width = w * dpr;
@@ -120,25 +122,22 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       // grid
       ctx.strokeStyle = "rgba(56,189,248,0.16)";
       ctx.lineWidth = 1 / scale;
-      for (let x = 0; x <= scene.width; x += 40) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, scene.height); ctx.stroke();
-      }
-      for (let y = 0; y <= scene.height; y += 40) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(scene.width, y); ctx.stroke();
-      }
+      ctx.beginPath();
+      for (let x = 0; x <= scene.width; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, scene.height); }
+      for (let y = 0; y <= scene.height; y += 40) { ctx.moveTo(0, y); ctx.lineTo(scene.width, y); }
+      ctx.stroke();
       ctx.strokeStyle = "rgba(125,211,252,0.6)";
       ctx.lineWidth = 2 / scale;
       ctx.strokeRect(0, 0, scene.width, scene.height);
 
       const tSec = t / 1000;
-      const sortedEnts = [...scene.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
       for (const e of sortedEnts) {
         ctx.save();
         const flip = (e.facing === -1) !== !!e.flipX;
         if (flip) { ctx.translate(e.x + e.w, e.y); ctx.scale(-1, 1); }
         else ctx.translate(e.x, e.y);
-        const animImg = currentFrameImage(e, tSec, "idle");
-        const drawFit = (img: HTMLImageElement) => {
+        const animImg = currentFrameRenderable(e, tSec, "idle");
+        const drawFit = (img: HTMLImageElement | ImageBitmap) => {
           const fit = e.textureFit ?? "stretch";
           if (fit === "stretch") { ctx.drawImage(img, 0, 0, e.w, e.h); return; }
           const sa = img.width / img.height;
@@ -151,12 +150,10 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         if (animImg) {
           drawFit(animImg);
         } else if (e.texture) {
-          const img = getImage(e.texture);
+          const img = getRenderableImage(e.texture);
           if (img) drawFit(img);
           else { ctx.fillStyle = "rgba(56,189,248,0.15)"; ctx.fillRect(0, 0, e.w, e.h); }
         } else {
-          ctx.shadowColor = e.color;
-          ctx.shadowBlur = 10 / scale;
           ctx.fillStyle = e.color;
           ctx.fillRect(0, 0, e.w, e.h);
         }
@@ -228,7 +225,7 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         ctx.restore();
       }
 
-      animRef.current = requestAnimationFrame(render);
+      if (hasAnimated) animRef.current = requestAnimationFrame(render);
     };
     animRef.current = requestAnimationFrame(render);
     return () => { mounted = false; cancelAnimationFrame(animRef.current); };

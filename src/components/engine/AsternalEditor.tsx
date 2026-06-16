@@ -43,8 +43,23 @@ export function AsternalEditor() {
 
   useEffect(() => {
     if (project) {
-      saveProject(project);
-      setSavedAt(Date.now());
+      const persist = () => {
+        saveProject(project);
+        setSavedAt(Date.now());
+      };
+      let idleId: number | null = null;
+      const timer = window.setTimeout(() => {
+        const win = window as typeof window & {
+          requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+          cancelIdleCallback?: (id: number) => void;
+        };
+        if (win.requestIdleCallback) idleId = win.requestIdleCallback(persist, { timeout: 1200 });
+        else persist();
+      }, 350);
+      return () => {
+        window.clearTimeout(timer);
+        if (idleId !== null) (window as typeof window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(idleId);
+      };
     }
   }, [project]);
 
