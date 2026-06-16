@@ -458,6 +458,13 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
         }
       } else if (o.goal) {
         state.win = true;
+        if (typeof window !== "undefined") {
+          try {
+            window.dispatchEvent(new CustomEvent("asternal:goal", {
+              detail: { nextSceneId: o.nextSceneId ?? null, endsGame: !!o.endsGame },
+            }));
+          } catch { /* ignore */ }
+        }
       } else if (o.switchId) {
         if (!state.switches[o.switchId]) {
           state.switches[o.switchId] = true;
