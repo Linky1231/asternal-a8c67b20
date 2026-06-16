@@ -789,7 +789,7 @@ function TexturePicker({ texture, fit = "stretch", onPick, onClear, onFit }: {
               onClick={() => inputRef.current?.click()}
               className="text-[10px] font-display tracking-widest px-2 py-2 rounded-md bg-primary/15 border border-primary/50 text-primary-glow"
             >
-              {texture ? "GALERÍA" : "GALERÍA"}
+              {t("texture.gallery")}
             </button>
             <button
               onClick={() => setDrawOpen(true)}
