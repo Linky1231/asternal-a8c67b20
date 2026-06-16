@@ -90,6 +90,7 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     let mounted = true;
 
     const hasAnimated = scene.entities.some(e => (e.animations ?? []).some(c => c.frames.length > 1 && c.fps > 0));
+    const sortedEnts = [...scene.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
     const setupSize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -130,7 +131,6 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       ctx.strokeRect(0, 0, scene.width, scene.height);
 
       const tSec = t / 1000;
-      const sortedEnts = [...scene.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
       for (const e of sortedEnts) {
         ctx.save();
         const flip = (e.facing === -1) !== !!e.flipX;
