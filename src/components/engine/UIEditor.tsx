@@ -192,7 +192,7 @@ export function UIEditor({ scene, onChange }: Props) {
   const onPointerUp = () => { dragRef.current = null; };
 
   return (
-    <div className={`h-full w-full grid overflow-hidden sm:grid-rows-[auto_1fr_auto] ${sel ? "grid-rows-[auto_minmax(180px,32dvh)_minmax(0,1fr)]" : "grid-rows-[auto_minmax(220px,40dvh)_minmax(0,1fr)]"}`}>
+    <div className={`h-full w-full grid overflow-hidden sm:grid-rows-[auto_1fr_auto] ${sel ? "grid-rows-[auto_minmax(0,1fr)_minmax(180px,42dvh)]" : "grid-rows-[auto_minmax(0,1fr)_auto]"}`}>
       {/* Toolbar: add elements */}
       <div className="px-2 pt-2 panel border-b">
         <div className="grid grid-cols-4 gap-1 pb-2 sm:flex sm:gap-1.5 sm:overflow-x-auto sm:no-scrollbar">
