@@ -767,9 +767,10 @@ function TexturePicker({ texture, fit = "stretch", onPick, onClear, onFit }: {
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [drawOpen, setDrawOpen] = useState(false);
+  const t = useT();
   return (
     <div>
-      <label className="text-[10px] font-display tracking-widest text-muted-foreground">TEXTURE</label>
+      <label className="text-[10px] font-display tracking-widest text-muted-foreground">{t("inspector.texture")}</label>
       <div className="mt-1 flex items-center gap-2">
         <button
           onClick={() => inputRef.current?.click()}
