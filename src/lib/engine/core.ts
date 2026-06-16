@@ -345,12 +345,14 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       e.facing = e.vx > 0 ? 1 : -1;
     }
   }
+  const solids = scene.entities.filter((e) => e.solid);
+  const interactables = scene.entities.filter((e) => e.collectible || e.hazard || e.goal || e.switchId || e.checkpoint || e.crumble);
 
   // Horizontal pass
   for (const e of scene.entities) {
     if (e.kind === "platform") continue;
     e.x += e.vx * dt;
-    for (const o of scene.entities) {
+    for (const o of solids) {
       if (o === e || !o.solid) continue;
       if (intersects(e, o)) {
         const A = aabb(e), B = aabb(o);
@@ -368,7 +370,7 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
   for (const e of scene.entities) {
     if (e.kind === "platform") continue;
     e.y += e.vy * dt;
-    for (const o of scene.entities) {
+    for (const o of solids) {
       if (o === e || !o.solid) continue;
       if (intersects(e, o)) {
         const A = aabb(e), B = aabb(o);
@@ -431,7 +433,7 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     }
 
     // interact
-    for (const o of scene.entities) {
+    for (const o of interactables) {
       if (o === e) continue;
       if (o.x < -9000) continue;
       if (!intersects(e, o)) continue;
