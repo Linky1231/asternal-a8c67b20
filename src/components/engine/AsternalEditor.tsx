@@ -145,6 +145,7 @@ export function AsternalEditor() {
             entityId={selectedId}
             onChangeScene={updateScene}
             onSelect={setSelectedId}
+            project={project}
           />
         )}
 
