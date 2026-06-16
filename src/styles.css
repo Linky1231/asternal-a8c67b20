@@ -43,7 +43,7 @@
   --background: oklch(0.16 0.04 260);
   --foreground: oklch(0.96 0.015 230);
 
-  --card: oklch(0.32 0.06 260 / 0.45);
+  --card: oklch(0.3 0.055 260 / 0.92);
   --card-foreground: oklch(0.96 0.015 230);
 
   --popover: oklch(0.22 0.05 260 / 0.85);
@@ -73,8 +73,8 @@
   --gradient-cyber: linear-gradient(135deg, oklch(0.7 0.18 255), oklch(0.82 0.13 220));
   --gradient-deep: linear-gradient(160deg, oklch(0.2 0.06 260) 0%, oklch(0.14 0.04 265) 60%, oklch(0.11 0.035 268) 100%);
 
-  --shadow-glow: 0 1px 0 oklch(1 0 0 / 0.1) inset, 0 14px 44px -16px oklch(0 0 0 / 0.55);
-  --shadow-glow-sm: 0 1px 0 oklch(1 0 0 / 0.08) inset, 0 6px 20px -8px oklch(0 0 0 / 0.4);
+  --shadow-glow: 0 1px 0 oklch(1 0 0 / 0.08) inset, 0 8px 24px -16px oklch(0 0 0 / 0.45);
+  --shadow-glow-sm: 0 1px 0 oklch(1 0 0 / 0.06) inset, 0 3px 12px -8px oklch(0 0 0 / 0.35);
   --shadow-inset: inset 0 1px 0 oklch(1 0 0 / 0.1), inset 0 -1px 0 oklch(0 0 0 / 0.25);
 }
 
@@ -132,7 +132,7 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
     touch-action: manipulation;
-    letter-spacing: -0.005em;
+    letter-spacing: 0;
   }
 
   h1, h2, h3, h4, .font-display {
@@ -160,10 +160,10 @@
 }
 
 @supports (backdrop-filter: blur(1px)) {
-  @media (min-width: 1024px) and (hover: hover) {
-    .panel, [class*="panel"] {
-      background: linear-gradient(180deg, oklch(0.3 0.05 260 / 0.55), oklch(0.2 0.04 265 / 0.5));
-      backdrop-filter: blur(14px);
+  @media (min-width: 1280px) and (hover: hover) {
+    .panel {
+      background: linear-gradient(180deg, oklch(0.3 0.05 260 / 0.72), oklch(0.2 0.04 265 / 0.7));
+      backdrop-filter: blur(8px);
     }
   }
 }
@@ -178,7 +178,7 @@
 @utility glass {
   background: linear-gradient(180deg, oklch(0.3 0.05 260 / 0.9), oklch(0.2 0.04 265 / 0.9));
   border: 1px solid oklch(1 0 0 / 0.08);
-  box-shadow: 0 6px 20px -12px oklch(0 0 0 / 0.45);
+  box-shadow: 0 3px 12px -10px oklch(0 0 0 / 0.4);
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
