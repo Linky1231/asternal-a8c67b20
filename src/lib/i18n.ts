@@ -65,6 +65,8 @@ const ES: Dict = {
   "help.title":"AYUDA RÁPIDA","help.gotIt":"ENTENDIDO",
   "common.on":"ON","common.off":"OFF","common.add":"+ AÑADIR","common.clear":"LIMPIAR","common.back":"← Atrás",
   "common.cancel":"CANCELAR","common.save":"✓ GUARDAR",
+  "goal.onReach":"AL ALCANZAR","goal.endsGame":"GANAR PARTIDA","goal.nextScene":"IR A ESCENA","goal.none":"Ninguna (solo ganar nivel)",
+  "texture.gallery":"GALERÍA","texture.draw":"✎ DIBUJAR","texture.clear":"QUITAR TEXTURA",
 };
 const EN: Dict = {
   "tab.build":"BUILD","tab.inspect":"INSPECT","tab.ui":"UI","tab.assets":"ASSETS","tab.scenes":"SCENES","tab.settings":"CONFIG",
