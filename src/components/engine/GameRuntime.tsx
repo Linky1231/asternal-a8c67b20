@@ -134,7 +134,7 @@ export function GameRuntime({
 
       // Background image
       if (work.bgImage) {
-        const img = getImage(work.bgImage);
+        const img = getRenderableImage(work.bgImage);
         if (img && img.width) {
           const mode = work.bgImageMode || "cover";
           if (mode === "stretch") {
@@ -515,8 +515,8 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number) {
   } else {
     ctx.translate(e.x, e.y);
   }
-  const animImg = currentFrameImage(e, time);
-  const drawFit = (img: HTMLImageElement) => {
+  const animImg = currentFrameRenderable(e, time);
+  const drawFit = (img: HTMLImageElement | ImageBitmap) => {
     const fit = e.textureFit ?? "stretch";
     if (fit === "stretch") { ctx.drawImage(img, 0, 0, e.w, e.h); return; }
     const sa = img.width / img.height;
@@ -528,7 +528,7 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number) {
   };
   if (animImg) { drawFit(animImg); ctx.restore(); return; }
   if (e.texture) {
-    const img = getImage(e.texture);
+    const img = getRenderableImage(e.texture);
     if (img) { drawFit(img); ctx.restore(); return; }
   }
   // fallback shape — restore translate to absolute coords for legacy drawing
