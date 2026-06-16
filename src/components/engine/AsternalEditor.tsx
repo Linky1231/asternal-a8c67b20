@@ -48,6 +48,21 @@ export function AsternalEditor() {
     }
   }, [project]);
 
+  // Listen for goal-reached events from the runtime to support scene transitions
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ nextSceneId: string | null; endsGame: boolean }>).detail;
+      if (!detail) return;
+      if (detail.nextSceneId && project?.scenes.some(s => s.id === detail.nextSceneId)) {
+        setProject(p => p ? { ...p, activeSceneId: detail.nextSceneId! } : p);
+        // brief delay so React swaps the scene prop, then restart runtime
+        setTimeout(() => window.dispatchEvent(new Event("asternal:restart")), 60);
+      }
+    };
+    window.addEventListener("asternal:goal", handler);
+    return () => window.removeEventListener("asternal:goal", handler);
+  }, [project]);
+
   const activeScene = useMemo(
     () => project?.scenes.find(s => s.id === project.activeSceneId),
     [project]
