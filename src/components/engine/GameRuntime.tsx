@@ -43,6 +43,7 @@ export function GameRuntime({
     const ctx = canvas.getContext("2d")!;
     const initial: Scene = JSON.parse(JSON.stringify(scene));
     let work: Scene = JSON.parse(JSON.stringify(initial));
+    let drawList = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
     const state: RuntimeState = newRuntimeState(initial);
     let scripts = createScriptRunner();
     const shake = { intensity: 0, time: 0 };
@@ -53,6 +54,7 @@ export function GameRuntime({
       },
       restart: () => {
         work = JSON.parse(JSON.stringify(initial));
+        drawList = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
         Object.assign(state, newRuntimeState(initial));
         scripts = createScriptRunner();
       },
@@ -127,8 +129,8 @@ export function GameRuntime({
 
 
     const draw = () => {
-      const W = canvas.clientWidth;
-      const H = canvas.clientHeight;
+      const W = cssW || canvas.clientWidth;
+      const H = cssH || canvas.clientHeight;
       ctx.fillStyle = work.bg || "#0b1e3f";
       ctx.fillRect(0, 0, W, H);
 
@@ -168,12 +170,10 @@ export function GameRuntime({
       ctx.strokeStyle = "rgba(56,189,248,0.10)";
       ctx.lineWidth = 1;
       const off = -state.cameraX * 0.4;
-      for (let x = (off % 40); x < W; x += 40) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-      }
-      for (let y = 0; y < H; y += 40) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-      }
+      ctx.beginPath();
+      for (let x = (off % 40); x < W; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+      for (let y = 0; y < H; y += 40) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+      ctx.stroke();
 
       // Fixed-size camera: the view does NOT shrink when the map grows.
       const VIEW_H = 700;
@@ -200,8 +200,7 @@ export function GameRuntime({
       ctx.translate(-camX, -camY);
 
       const tSec = performance.now() / 1000;
-      const sorted = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
-      for (const e of sorted) {
+      for (const e of drawList) {
         if (e.visible === false) continue;
         const a = e.opacity ?? 1;
         // invuln blink
@@ -253,7 +252,7 @@ export function GameRuntime({
       }
 
       // UI overlay (screen-space)
-      const W2 = canvas.clientWidth, H2 = canvas.clientHeight;
+      const W2 = W, H2 = H;
       const tick = performance.now() / 16;
       const uiState = { score: state.score, lives: state.lives, time: state.time, timeLimit: work.timeLimit, startLives: work.startLives };
       for (const el of (work.ui ?? [])) {
