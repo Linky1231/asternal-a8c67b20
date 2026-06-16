@@ -200,6 +200,7 @@ export function GameRuntime({
       ctx.translate(-camX, -camY);
 
       const tSec = performance.now() / 1000;
+      const visualEffects = W >= 700;
       for (const e of drawList) {
         if (e.visible === false) continue;
         const a = e.opacity ?? 1;
@@ -207,7 +208,7 @@ export function GameRuntime({
         if (e.controllable && state.invulnT > 0 && Math.floor(state.invulnT * 16) % 2 === 0) {
           ctx.globalAlpha = 0.4;
         } else if (a !== 1) ctx.globalAlpha = a;
-        drawEntity(ctx, e, tSec);
+        drawEntity(ctx, e, tSec, visualEffects);
         ctx.globalAlpha = 1;
       }
 
@@ -505,7 +506,7 @@ function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => v
   );
 }
 
-function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number) {
+function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number, visualEffects = true) {
   ctx.save();
   const flip = (e.facing === -1) !== !!e.flipX;
   if (flip) {
@@ -533,8 +534,10 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number) {
   // fallback shape — restore translate to absolute coords for legacy drawing
   ctx.restore();
   ctx.save();
-  ctx.shadowColor = e.color;
-  ctx.shadowBlur = e.kind === "coin" ? 18 : e.kind === "goal" ? 24 : 8;
+  if (visualEffects) {
+    ctx.shadowColor = e.color;
+    ctx.shadowBlur = e.kind === "coin" ? 10 : e.kind === "goal" ? 12 : 4;
+  }
   ctx.fillStyle = e.color;
   if (e.kind === "coin") {
     ctx.beginPath();
