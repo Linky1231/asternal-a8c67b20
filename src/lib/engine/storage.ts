@@ -14,6 +14,7 @@ export function loadProject(): Project {
     if (!p.assets.sprites) p.assets.sprites = [];
     p.settings = { ...DEFAULT_SETTINGS, ...(p.settings ?? {}) };
     if (!p.settings.perfOptimized) p.settings = { ...p.settings, fpsCap: 60, perfOptimized: true };
+    if (!p.settings.fpsDefault60Applied) p.settings = { ...p.settings, fpsCap: 60, fpsDefault60Applied: true };
     return p;
   } catch {
     return newProject();
