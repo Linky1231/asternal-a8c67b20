@@ -278,12 +278,15 @@ function InspectorPanel({
   entityId,
   onChangeScene,
   onSelect,
+  project,
 }: {
   scene: import("@/lib/engine/core").Scene;
   entityId: string | null;
   onChangeScene: (s: import("@/lib/engine/core").Scene) => void;
   onSelect: (id: string | null) => void;
+  project?: Project;
 }) {
+  const t = useT();
   const ent = scene.entities.find(e => e.id === entityId);
 
   if (!ent) {
