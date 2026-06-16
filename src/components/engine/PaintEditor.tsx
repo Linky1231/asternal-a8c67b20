@@ -71,7 +71,7 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     const cell = 16;
     for (let y = 0; y < W; y += cell) {
       for (let x = 0; x < W; x += cell) {
-        ctx.fillStyle = ((x / cell + y / cell) & 1) ? "#f1f5f9" : "#e2e8f0";
+        ctx.fillStyle = ((x / cell + y / cell) & 1) ? "#d1d5db" : "#9ca3af";
         ctx.fillRect(x, y, cell, cell);
       }
     }
@@ -372,7 +372,7 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
           <div
             className="w-8 h-8 rounded border border-border shrink-0"
             style={{
-              backgroundColor: "#f1f5f9",
+              backgroundColor: "#d1d5db",
               backgroundImage: thumb ? `url(${thumb})` : undefined,
               backgroundSize: "contain",
               backgroundRepeat: "no-repeat",
