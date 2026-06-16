@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import type { SpriteAsset } from "@/lib/engine/core";
 import { uid } from "@/lib/engine/core";
 
-type Tool = "brush" | "eraser" | "fill" | "line" | "rect" | "circle" | "picker";
+type Tool = "brush" | "eraser" | "fill" | "line" | "rect" | "circle" | "picker" | "text";
 
 interface Props {
   onSave: (sprite: SpriteAsset) => void;
   onClose: () => void;
-  size?: number; // canvas resolution (square)
+  size?: number;
 }
 
 const PALETTE = [
@@ -17,27 +17,34 @@ const PALETTE = [
   "#ec4899", "#7c2d12", "#fde68a", "#0ea5e9",
 ];
 
-// Free-form (non-pixel) drawing canvas. Persistent buffer for 60fps perf.
+const FONTS = ["Rajdhani", "Orbitron", "JetBrains Mono", "Georgia", "Arial"];
+
 export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#38bdf8");
   const [width, setWidth] = useState(6);
   const [name, setName] = useState("drawing");
+  const [stabilize, setStabilize] = useState(true);
+  const [previewVersion, setPreviewVersion] = useState(0);
 
-  // Persistent drawing buffer
+  // text overlay state
+  const [textInput, setTextInput] = useState<{
+    open: boolean; x: number; y: number; value: string; fontSize: number; font: string;
+  } | null>(null);
+
   const bufferRef = useRef<HTMLCanvasElement | null>(null);
-  // Visible canvas (shows buffer + live preview)
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const previewRef = useRef<HTMLCanvasElement>(null);
 
-  // Undo history (PNG snapshots)
   const undoStack = useRef<string[]>([]);
   const redoStack = useRef<string[]>([]);
+  const activePointerId = useRef<number | null>(null);
+  const activePointers = useRef<Set<number>>(new Set());
 
-  // Initialize buffer
   useEffect(() => {
     const buf = document.createElement("canvas");
     buf.width = size; buf.height = size;
+    const ctx = buf.getContext("2d")!;
+    // start with transparent (kept) — page bg shows the light checker
     bufferRef.current = buf;
     blit();
     pushSnapshot();
@@ -49,9 +56,9 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     undoStack.current.push(buf.toDataURL("image/png"));
     if (undoStack.current.length > 32) undoStack.current.shift();
     redoStack.current = [];
+    setPreviewVersion(v => v + 1);
   };
 
-  // Repaint visible canvas from buffer + optional preview shape
   const blit = (preview?: (ctx: CanvasRenderingContext2D) => void) => {
     const c = canvasRef.current; const buf = bufferRef.current;
     if (!c || !buf) return;
@@ -60,11 +67,11 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (c.width !== W * dpr) { c.width = W * dpr; c.height = W * dpr; }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    // checker bg
+    // Light checker background
     const cell = 16;
     for (let y = 0; y < W; y += cell) {
       for (let x = 0; x < W; x += cell) {
-        ctx.fillStyle = ((x / cell + y / cell) & 1) ? "#0f172a" : "#1e293b";
+        ctx.fillStyle = ((x / cell + y / cell) & 1) ? "#f1f5f9" : "#e2e8f0";
         ctx.fillRect(x, y, cell, cell);
       }
     }
@@ -75,35 +82,26 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
       preview(ctx);
       ctx.restore();
     }
-    // grid hint
-    ctx.strokeStyle = "rgba(125,211,252,0.08)";
+    ctx.strokeStyle = "rgba(100,116,139,0.3)";
     ctx.lineWidth = 1;
     ctx.strokeRect(0.5, 0.5, W - 1, W - 1);
-    // preview thumb
-    const pv = previewRef.current;
-    if (pv) {
-      pv.width = 32; pv.height = 32;
-      const pctx = pv.getContext("2d")!;
-      pctx.clearRect(0, 0, 32, 32);
-      pctx.drawImage(buf, 0, 0, 32, 32);
-    }
   };
 
-  // Map pointer to buffer-space coords
   const getPos = (e: React.PointerEvent) => {
     const c = canvasRef.current!;
     const r = c.getBoundingClientRect();
-    const x = ((e.clientX - r.left) / r.width) * size;
-    const y = ((e.clientY - r.top) / r.height) * size;
-    return { x, y };
+    return {
+      x: ((e.clientX - r.left) / r.width) * size,
+      y: ((e.clientY - r.top) / r.height) * size,
+    };
   };
 
   const drag = useRef<{
     active: boolean; tool: Tool;
     last: { x: number; y: number };
     start: { x: number; y: number };
-    snapshot: ImageData | null;
-  }>({ active: false, tool: "brush", last: { x: 0, y: 0 }, start: { x: 0, y: 0 }, snapshot: null });
+    smooth: { x: number; y: number };
+  }>({ active: false, tool: "brush", last: { x: 0, y: 0 }, start: { x: 0, y: 0 }, smooth: { x: 0, y: 0 } });
 
   const bctx = () => bufferRef.current!.getContext("2d")!;
 
@@ -131,7 +129,6 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     if (startX < 0 || startY < 0 || startX >= size || startY >= size) return;
     const i0 = idx(startX, startY);
     const tr = data[i0], tg = data[i0 + 1], tb = data[i0 + 2], ta = data[i0 + 3];
-    // parse fill color
     const fr = parseInt(hex.slice(1, 3), 16);
     const fg = parseInt(hex.slice(3, 5), 16);
     const fb = parseInt(hex.slice(5, 7), 16);
@@ -191,12 +188,41 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     setColor(hex);
   };
 
+  const cancelStroke = () => {
+    if (!drag.current.active) return;
+    drag.current.active = false;
+    // revert last snapshot (undo the in-progress stroke)
+    const buf = bufferRef.current; if (!buf) return;
+    const prev = undoStack.current[undoStack.current.length - 1];
+    if (!prev) return;
+    const img = new Image();
+    img.onload = () => {
+      const c = bctx();
+      c.clearRect(0, 0, size, size);
+      c.drawImage(img, 0, 0);
+      blit();
+    };
+    img.src = prev;
+  };
+
   const onDown = (e: React.PointerEvent) => {
+    activePointers.current.add(e.pointerId);
+    // Multi-touch: cancel in-progress stroke and ignore extra fingers
+    if (activePointers.current.size > 1) {
+      cancelStroke();
+      activePointerId.current = null;
+      return;
+    }
+    activePointerId.current = e.pointerId;
     (e.target as Element).setPointerCapture(e.pointerId);
     const p = getPos(e);
     if (tool === "picker") { pickColorAt(p.x, p.y); return; }
+    if (tool === "text") {
+      setTextInput({ open: true, x: p.x, y: p.y, value: "", fontSize: Math.max(16, width * 4), font: "Rajdhani" });
+      return;
+    }
     pushSnapshot();
-    drag.current = { active: true, tool, last: p, start: p, snapshot: null };
+    drag.current = { active: true, tool, last: p, start: p, smooth: p };
     if (tool === "brush" || tool === "eraser") {
       strokeSegment(p.x, p.y, p.x + 0.01, p.y + 0.01, tool === "eraser");
       blit();
@@ -208,10 +234,17 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
 
   const onMove = (e: React.PointerEvent) => {
     if (!drag.current.active) return;
+    if (activePointerId.current !== e.pointerId) return;
+    if (activePointers.current.size > 1) { cancelStroke(); return; }
     const p = getPos(e);
     if (drag.current.tool === "brush" || drag.current.tool === "eraser") {
-      strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, drag.current.tool === "eraser");
-      drag.current.last = p;
+      // Stabilization: low-pass filter the pointer
+      const alpha = stabilize ? 0.35 : 1;
+      const sx = drag.current.smooth.x + (p.x - drag.current.smooth.x) * alpha;
+      const sy = drag.current.smooth.y + (p.y - drag.current.smooth.y) * alpha;
+      drag.current.smooth = { x: sx, y: sy };
+      strokeSegment(drag.current.last.x, drag.current.last.y, sx, sy, drag.current.tool === "eraser");
+      drag.current.last = { x: sx, y: sy };
       blit();
     } else if (drag.current.tool === "line" || drag.current.tool === "rect" || drag.current.tool === "circle") {
       const t = drag.current.tool;
@@ -220,14 +253,34 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
   };
 
   const onUp = (e: React.PointerEvent) => {
+    activePointers.current.delete(e.pointerId);
     if (!drag.current.active) return;
+    if (activePointerId.current !== e.pointerId) return;
     const p = getPos(e);
     const t = drag.current.tool;
     if (t === "line" || t === "rect" || t === "circle") {
       commitShape(t, drag.current.start.x, drag.current.start.y, p.x, p.y);
     }
     drag.current.active = false;
+    activePointerId.current = null;
     blit();
+    setPreviewVersion(v => v + 1);
+  };
+
+  const commitText = () => {
+    if (!textInput || !textInput.value.trim()) { setTextInput(null); return; }
+    pushSnapshot();
+    const c = bctx();
+    c.save();
+    c.fillStyle = color;
+    c.font = `${textInput.fontSize}px "${textInput.font}", sans-serif`;
+    c.textBaseline = "top";
+    const lines = textInput.value.split("\n");
+    lines.forEach((ln, i) => c.fillText(ln, textInput.x, textInput.y + i * textInput.fontSize * 1.1));
+    c.restore();
+    setTextInput(null);
+    blit();
+    setPreviewVersion(v => v + 1);
   };
 
   const undo = () => {
@@ -236,12 +289,7 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     if (!prev) return;
     redoStack.current.push(buf.toDataURL("image/png"));
     const img = new Image();
-    img.onload = () => {
-      const c = bctx();
-      c.clearRect(0, 0, size, size);
-      c.drawImage(img, 0, 0);
-      blit();
-    };
+    img.onload = () => { const c = bctx(); c.clearRect(0, 0, size, size); c.drawImage(img, 0, 0); blit(); setPreviewVersion(v => v + 1); };
     img.src = prev;
   };
   const redo = () => {
@@ -250,12 +298,7 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     if (!next) return;
     undoStack.current.push(buf.toDataURL("image/png"));
     const img = new Image();
-    img.onload = () => {
-      const c = bctx();
-      c.clearRect(0, 0, size, size);
-      c.drawImage(img, 0, 0);
-      blit();
-    };
+    img.onload = () => { const c = bctx(); c.clearRect(0, 0, size, size); c.drawImage(img, 0, 0); blit(); setPreviewVersion(v => v + 1); };
     img.src = next;
   };
   const clearAll = () => {
@@ -264,6 +307,7 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     const c = bctx();
     c.clearRect(0, 0, size, size);
     blit();
+    setPreviewVersion(v => v + 1);
   };
 
   const save = () => {
@@ -281,50 +325,111 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     onSave(asset);
   };
 
-  const TOOLS: { id: Tool; label: string }[] = [
-    { id: "brush", label: "✎" },
-    { id: "eraser", label: "⌫" },
-    { id: "fill", label: "▣" },
-    { id: "line", label: "／" },
-    { id: "rect", label: "▭" },
-    { id: "circle", label: "◯" },
-    { id: "picker", label: "◎" },
+  // Stable thumbnail data url
+  const thumb = (() => {
+    const buf = bufferRef.current;
+    if (!buf) return "";
+    try { return buf.toDataURL("image/png"); } catch { return ""; }
+  })();
+  // touch previewVersion so re-renders recompute thumb
+  void previewVersion;
+
+  const TOOLS: { id: Tool; label: string; title: string }[] = [
+    { id: "brush", label: "✎", title: "Brush" },
+    { id: "eraser", label: "⌫", title: "Eraser" },
+    { id: "fill", label: "▣", title: "Fill" },
+    { id: "line", label: "／", title: "Line" },
+    { id: "rect", label: "▭", title: "Rectangle" },
+    { id: "circle", label: "◯", title: "Circle" },
+    { id: "picker", label: "◎", title: "Color picker" },
+    { id: "text", label: "T", title: "Text" },
   ];
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col">
-      <div className="flex items-center justify-between px-3 py-2 panel border-b">
-        <div className="flex items-center gap-2 min-w-0">
-          <canvas ref={previewRef} className="w-8 h-8 rounded border border-border bg-card" />
+      <div className="flex items-center justify-between px-3 py-2 panel border-b gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div
+            className="w-8 h-8 rounded border border-border shrink-0"
+            style={{
+              backgroundColor: "#f1f5f9",
+              backgroundImage: thumb ? `url(${thumb})` : undefined,
+              backgroundSize: "contain",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center",
+            }}
+            aria-label="preview"
+          />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="bg-input/60 border border-border rounded-md px-2 py-1 text-sm font-mono w-32"
+            className="bg-input/60 border border-border rounded-md px-2 py-1 text-sm font-mono min-w-0 flex-1 max-w-[140px]"
           />
-          <span className="text-[10px] font-mono text-muted-foreground">{size}px</span>
+          <span className="text-[10px] font-mono text-muted-foreground shrink-0">{size}px</span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button onClick={onClose} className="text-xs font-display px-3 py-1.5 rounded-md border border-border text-muted-foreground">CANCEL</button>
           <button onClick={save} className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-primary to-accent text-primary-foreground glow-border">✓ SAVE</button>
         </div>
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col overflow-auto p-3 gap-3">
-        <div className="mx-auto w-full max-w-[480px] aspect-square">
+        <div className="mx-auto w-full max-w-[480px] aspect-square relative">
           <canvas
             ref={canvasRef}
             className="w-full h-full rounded-md border border-border touch-none bg-card"
+            style={{ touchAction: "none" }}
             onPointerDown={onDown}
             onPointerMove={onMove}
             onPointerUp={onUp}
             onPointerCancel={onUp}
           />
+          {textInput?.open && (
+            <div
+              className="absolute panel border border-primary/60 rounded-md p-2 flex flex-col gap-2 z-10"
+              style={{
+                left: `${(textInput.x / size) * 100}%`,
+                top: `${(textInput.y / size) * 100}%`,
+                maxWidth: "80%",
+              }}
+            >
+              <textarea
+                autoFocus
+                value={textInput.value}
+                onChange={(e) => setTextInput({ ...textInput, value: e.target.value })}
+                placeholder="Type text…"
+                className="bg-input/80 border border-border rounded px-2 py-1 text-sm font-mono w-48 min-h-[60px]"
+              />
+              <div className="flex items-center gap-2">
+                <select
+                  value={textInput.font}
+                  onChange={(e) => setTextInput({ ...textInput, font: e.target.value })}
+                  className="bg-input/80 border border-border rounded text-xs px-1 py-0.5 flex-1"
+                >
+                  {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                <input
+                  type="number"
+                  min={8}
+                  max={200}
+                  value={textInput.fontSize}
+                  onChange={(e) => setTextInput({ ...textInput, fontSize: Number(e.target.value) })}
+                  className="bg-input/80 border border-border rounded text-xs px-1 py-0.5 w-14"
+                />
+              </div>
+              <div className="flex gap-1.5">
+                <button onClick={() => setTextInput(null)} className="text-[10px] font-display px-2 py-1 rounded border border-border text-muted-foreground flex-1">CANCEL</button>
+                <button onClick={commitText} className="text-[10px] font-display px-2 py-1 rounded bg-primary/30 border border-primary text-primary-glow flex-1">ADD</button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-1.5 justify-center flex-wrap">
           {TOOLS.map(t => (
             <button
               key={t.id}
+              title={t.title}
               onClick={() => setTool(t.id)}
               className={`w-11 h-11 rounded-md border font-display text-lg ${
                 tool === t.id
@@ -333,9 +438,9 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
               }`}
             >{t.label}</button>
           ))}
-          <button onClick={undo} className="w-11 h-11 rounded-md border border-border text-muted-foreground font-display">↶</button>
-          <button onClick={redo} className="w-11 h-11 rounded-md border border-border text-muted-foreground font-display">↷</button>
-          <button onClick={clearAll} className="w-11 h-11 rounded-md border border-destructive/50 text-destructive font-display">✕</button>
+          <button onClick={undo} title="Undo" className="w-11 h-11 rounded-md border border-border text-muted-foreground font-display">↶</button>
+          <button onClick={redo} title="Redo" className="w-11 h-11 rounded-md border border-border text-muted-foreground font-display">↷</button>
+          <button onClick={clearAll} title="Clear" className="w-11 h-11 rounded-md border border-destructive/50 text-destructive font-display">✕</button>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap justify-center">
@@ -356,6 +461,16 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
             className="flex-1 max-w-[260px] accent-[oklch(0.68_0.21_250)]" />
           <span className="font-mono text-primary-glow w-6 text-right">{width}</span>
         </div>
+
+        <label className="flex items-center gap-2 justify-center text-xs font-display tracking-widest text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={stabilize}
+            onChange={(e) => setStabilize(e.target.checked)}
+            className="accent-[oklch(0.68_0.21_250)]"
+          />
+          STABILIZE BRUSH
+        </label>
       </div>
     </div>
   );
