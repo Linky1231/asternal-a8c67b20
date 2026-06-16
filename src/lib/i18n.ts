@@ -97,6 +97,8 @@ const EN: Dict = {
   "tool.select":"Select","tool.platform":"Block","tool.coin":"Coin","tool.enemy":"Enemy","tool.goal":"Goal","tool.player":"Player","tool.erase":"Erase",
   "help.title":"QUICK HELP","help.gotIt":"GOT IT",
   "common.on":"ON","common.off":"OFF","common.add":"+ ADD","common.clear":"CLEAR","common.back":"← Back","common.cancel":"CANCEL","common.save":"✓ SAVE",
+  "goal.onReach":"ON REACH","goal.endsGame":"WIN GAME","goal.nextScene":"GO TO SCENE","goal.none":"None (just clear level)",
+  "texture.gallery":"GALLERY","texture.draw":"✎ DRAW","texture.clear":"CLEAR TEXTURE",
 };
 // Build PT/FR/DE by overriding selected keys; rest falls back to EN.
 const PT: Dict = { ...EN,
