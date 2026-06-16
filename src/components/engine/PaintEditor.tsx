@@ -67,14 +67,9 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (c.width !== W * dpr) { c.width = W * dpr; c.height = W * dpr; }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    // Light checker background
-    const cell = 16;
-    for (let y = 0; y < W; y += cell) {
-      for (let x = 0; x < W; x += cell) {
-        ctx.fillStyle = ((x / cell + y / cell) & 1) ? "#d1d5db" : "#9ca3af";
-        ctx.fillRect(x, y, cell, cell);
-      }
-    }
+    // Solid gray background
+    ctx.fillStyle = "#9ca3af";
+    ctx.fillRect(0, 0, W, W);
     ctx.drawImage(buf, 0, 0, W, W);
     if (preview) {
       ctx.save();
