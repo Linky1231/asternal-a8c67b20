@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Entity, RuntimeInput, RuntimeState, Scene, UIElement } from "@/lib/engine/core";
 import { stepScene, newRuntimeState, resolveUIRect } from "@/lib/engine/core";
-import { getImage } from "@/lib/engine/images";
-import { currentFrameImage } from "@/lib/engine/animations";
+import { getRenderableImage } from "@/lib/engine/images";
+import { currentFrameRenderable } from "@/lib/engine/animations";
 import { createScriptRunner } from "@/lib/engine/scripts";
 import { startMusic, stopMusic, setVolume, setMuted } from "@/lib/engine/sfx";
 import { drawUIElement } from "./UIEditor";
@@ -71,10 +71,16 @@ export function GameRuntime({
     let frames = 0;
     let fpsT = last;
 
+    let cssW = 0;
+    let cssH = 0;
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = canvas.clientWidth * dpr;
-      canvas.height = canvas.clientHeight * dpr;
+      const dpr = Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.25 : 1.5);
+      cssW = Math.max(1, canvas.clientWidth);
+      cssH = Math.max(1, canvas.clientHeight);
+      const nextW = Math.round(cssW * dpr);
+      const nextH = Math.round(cssH * dpr);
+      if (canvas.width !== nextW) canvas.width = nextW;
+      if (canvas.height !== nextH) canvas.height = nextH;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
