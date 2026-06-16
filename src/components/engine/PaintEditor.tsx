@@ -275,7 +275,9 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     if (activePointerId.current !== e.pointerId) return;
     const p = getPos(e);
     const t = drag.current.tool;
-    if (t === "line" || t === "rect" || t === "circle") {
+    if (t === "brush" || t === "eraser") {
+      strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, t === "eraser");
+    } else if (t === "line" || t === "rect" || t === "circle") {
       commitShape(t, drag.current.start.x, drag.current.start.y, p.x, p.y);
     }
     drag.current.active = false;
@@ -283,6 +285,7 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     blit();
     setPreviewVersion(v => v + 1);
   };
+
 
   const commitText = () => {
     if (!textInput || !textInput.value.trim()) { setTextInput(null); return; }
