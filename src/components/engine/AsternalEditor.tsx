@@ -135,7 +135,9 @@ export function AsternalEditor() {
           <button
             onClick={() => {
               if (project.settings.fpsCap !== 60) {
-                setProject({ ...project, settings: { ...project.settings, fpsCap: 60 } });
+                const next = { ...project, settings: { ...project.settings, fpsCap: 60 as const } };
+                saveProject(next);
+                setProject(next);
               }
               setPlaying(true);
             }}
