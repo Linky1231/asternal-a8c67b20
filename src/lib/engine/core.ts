@@ -163,6 +163,7 @@ export interface ProjectSettings {
   showHitboxes?: boolean;
   language?: "es" | "en" | "pt" | "fr" | "de";
   perfOptimized?: boolean;
+  fpsDefault60Applied?: boolean;
 }
 
 export interface Project {
