@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Scene, UIElement, UIElementKind, UIAnchor, UIAction, UIBind } from "@/lib/engine/core";
 import { newUIElement, resolveUIRect, uid } from "@/lib/engine/core";
-import { getImage } from "@/lib/engine/images";
+import { getRenderableImage } from "@/lib/engine/images";
 import { fileToDataURL } from "@/lib/engine/images";
 
 interface Props {
@@ -32,6 +32,8 @@ export function UIEditor({ scene, onChange }: Props) {
   const [size, setSize] = useState({ w: 360, h: 640 });
   const dragRef = useRef<{ id: string; mode: "move" | "resize"; sx: number; sy: number; ox: number; oy: number; ow: number; oh: number } | null>(null);
   const tickRef = useRef(0);
+  const moveFrame = useRef(0);
+  const pendingDragUpdate = useRef<{ id: string; patch: Partial<UIElement> } | null>(null);
 
   const ui = scene.ui ?? [];
   const sel = ui.find(e => e.id === selId) ?? null;
@@ -66,10 +68,13 @@ export function UIEditor({ scene, onChange }: Props) {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
     let raf = 0;
-    const render = () => {
+    let lastDraw = 0;
+    const render = (now: number) => {
       raf = requestAnimationFrame(render);
+      if (now - lastDraw < 30) return;
+      lastDraw = now;
       tickRef.current++;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       // Canvas internal coords = virtual game size; CSS scales it to fit.
       if (canvas.width !== virt.w * dpr || canvas.height !== virt.h * dpr) {
         canvas.width = virt.w * dpr; canvas.height = virt.h * dpr;
@@ -80,7 +85,7 @@ export function UIEditor({ scene, onChange }: Props) {
       ctx.fillStyle = scene.bg || "#0b1e3f";
       ctx.fillRect(0, 0, W, H);
       if (scene.bgImage) {
-        const img = getImage(scene.bgImage);
+          const img = getRenderableImage(scene.bgImage);
         if (img?.width) {
           const sa = img.width / img.height, da = W / H;
           const cover = sa > da;
@@ -134,6 +139,16 @@ export function UIEditor({ scene, onChange }: Props) {
   const updateEl = (id: string, patch: Partial<UIElement>) => {
     onChange({ ...scene, ui: ui.map(e => e.id === id ? { ...e, ...patch } : e) });
   };
+  const scheduleDragUpdate = (id: string, patch: Partial<UIElement>) => {
+    pendingDragUpdate.current = { id, patch };
+    if (moveFrame.current) return;
+    moveFrame.current = requestAnimationFrame(() => {
+      moveFrame.current = 0;
+      const next = pendingDragUpdate.current;
+      pendingDragUpdate.current = null;
+      if (next) updateEl(next.id, next.patch);
+    });
+  };
 
   const addEl = (kind: UIElementKind) => {
     const el = newUIElement(kind);
@@ -186,8 +201,8 @@ export function UIEditor({ scene, onChange }: Props) {
     const d = dragRef.current; if (!d) return;
     const { sx, sy } = toVirt(ev);
     const dx = sx - d.sx, dy = sy - d.sy;
-    if (d.mode === "move") updateEl(d.id, { x: Math.round(d.ox + dx), y: Math.round(d.oy + dy) });
-    else updateEl(d.id, { w: Math.max(16, Math.round(d.ow + dx)), h: Math.max(16, Math.round(d.oh + dy)) });
+    if (d.mode === "move") scheduleDragUpdate(d.id, { x: Math.round(d.ox + dx), y: Math.round(d.oy + dy) });
+    else scheduleDragUpdate(d.id, { w: Math.max(16, Math.round(d.ow + dx)), h: Math.max(16, Math.round(d.oh + dy)) });
   };
   const onPointerUp = () => { dragRef.current = null; };
 
@@ -412,7 +427,7 @@ export function drawUIElement(ctx: CanvasRenderingContext2D, el: UIElement, W: n
   const path = () => roundRectPath(ctx, r.x, r.y, r.w, r.h, Math.min(radius, Math.min(r.w, r.h) / 2));
 
   if (el.kind === "image" && el.image) {
-    const img = getImage(el.image);
+    const img = getRenderableImage(el.image);
     if (img) {
       ctx.save(); path(); ctx.clip();
       ctx.drawImage(img, r.x, r.y, r.w, r.h);
