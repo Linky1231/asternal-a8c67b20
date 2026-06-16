@@ -803,7 +803,7 @@ function TexturePicker({ texture, fit = "stretch", onPick, onClear, onFit }: {
               onClick={onClear}
               className="text-[10px] font-display tracking-widest px-3 py-1.5 rounded-md border border-border text-muted-foreground"
             >
-              CLEAR TEXTURE
+              {t("texture.clear")}
             </button>
           )}
         </div>
