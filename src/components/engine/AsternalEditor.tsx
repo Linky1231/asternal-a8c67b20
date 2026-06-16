@@ -292,17 +292,17 @@ function InspectorPanel({
   if (!ent) {
     return (
       <div className="h-full overflow-auto p-4 space-y-3">
-        <SectionTitle>SCENE PROPERTIES</SectionTitle>
-        <Field label="Name" value={scene.name} onChange={v => onChangeScene({ ...scene, name: v })} />
-        <Slider label="Gravity" value={scene.gravity} min={0} max={3000} step={50}
+        <SectionTitle>{t("scene.props")}</SectionTitle>
+        <Field label={t("settings.gameName")} value={scene.name} onChange={v => onChangeScene({ ...scene, name: v })} />
+        <Slider label={t("scene.gravity")} value={scene.gravity} min={0} max={3000} step={50}
           onChange={v => onChangeScene({ ...scene, gravity: v })} />
-        <Slider label="Width" value={scene.width} min={400} max={8000} step={100}
+        <Slider label={t("scene.width")} value={scene.width} min={400} max={8000} step={100}
           onChange={v => onChangeScene({ ...scene, width: v })} />
-        <Slider label="Height" value={scene.height} min={400} max={4000} step={100}
+        <Slider label={t("scene.height")} value={scene.height} min={400} max={4000} step={100}
           onChange={v => onChangeScene({ ...scene, height: v })} />
 
         <div>
-          <label className="text-[10px] font-display tracking-widest text-muted-foreground">BACKGROUND COLOR</label>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">{t("scene.bgColor")}</label>
           <input
             type="color"
             value={scene.bg}
@@ -316,7 +316,7 @@ function InspectorPanel({
 
 
         <div>
-          <label className="text-[10px] font-display tracking-widest text-muted-foreground">SCALE SCENE + CONTENTS</label>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">{t("scene.scaleAll")}</label>
           <div className="grid grid-cols-4 gap-1.5 mt-1">
             {[0.5, 0.75, 1.5, 2].map(k => (
               <button key={k}
@@ -327,14 +327,14 @@ function InspectorPanel({
           </div>
         </div>
 
-        <Slider label="Time Limit (s · 0=off)" value={scene.timeLimit ?? 0} min={0} max={300} step={5}
+        <Slider label={t("scene.timeLimit")} value={scene.timeLimit ?? 0} min={0} max={300} step={5}
           onChange={v => onChangeScene({ ...scene, timeLimit: v })} />
-        <Slider label="Start Lives" value={scene.startLives ?? 1} min={1} max={9} step={1}
+        <Slider label={t("scene.startLives")} value={scene.startLives ?? 1} min={1} max={9} step={1}
           onChange={v => onChangeScene({ ...scene, startLives: v })} />
 
         <div className="panel rounded-md p-2 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-display tracking-widest text-muted-foreground">PARALLAX LAYERS · {scene.parallax?.length ?? 0}</span>
+            <span className="text-[10px] font-display tracking-widest text-muted-foreground">{t("scene.parallax")} · {scene.parallax?.length ?? 0}</span>
             <div className="flex gap-1">
               <button
                 onClick={() => onChangeScene({
@@ -342,11 +342,11 @@ function InspectorPanel({
                   parallax: [...(scene.parallax ?? []), { color: "#1e293b", speed: 0.3, y: scene.height * 0.6, height: 80 }],
                 })}
                 className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
-              >+ ADD</button>
+              >{t("common.add")}</button>
               <button
                 onClick={() => onChangeScene({ ...scene, parallax: [] })}
                 className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
-              >CLEAR</button>
+              >{t("common.clear")}</button>
             </div>
           </div>
           {(scene.parallax ?? []).map((pl, i) => (
@@ -368,7 +368,7 @@ function InspectorPanel({
 
 
         <div className="pt-4">
-          <SectionTitle>ENTITIES · {scene.entities.length}</SectionTitle>
+          <SectionTitle>{t("scene.entities")} · {scene.entities.length}</SectionTitle>
           <div className="space-y-1 mt-2">
             {scene.entities.map(e => (
               <button key={e.id}
@@ -399,7 +399,7 @@ function InspectorPanel({
     <div className="h-full overflow-auto p-4 space-y-3">
       <div className="flex items-center justify-between">
         <SectionTitle>{ent.kind.toUpperCase()}</SectionTitle>
-        <button onClick={() => onSelect(null)} className="text-xs text-muted-foreground">← Back</button>
+        <button onClick={() => onSelect(null)} className="text-xs text-muted-foreground">{t("common.back")}</button>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <Slider label="X" value={ent.x} min={0} max={scene.width} step={10} onChange={v => update({ x: v })} />
@@ -408,7 +408,7 @@ function InspectorPanel({
         <Slider label="Height" value={ent.h} min={8} max={400} step={4} onChange={v => update({ h: v })} />
       </div>
       <div>
-        <label className="text-[10px] font-display tracking-widest text-muted-foreground">COLOR</label>
+        <label className="text-[10px] font-display tracking-widest text-muted-foreground">{t("inspector.color")}</label>
         <input
           type="color"
           value={ent.color}
@@ -430,22 +430,22 @@ function InspectorPanel({
       <HitboxEditor entity={ent} onUpdate={update} />
 
       <div className="grid grid-cols-2 gap-2">
-        <Slider label="Depth (Z)" value={ent.z ?? 0} min={-20} max={20} step={1}
+        <Slider label={t("inspector.depth")} value={ent.z ?? 0} min={-20} max={20} step={1}
           onChange={v => update({ z: v })} />
-        <Toggle label="Flip X" on={!!ent.flipX} onChange={v => update({ flipX: v })} />
+        <Toggle label={t("inspector.flipX")} on={!!ent.flipX} onChange={v => update({ flipX: v })} />
       </div>
 
       <div className="grid grid-cols-2 gap-2 pt-1">
-        <Toggle label="Solid" on={ent.solid} onChange={v => update({ solid: v })} />
-        <Toggle label="Gravity" on={ent.gravity} onChange={v => update({ gravity: v })} />
-        <Toggle label="Hazard" on={ent.hazard} onChange={v => update({ hazard: v })} />
-        <Toggle label="Collectible" on={ent.collectible} onChange={v => update({ collectible: v })} />
-        <Toggle label="Slippery" on={!!ent.slippery} onChange={v => update({ slippery: v })} />
-        <Toggle label="Checkpoint" on={!!ent.checkpoint} onChange={v => update({ checkpoint: v })} />
+        <Toggle label={t("inspector.solid")} on={ent.solid} onChange={v => update({ solid: v })} />
+        <Toggle label={t("inspector.gravity")} on={ent.gravity} onChange={v => update({ gravity: v })} />
+        <Toggle label={t("inspector.hazard")} on={ent.hazard} onChange={v => update({ hazard: v })} />
+        <Toggle label={t("inspector.collectible")} on={ent.collectible} onChange={v => update({ collectible: v })} />
+        <Toggle label={t("inspector.slippery")} on={!!ent.slippery} onChange={v => update({ slippery: v })} />
+        <Toggle label={t("inspector.checkpoint")} on={!!ent.checkpoint} onChange={v => update({ checkpoint: v })} />
       </div>
       <div className="grid grid-cols-2 gap-2 pt-1">
-        <Toggle label="Visible" on={ent.visible ?? true} onChange={v => update({ visible: v })} />
-        <Slider label="Opacity" value={Math.round((ent.opacity ?? 1) * 100)} min={0} max={100} step={5}
+        <Toggle label={t("inspector.visible")} on={ent.visible ?? true} onChange={v => update({ visible: v })} />
+        <Slider label={t("inspector.opacity")} value={Math.round((ent.opacity ?? 1) * 100)} min={0} max={100} step={5}
           onChange={v => update({ opacity: v / 100 })} />
       </div>
       <BehaviorsPanel ent={ent} onUpdate={update} />
@@ -478,7 +478,7 @@ function InspectorPanel({
       <button
         onClick={() => update({ x: scene.width / 2 - ent.w / 2, y: scene.height / 2 - ent.h / 2 })}
         className="w-full py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
-      >⊕ CENTER IN SCENE</button>
+      >{t("inspector.center")}</button>
       <div className="grid grid-cols-3 gap-2 pt-1">
         <button
           onClick={() => {
@@ -489,7 +489,7 @@ function InspectorPanel({
             onChangeScene({ ...scene, entities: next });
           }}
           className="py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
-        >↓ BACK</button>
+        >{t("inspector.back")}</button>
         <button
           onClick={() => {
             const idx = scene.entities.findIndex(e => e.id === ent.id);
@@ -499,7 +499,7 @@ function InspectorPanel({
             onChangeScene({ ...scene, entities: next });
           }}
           className="py-2 rounded-md border border-border text-muted-foreground font-display text-[10px] tracking-widest"
-        >↑ FRONT</button>
+        >{t("inspector.front")}</button>
         <button
           onClick={() => {
             const copy = { ...ent, id: uid(), x: ent.x + 20, y: ent.y + 20 };
@@ -507,7 +507,7 @@ function InspectorPanel({
             onSelect(copy.id);
           }}
           className="py-2 rounded-md bg-primary/15 border border-primary/40 text-primary-glow font-display text-[10px] tracking-widest"
-        >⧉ CLONE</button>
+        >{t("inspector.clone")}</button>
       </div>
 
       {ent.kind !== "player" && (
@@ -518,7 +518,7 @@ function InspectorPanel({
           }}
           className="w-full mt-2 py-2 rounded-md bg-destructive/20 border border-destructive/50 text-destructive font-display text-xs tracking-widest"
         >
-          DELETE ENTITY
+          {t("inspector.delete")}
         </button>
       )}
     </div>
