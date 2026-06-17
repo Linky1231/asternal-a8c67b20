@@ -624,6 +624,93 @@ function ElementInspector({ el, update, remove, clone }: {
   );
 }
 
+function MultiInspector({ els, applyDelta, setSize, setVisible, alignAnchor, removeAll, cloneAll }: {
+  els: UIElement[];
+  applyDelta: (dx: number, dy: number) => void;
+  setSize: (w: number | null, h: number | null) => void;
+  setVisible: (v: boolean) => void;
+  alignAnchor: (a: UIAnchor) => void;
+  removeAll: () => void;
+  cloneAll: () => void;
+}) {
+  const [dx, setDx] = useState(0);
+  const [dy, setDy] = useState(0);
+  const [bw, setBw] = useState<string>("");
+  const [bh, setBh] = useState<string>("");
+  const allVisible = els.every(e => e.visible !== false);
+  return (
+    <div className="space-y-3 pt-2">
+      <div className="rounded-lg border border-border/50 bg-background/40 p-2">
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1.5">SELECTED · {els.length}</div>
+        <div className="flex flex-wrap gap-1">
+          {els.map(e => (
+            <span key={e.id} className="px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-[10px] font-mono text-primary-glow">
+              {e.kind}·{e.name}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">MOVE BY (Δ)</div>
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-end">
+          <NumInput label="ΔX" value={dx} onChange={setDx} />
+          <NumInput label="ΔY" value={dy} onChange={setDy} />
+          <button onClick={() => { applyDelta(dx, dy); setDx(0); setDy(0); }}
+            className="h-9 px-3 rounded border border-primary/50 bg-primary/15 text-primary-glow text-[10px] font-display tracking-widest">APPLY</button>
+        </div>
+        <div className="grid grid-cols-4 gap-1 mt-1.5">
+          {([["←",-8,0],["→",8,0],["↑",0,-8],["↓",0,8]] as const).map(([s, x, y]) => (
+            <button key={s} onClick={() => applyDelta(x, y)}
+              className="py-1.5 rounded border border-border text-muted-foreground text-sm">{s}</button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">SET SIZE</div>
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-end">
+          <div>
+            <div className="text-[10px] font-display tracking-widest text-muted-foreground">W</div>
+            <input type="number" value={bw} placeholder="—" onChange={e => setBw(e.target.value)}
+              className="w-full mt-1 px-2 py-1.5 rounded bg-input/60 border border-border text-xs font-mono focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <div className="text-[10px] font-display tracking-widest text-muted-foreground">H</div>
+            <input type="number" value={bh} placeholder="—" onChange={e => setBh(e.target.value)}
+              className="w-full mt-1 px-2 py-1.5 rounded bg-input/60 border border-border text-xs font-mono focus:outline-none focus:border-primary" />
+          </div>
+          <button onClick={() => { setSize(bw ? Number(bw) : null, bh ? Number(bh) : null); setBw(""); setBh(""); }}
+            className="h-9 px-3 rounded border border-primary/50 bg-primary/15 text-primary-glow text-[10px] font-display tracking-widest">APPLY</button>
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">ANCHOR ALL TO</div>
+        <div className="grid grid-cols-9 gap-1">
+          {ANCHORS.map(a => (
+            <button key={a} onClick={() => alignAnchor(a)}
+              className="h-8 rounded text-[10px] font-mono border border-border text-muted-foreground hover:border-primary/50 hover:text-primary-glow">
+              {a}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5">
+        <button onClick={() => setVisible(!allVisible)}
+          className="py-2 rounded border border-border text-muted-foreground font-display text-[10px] tracking-wide">
+          {allVisible ? "HIDE ALL" : "SHOW ALL"}
+        </button>
+        <button onClick={cloneAll}
+          className="py-2 rounded border border-primary/50 bg-primary/10 text-primary-glow font-display text-[10px] tracking-wide">⧉ CLONE</button>
+        <button onClick={removeAll}
+          className="py-2 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-wide">✕ DELETE</button>
+      </div>
+    </div>
+  );
+}
+
 function LabeledInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
