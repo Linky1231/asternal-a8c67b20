@@ -357,51 +357,98 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col">
-      <div className="flex items-center justify-between px-3 py-2 panel border-b gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--gradient-deep)" }}>
+      {/* Top bar — Apple-style translucent */}
+      <div
+        className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 gap-2 shrink-0"
+        style={{
+          background: "linear-gradient(180deg, oklch(0.22 0.04 260 / 0.85), oklch(0.18 0.035 263 / 0.7))",
+          backdropFilter: "blur(20px) saturate(180%)",
+        }}
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div
-            className="w-8 h-8 rounded border border-border shrink-0"
+            className="w-9 h-9 rounded-lg shrink-0"
             style={{
-              backgroundColor: "#d1d5db",
+              backgroundColor: "#e5e7eb",
               backgroundImage: thumb ? `url(${thumb})` : undefined,
               backgroundSize: "contain",
               backgroundRepeat: "no-repeat",
               backgroundPosition: "center",
+              boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.08), 0 1px 3px oklch(0 0 0 / 0.3)",
             }}
             aria-label="preview"
           />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="bg-input/60 border border-border rounded-md px-2 py-1 text-sm font-mono min-w-0 flex-1 max-w-[140px]"
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-[13px] font-medium tracking-tight min-w-0 flex-1 max-w-[180px] focus:outline-none focus:border-primary/50 focus:bg-white/10 transition"
           />
-          <span className="text-[10px] font-mono text-muted-foreground shrink-0">{size}px</span>
+          <span className="text-[10px] font-mono text-muted-foreground shrink-0 tabular-nums">{size}×{size}</span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <button onClick={onClose} className="text-xs font-display px-3 py-1.5 rounded-md border border-border text-muted-foreground">CANCEL</button>
-          <button onClick={save} className="text-xs font-display px-3 py-1.5 rounded-md bg-gradient-to-r from-primary to-accent text-primary-foreground glow-border">✓ SAVE</button>
+          <button
+            onClick={onClose}
+            className="text-[12px] font-medium px-3.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={save}
+            className="text-[12px] font-semibold px-4 py-1.5 rounded-lg text-primary-foreground transition active:scale-[0.97]"
+            style={{
+              background: "linear-gradient(180deg, oklch(0.78 0.17 250), oklch(0.66 0.18 252))",
+              boxShadow: "inset 0 1px 0 oklch(1 0 0 / 0.25), 0 4px 14px -4px oklch(0.66 0.18 252 / 0.55)",
+            }}
+          >
+            Save
+          </button>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col overflow-auto p-3 gap-3">
-        <div className="mx-auto w-full max-w-[480px] aspect-square relative">
-          <canvas
-            ref={canvasRef}
-            className="w-full h-full rounded-md border border-border touch-none bg-card"
-            style={{ touchAction: "none" }}
-            onPointerDown={onDown}
-            onPointerMove={onMove}
-            onPointerUp={onUp}
-            onPointerCancel={onUp}
-          />
+      <div className="flex-1 min-h-0 flex flex-col overflow-auto px-4 py-4 gap-4">
+        {/* Canvas surface */}
+        <div className="mx-auto w-full max-w-[460px] aspect-square relative">
+          <div
+            className="absolute inset-0 rounded-2xl p-[10px]"
+            style={{
+              background: "linear-gradient(180deg, oklch(0.28 0.05 260 / 0.6), oklch(0.18 0.04 265 / 0.6))",
+              boxShadow:
+                "inset 0 1px 0 oklch(1 0 0 / 0.08), 0 20px 60px -20px oklch(0 0 0 / 0.55), 0 0 0 1px oklch(1 0 0 / 0.05)",
+            }}
+          >
+            <div
+              className="w-full h-full rounded-xl overflow-hidden"
+              style={{
+                backgroundImage:
+                  "linear-gradient(45deg, oklch(0.82 0 0) 25%, transparent 25%), linear-gradient(-45deg, oklch(0.82 0 0) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, oklch(0.82 0 0) 75%), linear-gradient(-45deg, transparent 75%, oklch(0.82 0 0) 75%)",
+                backgroundSize: "16px 16px",
+                backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0",
+                backgroundColor: "#f3f4f6",
+              }}
+            >
+              <canvas
+                ref={canvasRef}
+                className="w-full h-full touch-none block"
+                style={{ touchAction: "none", background: "transparent" }}
+                onPointerDown={onDown}
+                onPointerMove={onMove}
+                onPointerUp={onUp}
+                onPointerCancel={onUp}
+              />
+            </div>
+          </div>
           {textInput?.open && (
             <div
-              className="absolute panel border border-primary/60 rounded-md p-2 flex flex-col gap-2 z-10"
+              className="absolute rounded-xl p-2.5 flex flex-col gap-2 z-10"
               style={{
                 left: `${(textInput.x / size) * 100}%`,
                 top: `${(textInput.y / size) * 100}%`,
                 maxWidth: "80%",
+                background: "oklch(0.2 0.04 262 / 0.92)",
+                backdropFilter: "blur(20px) saturate(180%)",
+                border: "1px solid oklch(1 0 0 / 0.12)",
+                boxShadow: "0 12px 40px -10px oklch(0 0 0 / 0.6)",
               }}
             >
               <textarea
@@ -409,13 +456,13 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
                 value={textInput.value}
                 onChange={(e) => setTextInput({ ...textInput, value: e.target.value })}
                 placeholder="Type text…"
-                className="bg-input/80 border border-border rounded px-2 py-1 text-sm font-mono w-48 min-h-[60px]"
+                className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[13px] w-48 min-h-[60px] focus:outline-none focus:border-primary/50"
               />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <select
                   value={textInput.font}
                   onChange={(e) => setTextInput({ ...textInput, font: e.target.value })}
-                  className="bg-input/80 border border-border rounded text-xs px-1 py-0.5 flex-1"
+                  className="bg-white/5 border border-white/10 rounded-lg text-[11px] px-2 py-1 flex-1"
                 >
                   {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
@@ -425,63 +472,132 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
                   max={200}
                   value={textInput.fontSize}
                   onChange={(e) => setTextInput({ ...textInput, fontSize: Number(e.target.value) })}
-                  className="bg-input/80 border border-border rounded text-xs px-1 py-0.5 w-14"
+                  className="bg-white/5 border border-white/10 rounded-lg text-[11px] px-2 py-1 w-14 tabular-nums"
                 />
               </div>
               <div className="flex gap-1.5">
-                <button onClick={() => setTextInput(null)} className="text-[10px] font-display px-2 py-1 rounded border border-border text-muted-foreground flex-1">CANCEL</button>
-                <button onClick={commitText} className="text-[10px] font-display px-2 py-1 rounded bg-primary/30 border border-primary text-primary-glow flex-1">ADD</button>
+                <button onClick={() => setTextInput(null)} className="text-[11px] font-medium px-2 py-1.5 rounded-lg border border-white/10 bg-white/5 flex-1">Cancel</button>
+                <button onClick={commitText} className="text-[11px] font-semibold px-2 py-1.5 rounded-lg text-primary-foreground flex-1" style={{ background: "linear-gradient(180deg, oklch(0.78 0.17 250), oklch(0.66 0.18 252))" }}>Add</button>
               </div>
             </div>
           )}
         </div>
 
-        <div className="flex gap-1.5 justify-center flex-wrap">
-          {TOOLS.map(t => (
-            <button
-              key={t.id}
-              title={t.title}
-              onClick={() => setTool(t.id)}
-              className={`w-11 h-11 rounded-md border font-display text-lg ${
-                tool === t.id
-                  ? "bg-primary/20 border-primary text-primary-glow glow-border"
-                  : "border-border text-muted-foreground"
-              }`}
-            >{t.label}</button>
-          ))}
-          <button onClick={undo} title="Undo" className="w-11 h-11 rounded-md border border-border text-muted-foreground font-display">↶</button>
-          <button onClick={redo} title="Redo" className="w-11 h-11 rounded-md border border-border text-muted-foreground font-display">↷</button>
-          <button onClick={clearAll} title="Clear" className="w-11 h-11 rounded-md border border-destructive/50 text-destructive font-display">✕</button>
+        {/* Tool dock — Apple segmented */}
+        <div className="mx-auto w-full max-w-[460px]">
+          <div
+            className="flex gap-1 p-1 rounded-2xl"
+            style={{
+              background: "oklch(0.22 0.04 262 / 0.6)",
+              backdropFilter: "blur(20px) saturate(180%)",
+              border: "1px solid oklch(1 0 0 / 0.06)",
+              boxShadow: "inset 0 1px 0 oklch(1 0 0 / 0.05), 0 4px 14px -8px oklch(0 0 0 / 0.4)",
+            }}
+          >
+            {TOOLS.map(t => (
+              <button
+                key={t.id}
+                title={t.title}
+                onClick={() => setTool(t.id)}
+                className={`flex-1 h-10 rounded-xl text-base transition-all flex items-center justify-center ${
+                  tool === t.id ? "text-primary-foreground" : "text-foreground/60 hover:text-foreground/90"
+                }`}
+                style={tool === t.id ? {
+                  background: "linear-gradient(180deg, oklch(0.78 0.17 250), oklch(0.64 0.18 252))",
+                  boxShadow: "inset 0 1px 0 oklch(1 0 0 / 0.25), 0 2px 8px -2px oklch(0.66 0.18 252 / 0.5)",
+                } : undefined}
+              >{t.label}</button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap justify-center">
-          <input type="color" value={color} onChange={e => setColor(e.target.value)} className="w-11 h-11 rounded-md bg-transparent border border-border" />
-          {PALETTE.map(c => (
-            <button
-              key={c}
-              onClick={() => setColor(c)}
-              className={`w-7 h-7 rounded border ${color === c ? "border-primary scale-110" : "border-border"}`}
-              style={{ background: c }}
+        {/* History row */}
+        <div className="mx-auto w-full max-w-[460px] flex gap-1.5">
+          <button onClick={undo} title="Undo" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition text-lg">↶</button>
+          <button onClick={redo} title="Redo" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition text-lg">↷</button>
+          <button onClick={clearAll} title="Clear" className="flex-1 h-10 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition text-[12px] font-medium">Clear</button>
+        </div>
+
+        {/* Color + size card */}
+        <div
+          className="mx-auto w-full max-w-[460px] p-3 rounded-2xl flex flex-col gap-3"
+          style={{
+            background: "oklch(0.22 0.04 262 / 0.5)",
+            backdropFilter: "blur(20px) saturate(180%)",
+            border: "1px solid oklch(1 0 0 / 0.06)",
+          }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-10 h-10 shrink-0">
+              <input
+                type="color"
+                value={color}
+                onChange={e => setColor(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <div
+                className="w-10 h-10 rounded-xl pointer-events-none"
+                style={{
+                  background: color,
+                  boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.18), 0 4px 12px -4px oklch(0 0 0 / 0.4)",
+                }}
+              />
+            </div>
+            <div className="flex-1 grid grid-cols-8 gap-1.5">
+              {PALETTE.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setColor(c)}
+                  className="aspect-square rounded-lg transition-all"
+                  style={{
+                    background: c,
+                    boxShadow: color === c
+                      ? "inset 0 0 0 1.5px oklch(1 0 0 / 0.9), 0 0 0 2px oklch(0.72 0.17 250 / 0.7)"
+                      : "inset 0 0 0 1px oklch(1 0 0 / 0.12)",
+                    transform: color === c ? "scale(1.06)" : undefined,
+                  }}
+                  aria-label={c}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-[11px] font-medium text-foreground/70">
+            <span className="w-10 shrink-0">Size</span>
+            <input
+              type="range"
+              min={1}
+              max={48}
+              value={width}
+              onChange={e => setWidth(Number(e.target.value))}
+              className="flex-1 accent-[oklch(0.72_0.17_250)]"
             />
-          ))}
-        </div>
+            <span className="font-mono text-primary-glow w-7 text-right tabular-nums">{width}</span>
+          </div>
 
-        <div className="flex items-center gap-3 justify-center text-xs font-display tracking-widest text-muted-foreground px-2">
-          <span>SIZE</span>
-          <input type="range" min={1} max={48} value={width} onChange={e => setWidth(Number(e.target.value))}
-            className="flex-1 max-w-[260px] accent-[oklch(0.68_0.21_250)]" />
-          <span className="font-mono text-primary-glow w-6 text-right">{width}</span>
+          <label className="flex items-center justify-between text-[12px] font-medium text-foreground/85 cursor-pointer select-none">
+            <span>Stabilize brush</span>
+            <span
+              role="switch"
+              aria-checked={stabilize}
+              onClick={() => setStabilize(!stabilize)}
+              className="relative w-[42px] h-[26px] rounded-full transition-colors"
+              style={{
+                background: stabilize ? "oklch(0.7 0.17 145)" : "oklch(0.35 0.02 260)",
+                boxShadow: "inset 0 1px 2px oklch(0 0 0 / 0.3)",
+              }}
+            >
+              <span
+                className="absolute top-[2px] w-[22px] h-[22px] rounded-full bg-white transition-all"
+                style={{
+                  left: stabilize ? "18px" : "2px",
+                  boxShadow: "0 2px 4px oklch(0 0 0 / 0.3)",
+                }}
+              />
+            </span>
+            <input type="checkbox" checked={stabilize} onChange={(e) => setStabilize(e.target.checked)} className="sr-only" />
+          </label>
         </div>
-
-        <label className="flex items-center gap-2 justify-center text-xs font-display tracking-widest text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={stabilize}
-            onChange={(e) => setStabilize(e.target.checked)}
-            className="accent-[oklch(0.68_0.21_250)]"
-          />
-          STABILIZE BRUSH
-        </label>
       </div>
     </div>
   );
