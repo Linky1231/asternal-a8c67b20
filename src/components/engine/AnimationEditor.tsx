@@ -331,8 +331,11 @@ function ClipPanel({
         <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
           {clip.frames.map((src, i) => (
             <div key={i} className="shrink-0 w-20 panel rounded-md p-1 border border-border/60">
-              <div className="relative w-full h-14 rounded bg-input/40 overflow-hidden">
-                <img src={src} alt={`frame ${i + 1}`} className="absolute inset-0 w-full h-full object-contain" />
+              <div
+                className="relative w-full h-14 rounded overflow-hidden"
+                style={{ backgroundColor: "#e5e7eb", backgroundImage: "linear-gradient(45deg,#9ca3af 25%,transparent 25%),linear-gradient(-45deg,#9ca3af 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#9ca3af 75%),linear-gradient(-45deg,transparent 75%,#9ca3af 75%)", backgroundSize: "12px 12px", backgroundPosition: "0 0,0 6px,6px -6px,-6px 0" }}
+              >
+                <img src={src} alt={`frame ${i + 1}`} className="absolute inset-0 w-full h-full object-contain" style={{ imageRendering: "auto" }} />
                 <span className="absolute top-0.5 left-1 text-[9px] font-mono text-primary-glow">{i + 1}</span>
               </div>
               <div className="flex justify-between mt-1">

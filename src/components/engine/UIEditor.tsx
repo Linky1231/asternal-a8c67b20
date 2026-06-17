@@ -609,7 +609,14 @@ function ElementInspector({ el, update, remove, clone }: {
         <div className="space-y-1.5">
           <div className="text-[10px] font-display tracking-widest text-muted-foreground">IMAGE</div>
           <div className="flex items-center gap-2">
-            {el.image && <img src={el.image} alt="" className="w-12 h-12 rounded border border-border object-contain bg-background" />}
+            {el.image && (
+              <img
+                src={el.image}
+                alt=""
+                className="w-12 h-12 rounded border border-border object-contain"
+                style={{ backgroundColor: "#e5e7eb", backgroundImage: "linear-gradient(45deg,#9ca3af 25%,transparent 25%),linear-gradient(-45deg,#9ca3af 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#9ca3af 75%),linear-gradient(-45deg,transparent 75%,#9ca3af 75%)", backgroundSize: "12px 12px", backgroundPosition: "0 0,0 6px,6px -6px,-6px 0", imageRendering: "auto" }}
+              />
+            )}
             <button onClick={() => fileRef.current?.click()} className="flex-1 py-2 rounded border border-primary/50 bg-primary/10 text-primary-glow text-[10px] font-display tracking-widest">PICK IMAGE</button>
             {el.image && <button onClick={() => update({ image: null })} className="py-2 px-3 rounded border border-border text-muted-foreground text-[10px] font-display">CLEAR</button>}
           </div>
