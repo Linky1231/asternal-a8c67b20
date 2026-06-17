@@ -238,7 +238,7 @@ export function UIEditor({ scene, onChange }: Props) {
     };
     raf = requestAnimationFrame(render);
     return () => cancelAnimationFrame(raf);
-  }, [scene.bg, scene.bgImage, ui, sel, size, virt]);
+  }, [scene.bg, scene.bgImage, ui, sel, selIds, size, virt]);
 
   const updateEl = (id: string, patch: Partial<UIElement>) => {
     onChange({ ...scene, ui: ui.map(e => e.id === id ? { ...e, ...patch } : e) });
