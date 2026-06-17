@@ -280,33 +280,33 @@ function ElementInspector({ el, update, remove, clone, back }: {
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="font-display text-xs tracking-[0.25em] text-primary-glow">{el.kind.toUpperCase()} · {el.name}</span>
-        <button onClick={back} className="text-xs text-muted-foreground">← Back</button>
+    <div className="space-y-2.5">
+      <div className="flex items-center justify-between gap-2 sticky -top-2.5 -mx-2.5 px-2.5 py-1.5 bg-card/95 backdrop-blur z-10 border-b border-border/40">
+        <span className="font-display text-xs tracking-[0.22em] text-primary-glow truncate">{el.kind.toUpperCase()} · {el.name}</span>
+        <button onClick={back} className="shrink-0 text-[10px] font-display tracking-widest text-muted-foreground px-2 py-1 rounded border border-border">← BACK</button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <LabeledInput label="NAME" value={el.name} onChange={v => update({ name: v })} />
-        <div>
-          <div className="text-[10px] font-display tracking-widest text-muted-foreground">ANCHOR</div>
-          <div className="grid grid-cols-3 gap-0.5 mt-1 w-fit">
-            {ANCHORS.map(a => (
-              <button key={a} onClick={() => update({ anchor: a })}
-                className={`w-7 h-7 rounded text-[10px] font-mono border ${el.anchor === a ? "bg-primary/30 border-primary text-primary-glow" : "border-border text-muted-foreground"}`}>
-                {a}
-              </button>
-            ))}
-          </div>
+      <LabeledInput label="NAME" value={el.name} onChange={v => update({ name: v })} />
+
+      <div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">ANCHOR</div>
+        <div className="grid grid-cols-9 gap-1">
+          {ANCHORS.map(a => (
+            <button key={a} onClick={() => update({ anchor: a })}
+              className={`h-8 rounded text-[10px] font-mono border ${el.anchor === a ? "bg-primary/30 border-primary text-primary-glow" : "border-border text-muted-foreground"}`}>
+              {a}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-4 gap-1.5">
         <NumInput label="X" value={el.x} onChange={v => update({ x: v })} />
         <NumInput label="Y" value={el.y} onChange={v => update({ y: v })} />
         <NumInput label="W" value={el.w} onChange={v => update({ w: v })} />
         <NumInput label="H" value={el.h} onChange={v => update({ h: v })} />
       </div>
+
 
       {(el.kind === "button" || el.kind === "label" || el.kind === "panel") && (
         <LabeledInput label="TEXT" value={el.text ?? ""} onChange={v => update({ text: v })} />
