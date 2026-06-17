@@ -19,7 +19,7 @@ const PALETTE = [
 
 const FONTS = ["Rajdhani", "Orbitron", "JetBrains Mono", "Georgia", "Arial"];
 
-export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
+export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#38bdf8");
   const [width, setWidth] = useState(6);
