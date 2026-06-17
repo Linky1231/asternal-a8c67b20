@@ -38,7 +38,6 @@ export function UIEditor({ scene, onChange }: Props) {
   const tickRef = useRef(0);
   const moveFrame = useRef(0);
   const pendingDragUpdate = useRef<Array<{ id: string; patch: Partial<UIElement> }> | null>(null);
-  const previewSizeRef = useRef({ w: 360, h: 640 });
 
 
   const ui = scene.ui ?? [];
@@ -64,16 +63,12 @@ export function UIEditor({ scene, onChange }: Props) {
       const vh = Math.max(240, window.innerHeight - HEADER - TABS);
       const sc = Math.min(aw / vw, ah / vh);
       setVirt({ w: vw, h: vh });
-      if (sheetDragRef.current) return;
       const nextSize = { w: Math.max(120, Math.round(vw * sc)), h: Math.max(120, Math.round(vh * sc)) };
-      previewSizeRef.current = nextSize;
       setSize(nextSize);
     };
     fit();
-    const ro = new ResizeObserver(fit);
-    if (wrapRef.current) ro.observe(wrapRef.current);
     window.addEventListener("resize", fit);
-    return () => { window.removeEventListener("resize", fit); ro.disconnect(); };
+    return () => { window.removeEventListener("resize", fit); };
   }, [snap]);
 
   useEffect(() => {
