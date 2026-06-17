@@ -616,6 +616,29 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
             </span>
             <input type="checkbox" checked={stabilize} onChange={(e) => setStabilize(e.target.checked)} className="sr-only" />
           </label>
+
+          <label className="flex items-center justify-between text-[12px] font-medium text-foreground/85 cursor-pointer select-none">
+            <span>Pressure sensitive</span>
+            <span
+              role="switch"
+              aria-checked={pressureOn}
+              onClick={() => setPressureOn(!pressureOn)}
+              className="relative w-[42px] h-[26px] rounded-full transition-colors"
+              style={{
+                background: pressureOn ? "oklch(0.7 0.17 145)" : "oklch(0.35 0.02 260)",
+                boxShadow: "inset 0 1px 2px oklch(0 0 0 / 0.3)",
+              }}
+            >
+              <span
+                className="absolute top-[2px] w-[22px] h-[22px] rounded-full bg-white transition-all"
+                style={{
+                  left: pressureOn ? "18px" : "2px",
+                  boxShadow: "0 2px 4px oklch(0 0 0 / 0.3)",
+                }}
+              />
+            </span>
+            <input type="checkbox" checked={pressureOn} onChange={(e) => setPressureOn(e.target.checked)} className="sr-only" />
+          </label>
         </div>
       </div>
     </div>
