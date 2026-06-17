@@ -751,12 +751,23 @@ function MultiInspector({ els, applyDelta, setSize, setVisible, alignAnchor, rem
   );
 }
 
-function LabeledInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function LabeledInput({ label, value, onChange, autoFocus }: { label: string; value: string; onChange: (v: string) => void; autoFocus?: boolean }) {
+  // Use a locally-managed value so iOS Safari doesn't bounce the caret on every
+  // controlled re-render (which made it feel like text could only be set once).
+  const [local, setLocal] = useState(value);
+  const focused = useRef(false);
+  useEffect(() => { if (!focused.current && local !== value) setLocal(value); }, [value]);
   return (
     <div>
       <div className="text-[10px] font-display tracking-widest text-muted-foreground">{label}</div>
-      <input value={value} onChange={e => onChange(e.target.value)}
-        className="w-full mt-1 px-2 py-1.5 rounded bg-input/60 border border-border text-xs font-mono focus:outline-none focus:border-primary" />
+      <input
+        value={local}
+        autoFocus={autoFocus}
+        onFocus={() => { focused.current = true; }}
+        onBlur={() => { focused.current = false; if (local !== value) onChange(local); }}
+        onChange={e => { setLocal(e.target.value); onChange(e.target.value); }}
+        className="w-full mt-1 px-2 py-1.5 rounded bg-input/60 border border-border text-xs font-mono focus:outline-none focus:border-primary"
+      />
     </div>
   );
 }
