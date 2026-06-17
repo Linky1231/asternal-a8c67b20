@@ -421,10 +421,10 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
               className="w-full h-full rounded-xl overflow-hidden"
               style={{
                 backgroundImage:
-                  "linear-gradient(45deg, oklch(0.82 0 0) 25%, transparent 25%), linear-gradient(-45deg, oklch(0.82 0 0) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, oklch(0.82 0 0) 75%), linear-gradient(-45deg, transparent 75%, oklch(0.82 0 0) 75%)",
+                  "linear-gradient(45deg, oklch(0.93 0 0) 25%, transparent 25%), linear-gradient(-45deg, oklch(0.93 0 0) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, oklch(0.93 0 0) 75%), linear-gradient(-45deg, transparent 75%, oklch(0.93 0 0) 75%)",
                 backgroundSize: "16px 16px",
                 backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0",
-                backgroundColor: "#f3f4f6",
+                backgroundColor: "#fcfcfc",
               }}
             >
               <canvas
