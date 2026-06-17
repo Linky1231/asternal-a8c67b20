@@ -10,11 +10,52 @@ interface Props {
   size?: number;
 }
 
-const PALETTE = [
-  "#000000", "#1f2937", "#6b7280", "#f8fafc",
-  "#ef4444", "#f97316", "#fbbf24", "#22c55e",
-  "#06b6d4", "#38bdf8", "#3b82f6", "#8b5cf6",
-  "#ec4899", "#7c2d12", "#fde68a", "#0ea5e9",
+const PALETTES: { name: string; colors: string[] }[] = [
+  {
+    name: "Neon",
+    colors: [
+      "#000000", "#1f2937", "#6b7280", "#f8fafc",
+      "#ef4444", "#f97316", "#fbbf24", "#22c55e",
+      "#06b6d4", "#38bdf8", "#3b82f6", "#8b5cf6",
+      "#ec4899", "#7c2d12", "#fde68a", "#0ea5e9",
+    ],
+  },
+  {
+    name: "Pastel",
+    colors: [
+      "#ffffff", "#fde2e4", "#fad2e1", "#e2ece9",
+      "#bee1e6", "#cddafd", "#dfe7fd", "#f0efeb",
+      "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff",
+      "#a0c4ff", "#bdb2ff", "#ffc6ff", "#fffffc",
+    ],
+  },
+  {
+    name: "Retro 8-bit",
+    colors: [
+      "#1a1c2c", "#5d275d", "#b13e53", "#ef7d57",
+      "#ffcd75", "#a7f070", "#38b764", "#257179",
+      "#29366f", "#3b5dc9", "#41a6f6", "#73eff7",
+      "#f4f4f4", "#94b0c2", "#566c86", "#333c57",
+    ],
+  },
+  {
+    name: "Earth",
+    colors: [
+      "#2d1b0e", "#5c3a1e", "#8b5a2b", "#c08552",
+      "#dab49d", "#f3e9dc", "#606c38", "#283618",
+      "#bc6c25", "#dda15e", "#fefae0", "#a98467",
+      "#6f4518", "#3f2d20", "#b08968", "#ddb892",
+    ],
+  },
+  {
+    name: "Mono",
+    colors: [
+      "#000000", "#111111", "#222222", "#333333",
+      "#444444", "#555555", "#666666", "#777777",
+      "#888888", "#999999", "#aaaaaa", "#bbbbbb",
+      "#cccccc", "#dddddd", "#eeeeee", "#ffffff",
+    ],
+  },
 ];
 
 const FONTS = ["Rajdhani", "Orbitron", "JetBrains Mono", "Georgia", "Arial"];
