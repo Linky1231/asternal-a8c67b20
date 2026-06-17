@@ -432,8 +432,15 @@ export function UIEditor({ scene, onChange }: Props) {
           style={{ width: size.w, height: size.h, transform: "translate(-50%, -50%)" }}>
           <canvas
             ref={canvasRef}
-            className="block touch-none"
-            style={{ width: size.w, height: size.h }}
+            className="block touch-none select-none"
+            style={{
+              width: size.w,
+              height: size.h,
+              touchAction: "none",
+              WebkitUserSelect: "none",
+              WebkitTouchCallout: "none",
+              WebkitTapHighlightColor: "transparent",
+            } as React.CSSProperties}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
