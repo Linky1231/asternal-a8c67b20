@@ -353,6 +353,33 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
   // Horizontal pass
   for (const e of scene.entities) {
     if (e.kind === "platform") continue;
+
+    // Predictive ledge detection for enemies: if currently grounded and the
+    // next step would put their leading foot over empty space, reverse first.
+    if (e.kind === "enemy" && Math.abs(e.vx) > 0.1) {
+      const wasGrounded = (e as Entity & { _grounded?: boolean })._grounded;
+      const ledgeSafe = e.patrol ? (e.patrol.ledgeSafe ?? true) : true;
+      if (wasGrounded && ledgeSafe) {
+        const nextX = e.x + e.vx * dt;
+        const ahead = e.vx >= 0 ? nextX + e.w + 1 : nextX - 1;
+        const probeY = e.y + e.h + 2;
+        const probeW = 3, probeH = 6;
+        let hasGround = false;
+        for (const o of solids) {
+          if (o === e || !o.solid) continue;
+          if (
+            ahead < o.x + o.w &&
+            ahead + probeW > o.x &&
+            probeY < o.y + o.h &&
+            probeY + probeH > o.y
+          ) { hasGround = true; break; }
+        }
+        if (!hasGround) {
+          e.vx = -e.vx;
+        }
+      }
+    }
+
     e.x += e.vx * dt;
     for (const o of solids) {
       if (o === e || !o.solid) continue;
@@ -365,6 +392,7 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       }
     }
   }
+
 
   // Vertical pass
   const grounded = new Set<string>();
@@ -394,6 +422,14 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       }
     }
   }
+
+  // Persist grounded flag for next-frame predictive ledge checks
+  for (const e of scene.entities) {
+    if (e.kind === "platform") continue;
+    (e as Entity & { _grounded?: boolean })._grounded = grounded.has(e.id);
+  }
+
+
 
   // Enemy patrol (with ledge detection so enemies don't fall off platforms)
   for (const e of scene.entities) {
