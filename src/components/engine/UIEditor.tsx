@@ -408,10 +408,10 @@ export function UIEditor({ scene, onChange }: Props) {
       </div>
 
       {/* Preview canvas — fills entire surface */}
-      <div ref={wrapRef} className="absolute inset-0 grid place-items-center overflow-hidden"
+      <div ref={wrapRef} className="absolute inset-0 overflow-hidden"
         style={{ paddingTop: 64, paddingBottom: sheetH + 8 }}>
-        <div className="relative rounded-xl border border-primary/30 shadow-[0_0_24px_oklch(0.68_0.21_250/0.3)] overflow-hidden bg-black"
-          style={{ width: size.w, height: size.h }}>
+        <div className="absolute left-1/2 top-1/2 rounded-xl border border-primary/30 shadow-[0_0_24px_oklch(0.68_0.21_250/0.3)] overflow-hidden bg-black"
+          style={{ width: size.w, height: size.h, transform: "translate(-50%, -50%)" }}>
           <canvas
             ref={canvasRef}
             className="block touch-none"
