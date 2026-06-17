@@ -349,7 +349,7 @@ export function UIEditor({ scene, onChange }: Props) {
               </div>
             )
           ) : (
-            <ElementInspector el={sel} update={(p) => updateEl(sel.id, p)} remove={() => removeEl(sel.id)} clone={() => cloneEl(sel.id)} back={() => setSelId(null)} />
+            <ElementInspector el={sel} update={(p) => updateEl(sel.id, p)} remove={() => removeEl(sel.id)} clone={() => cloneEl(sel.id)} />
           )}
         </div>
       </div>
