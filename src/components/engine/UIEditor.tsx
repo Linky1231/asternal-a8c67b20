@@ -70,7 +70,7 @@ export function UIEditor({ scene, onChange }: Props) {
     if (wrapRef.current) ro.observe(wrapRef.current);
     window.addEventListener("resize", fit);
     return () => { window.removeEventListener("resize", fit); ro.disconnect(); };
-  }, [snap, sheetDragOffset]);
+  }, [snap]);
 
   useEffect(() => {
     inspectorRef.current?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
@@ -374,7 +374,11 @@ export function UIEditor({ scene, onChange }: Props) {
   const onPointerUp = () => { dragRef.current = null; };
 
   const sheetH = sheetHeightFor(snap);
-  const sheetTranslate = Math.max(-200, Math.min(sheetH - 60, sheetDragOffset));
+  const fullSheetH = sheetHeightFor("full");
+  const upwardDrag = Math.max(0, -sheetDragOffset);
+  const downwardDrag = Math.max(0, sheetDragOffset);
+  const activeSheetH = Math.min(fullSheetH, sheetH + upwardDrag);
+  const sheetTranslate = Math.min(Math.max(0, sheetH - 60), downwardDrag);
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-background">
@@ -405,7 +409,7 @@ export function UIEditor({ scene, onChange }: Props) {
 
       {/* Preview canvas — fills entire surface */}
       <div ref={wrapRef} className="absolute inset-0 grid place-items-center overflow-hidden"
-        style={{ paddingTop: 64, paddingBottom: Math.max(60, sheetH - sheetTranslate) + 8 }}>
+        style={{ paddingTop: 64, paddingBottom: sheetH + 8 }}>
         <div className="relative rounded-xl border border-primary/30 shadow-[0_0_24px_oklch(0.68_0.21_250/0.3)] overflow-hidden bg-black"
           style={{ width: size.w, height: size.h }}>
           <canvas
@@ -433,7 +437,7 @@ export function UIEditor({ scene, onChange }: Props) {
       <div ref={sheetRef}
         className="absolute left-0 right-0 bottom-0 z-50 rounded-t-2xl border-t border-x border-border/50 bg-card/95 backdrop-blur-2xl shadow-[0_-12px_36px_oklch(0_0_0/0.5)] flex flex-col"
         style={{
-          height: sheetH,
+          height: activeSheetH,
           transform: `translateY(${sheetTranslate}px)`,
           transition: sheetDragRef.current ? "none" : "transform 240ms cubic-bezier(0.32, 0.72, 0, 1), height 240ms cubic-bezier(0.32, 0.72, 0, 1)",
         }}>
