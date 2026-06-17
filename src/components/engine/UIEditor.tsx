@@ -27,20 +27,24 @@ export function UIEditor({ scene, onChange }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inspectorRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
-  const [selId, setSelId] = useState<string | null>(null);
+  const [selIds, setSelIds] = useState<string[]>([]);
+  const [multiMode, setMultiMode] = useState(false);
   const [snap, setSnap] = useState<Snap>("peek");
   const [virt, setVirt] = useState({ w: 360, h: 640 });
   const [size, setSize] = useState({ w: 360, h: 640 });
-  const dragRef = useRef<{ id: string; mode: "move" | "resize"; sx: number; sy: number; ox: number; oy: number; ow: number; oh: number } | null>(null);
+  const dragRef = useRef<{ ids: string[]; mode: "move" | "resize"; sx: number; sy: number; orig: Record<string, { x: number; y: number; w: number; h: number }> } | null>(null);
   const sheetDragRef = useRef<{ startY: number; startSnap: Snap; dy: number } | null>(null);
   const [sheetDragOffset, setSheetDragOffset] = useState(0);
   const tickRef = useRef(0);
   const moveFrame = useRef(0);
-  const pendingDragUpdate = useRef<{ id: string; patch: Partial<UIElement> } | null>(null);
+  const pendingDragUpdate = useRef<Array<{ id: string; patch: Partial<UIElement> }> | null>(null);
 
 
   const ui = scene.ui ?? [];
-  const sel = ui.find(e => e.id === selId) ?? null;
+  const selSet = new Set(selIds);
+  const selectedEls = ui.filter(e => selSet.has(e.id));
+  const sel = selectedEls.length === 1 ? selectedEls[0] : null;
+  const selId = sel?.id ?? null;
 
   // Fit preview to wrap while matching the REAL game canvas aspect (window
   // minus header & tab bar), so anchored offsets are 1:1 with PLAY.
