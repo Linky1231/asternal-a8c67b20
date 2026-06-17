@@ -67,9 +67,8 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (c.width !== W * dpr) { c.width = W * dpr; c.height = W * dpr; }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    // Solid gray background
-    ctx.fillStyle = "#9ca3af";
-    ctx.fillRect(0, 0, W, W);
+    // Transparent — checker pattern shows through from the wrapper
+    ctx.clearRect(0, 0, W, W);
     ctx.drawImage(buf, 0, 0, W, W);
     if (preview) {
       ctx.save();
@@ -77,9 +76,6 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
       preview(ctx);
       ctx.restore();
     }
-    ctx.strokeStyle = "rgba(100,116,139,0.3)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, W - 1, W - 1);
   };
 
   const getPos = (e: React.PointerEvent) => {
