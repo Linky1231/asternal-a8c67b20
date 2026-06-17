@@ -636,6 +636,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
                 value={color}
                 onChange={e => setColor(e.target.value)}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                aria-label="Color picker"
               />
               <div
                 className="w-10 h-10 rounded-xl pointer-events-none"
@@ -645,23 +646,45 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
                 }}
               />
             </div>
-            <div className="flex-1 grid grid-cols-8 gap-1.5">
-              {PALETTE.map(c => (
-                <button
-                  key={c}
-                  onClick={() => setColor(c)}
-                  className="aspect-square rounded-lg transition-all"
-                  style={{
-                    background: c,
-                    boxShadow: color === c
-                      ? "inset 0 0 0 1.5px oklch(1 0 0 / 0.9), 0 0 0 2px oklch(0.72 0.17 250 / 0.7)"
-                      : "inset 0 0 0 1px oklch(1 0 0 / 0.12)",
-                    transform: color === c ? "scale(1.06)" : undefined,
-                  }}
-                  aria-label={c}
-                />
+            <input
+              type="text"
+              value={color.toUpperCase()}
+              onChange={(e) => {
+                const v = e.target.value.trim();
+                if (/^#?[0-9a-fA-F]{6}$/.test(v)) setColor(v.startsWith("#") ? v : `#${v}`);
+              }}
+              className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-mono w-[88px] tracking-tight focus:outline-none focus:border-primary/50 uppercase"
+              maxLength={7}
+              aria-label="Hex color"
+            />
+            <select
+              value={paletteIdx}
+              onChange={(e) => setPaletteIdx(Number(e.target.value))}
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none focus:border-primary/50"
+              aria-label="Palette"
+            >
+              {PALETTES.map((p, i) => (
+                <option key={p.name} value={i}>{p.name}</option>
               ))}
-            </div>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-8 gap-1.5">
+            {PALETTE.map((c) => (
+              <button
+                key={c}
+                onClick={() => setColor(c)}
+                className="aspect-square rounded-lg transition-all"
+                style={{
+                  background: c,
+                  boxShadow: color.toLowerCase() === c.toLowerCase()
+                    ? "inset 0 0 0 1.5px oklch(1 0 0 / 0.9), 0 0 0 2px oklch(0.72 0.17 250 / 0.7)"
+                    : "inset 0 0 0 1px oklch(1 0 0 / 0.12)",
+                  transform: color.toLowerCase() === c.toLowerCase() ? "scale(1.06)" : undefined,
+                }}
+                aria-label={c}
+              />
+            ))}
           </div>
 
           <div className="flex items-center gap-3 text-[11px] font-medium text-foreground/70">
