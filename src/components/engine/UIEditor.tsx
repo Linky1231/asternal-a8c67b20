@@ -103,7 +103,7 @@ export function UIEditor({ scene, onChange }: Props) {
     return 60;
   };
   const onSheetHandleDown = (ev: React.PointerEvent) => {
-    (ev.target as Element).setPointerCapture(ev.pointerId);
+    try { (ev.currentTarget as Element).setPointerCapture(ev.pointerId); } catch {}
     sheetDragRef.current = { startY: ev.clientY, startSnap: snap, dy: 0 };
   };
   const onSheetHandleMove = (ev: React.PointerEvent) => {
