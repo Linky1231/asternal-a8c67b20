@@ -245,26 +245,29 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     if (activePointers.current.size > 1) { cancelStroke(); return; }
     const p = getPos(e);
     if (drag.current.tool === "brush" || drag.current.tool === "eraser") {
-      // Use coalesced events for full-resolution input, draw directly to the
-      // real pointer position (no lag). Light smoothing only when stabilize is on,
-      // applied via midpoint quadratic curves rather than a low-pass filter.
       const events = (typeof e.nativeEvent.getCoalescedEvents === "function"
         ? e.nativeEvent.getCoalescedEvents()
         : []) as PointerEvent[];
       const points = events.length ? events.map(ev => {
         const c = canvasRef.current!;
         const r = c.getBoundingClientRect();
-        return { x: ((ev.clientX - r.left) / r.width) * size, y: ((ev.clientY - r.top) / r.height) * size };
-      }) : [p];
+        return {
+          x: ((ev.clientX - r.left) / r.width) * size,
+          y: ((ev.clientY - r.top) / r.height) * size,
+          pressure: ev.pressure,
+        };
+      }) : [{ x: p.x, y: p.y, pressure: e.pressure }];
       const erase = drag.current.tool === "eraser";
       for (const pt of points) {
+        const pr = pressureOn && pt.pressure > 0 && pt.pressure !== 0.5 ? pt.pressure : 0.5;
+        const w = width * (pressureOn ? (0.4 + 1.2 * pr) : 1);
         if (stabilize) {
           const mx = (drag.current.last.x + pt.x) / 2;
           const my = (drag.current.last.y + pt.y) / 2;
-          strokeSegment(drag.current.last.x, drag.current.last.y, mx, my, erase);
+          strokeSegment(drag.current.last.x, drag.current.last.y, mx, my, erase, w);
           drag.current.last = { x: mx, y: my };
         } else {
-          strokeSegment(drag.current.last.x, drag.current.last.y, pt.x, pt.y, erase);
+          strokeSegment(drag.current.last.x, drag.current.last.y, pt.x, pt.y, erase, w);
           drag.current.last = pt;
         }
       }
