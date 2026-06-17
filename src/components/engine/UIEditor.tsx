@@ -27,20 +27,24 @@ export function UIEditor({ scene, onChange }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inspectorRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
-  const [selId, setSelId] = useState<string | null>(null);
+  const [selIds, setSelIds] = useState<string[]>([]);
+  const [multiMode, setMultiMode] = useState(false);
   const [snap, setSnap] = useState<Snap>("peek");
   const [virt, setVirt] = useState({ w: 360, h: 640 });
   const [size, setSize] = useState({ w: 360, h: 640 });
-  const dragRef = useRef<{ id: string; mode: "move" | "resize"; sx: number; sy: number; ox: number; oy: number; ow: number; oh: number } | null>(null);
+  const dragRef = useRef<{ ids: string[]; mode: "move" | "resize"; sx: number; sy: number; orig: Record<string, { x: number; y: number; w: number; h: number }> } | null>(null);
   const sheetDragRef = useRef<{ startY: number; startSnap: Snap; dy: number } | null>(null);
   const [sheetDragOffset, setSheetDragOffset] = useState(0);
   const tickRef = useRef(0);
   const moveFrame = useRef(0);
-  const pendingDragUpdate = useRef<{ id: string; patch: Partial<UIElement> } | null>(null);
+  const pendingDragUpdate = useRef<Array<{ id: string; patch: Partial<UIElement> }> | null>(null);
 
 
   const ui = scene.ui ?? [];
-  const sel = ui.find(e => e.id === selId) ?? null;
+  const selSet = new Set(selIds);
+  const selectedEls = ui.filter(e => selSet.has(e.id));
+  const sel = selectedEls.length === 1 ? selectedEls[0] : null;
+  const selId = sel?.id ?? null;
 
   // Fit preview to wrap while matching the REAL game canvas aspect (window
   // minus header & tab bar), so anchored offsets are 1:1 with PLAY.
@@ -151,14 +155,80 @@ export function UIEditor({ scene, onChange }: Props) {
         drawUIElement(ctx, el, W, H, tickRef.current, mockState);
       }
 
+      // multi-select outlines
+      for (const e of selectedEls) {
+        if (e.id === selId) continue;
+        const rr = resolveUIRect(e, W, H);
+        ctx.strokeStyle = "#a78bfa";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(rr.x - 1, rr.y - 1, rr.w + 2, rr.h + 2);
+        ctx.setLineDash([]);
+      }
+
       if (sel) {
         const r = resolveUIRect(sel, W, H);
+        // anchor reference point + dashed guides showing X/Y offsets
+        const ap = anchorScreenPoint(sel.anchor, W, H);
+        ctx.strokeStyle = "rgba(251,191,36,0.85)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(ap.x, ap.y); ctx.lineTo(r.x, ap.y);
+        ctx.moveTo(r.x, ap.y); ctx.lineTo(r.x, r.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // anchor reference marker
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath(); ctx.arc(ap.x, ap.y, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(ap.x, ap.y, 5, 0, Math.PI * 2); ctx.stroke();
+        // X/Y offset labels
+        const lbl = `${Math.round(sel.x)}`;
+        const lbl2 = `${Math.round(sel.y)}`;
+        ctx.font = "600 11px Rajdhani, sans-serif";
+        ctx.fillStyle = "#fbbf24";
+        ctx.textBaseline = "middle";
+        const midX = (ap.x + r.x) / 2;
+        ctx.textAlign = "center";
+        ctx.fillText(`x ${lbl}`, midX, ap.y - 8);
+        ctx.textAlign = "left";
+        ctx.fillText(`y ${lbl2}`, r.x + 4, (ap.y + r.y) / 2);
+        ctx.textAlign = "start";
+
+        // W/H labels on edges
+        ctx.fillStyle = "#7dd3fc";
+        ctx.textAlign = "center";
+        ctx.fillText(`${Math.round(sel.w)}`, r.x + r.w / 2, r.y - 8);
+        ctx.save();
+        ctx.translate(r.x + r.w + 12, r.y + r.h / 2);
+        ctx.rotate(Math.PI / 2);
+        ctx.fillText(`${Math.round(sel.h)}`, 0, 0);
+        ctx.restore();
+        ctx.textAlign = "start";
+
+        // selection outline
         ctx.strokeStyle = "#7dd3fc";
         ctx.lineWidth = 2;
         ctx.setLineDash([8, 6]);
         ctx.strokeRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
         ctx.setLineDash([]);
-        // resize handle (scaled up so it stays grabbable when the canvas is scaled down)
+
+        // 9 anchor pickers around element
+        const ah = Math.max(10, 12 / Math.max(0.001, size.w / virt.w));
+        const pts: { a: UIAnchor; x: number; y: number }[] = [
+          { a: "tl", x: r.x, y: r.y }, { a: "tc", x: r.x + r.w / 2, y: r.y }, { a: "tr", x: r.x + r.w, y: r.y },
+          { a: "cl", x: r.x, y: r.y + r.h / 2 }, { a: "c", x: r.x + r.w / 2, y: r.y + r.h / 2 }, { a: "cr", x: r.x + r.w, y: r.y + r.h / 2 },
+          { a: "bl", x: r.x, y: r.y + r.h }, { a: "bc", x: r.x + r.w / 2, y: r.y + r.h }, { a: "br", x: r.x + r.w, y: r.y + r.h },
+        ];
+        for (const p of pts) {
+          const active = p.a === sel.anchor;
+          ctx.fillStyle = active ? "#fbbf24" : "#0b1e3f";
+          ctx.strokeStyle = active ? "#fbbf24" : "#7dd3fc";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(p.x, p.y, ah / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        }
+        // resize handle (bottom-right)
         const hs = Math.max(14, 16 / Math.max(0.001, size.w / virt.w));
         ctx.fillStyle = "#f8fafc";
         ctx.strokeStyle = "#0ea5e9";
@@ -168,38 +238,54 @@ export function UIEditor({ scene, onChange }: Props) {
     };
     raf = requestAnimationFrame(render);
     return () => cancelAnimationFrame(raf);
-  }, [scene.bg, scene.bgImage, ui, sel, size, virt]);
+  }, [scene.bg, scene.bgImage, ui, sel, selIds, size, virt]);
 
   const updateEl = (id: string, patch: Partial<UIElement>) => {
     onChange({ ...scene, ui: ui.map(e => e.id === id ? { ...e, ...patch } : e) });
   };
-  const scheduleDragUpdate = (id: string, patch: Partial<UIElement>) => {
-    pendingDragUpdate.current = { id, patch };
+  const updateMany = (patches: Array<{ id: string; patch: Partial<UIElement> }>) => {
+    const map = new Map(patches.map(p => [p.id, p.patch] as const));
+    onChange({ ...scene, ui: ui.map(e => map.has(e.id) ? { ...e, ...map.get(e.id)! } : e) });
+  };
+  const scheduleDragUpdate = (patches: Array<{ id: string; patch: Partial<UIElement> }>) => {
+    pendingDragUpdate.current = patches;
     if (moveFrame.current) return;
     moveFrame.current = requestAnimationFrame(() => {
       moveFrame.current = 0;
       const next = pendingDragUpdate.current;
       pendingDragUpdate.current = null;
-      if (next) updateEl(next.id, next.patch);
+      if (next) updateMany(next);
     });
   };
 
   const addEl = (kind: UIElementKind) => {
     const el = newUIElement(kind);
     onChange({ ...scene, ui: [...ui, el] });
-    setSelId(el.id);
+    setSelIds([el.id]);
   };
 
   const removeEl = (id: string) => {
     onChange({ ...scene, ui: ui.filter(e => e.id !== id) });
-    if (selId === id) setSelId(null);
+    setSelIds(ids => ids.filter(i => i !== id));
   };
 
   const cloneEl = (id: string) => {
     const e = ui.find(x => x.id === id); if (!e) return;
     const copy: UIElement = { ...e, id: uid(), x: e.x + 12, y: e.y + 12 };
     onChange({ ...scene, ui: [...ui, copy] });
-    setSelId(copy.id);
+    setSelIds([copy.id]);
+  };
+
+  // Change element's anchor while keeping its absolute on-screen position.
+  const setAnchorKeepPos = (el: UIElement, newAnchor: UIAnchor) => {
+    const r = resolveUIRect(el, virt.w, virt.h);
+    const tmp = { ...el, anchor: newAnchor, x: 0, y: 0 };
+    const base = resolveUIRect(tmp, virt.w, virt.h);
+    updateEl(el.id, { anchor: newAnchor, x: Math.round(r.x - base.x), y: Math.round(r.y - base.y) });
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelIds(ids => ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]);
   };
 
   const toVirt = (ev: React.PointerEvent) => {
@@ -208,35 +294,77 @@ export function UIEditor({ scene, onChange }: Props) {
     const sy = (ev.clientY - rect.top) * (virt.h / Math.max(1, rect.height));
     return { sx, sy };
   };
+
+  // anchor reference point on screen
+  const anchorScreenPoint = (a: UIAnchor, W: number, H: number) => {
+    let ax = 0, ay = 0;
+    if (a === "c") return { x: W / 2, y: H / 2 };
+    if (a[0] === "t") ay = 0; else if (a[0] === "c") ay = H / 2; else ay = H;
+    if (a[1] === "l") ax = 0; else if (a[1] === "c") ax = W / 2; else ax = W;
+    return { x: ax, y: ay };
+  };
+
   const onPointerDown = (ev: React.PointerEvent) => {
     (ev.target as Element).setPointerCapture(ev.pointerId);
     const { sx, sy } = toVirt(ev);
-    // resize handle hit (use a generous grab radius in virtual coords)
+    const grab = Math.max(18, 20 / Math.max(0.001, size.w / virt.w));
+
+    // resize handle hit (single selection only)
     if (sel) {
       const r = resolveUIRect(sel, virt.w, virt.h);
-      const grab = Math.max(18, 20 / Math.max(0.001, size.w / virt.w));
       if (sx >= r.x + r.w - grab && sx <= r.x + r.w + grab && sy >= r.y + r.h - grab && sy <= r.y + r.h + grab) {
-        dragRef.current = { id: sel.id, mode: "resize", sx, sy, ox: sel.x, oy: sel.y, ow: sel.w, oh: sel.h };
+        const orig = { [sel.id]: { x: sel.x, y: sel.y, w: sel.w, h: sel.h } };
+        dragRef.current = { ids: [sel.id], mode: "resize", sx, sy, orig };
         return;
       }
+      // anchor preset dots around element — 9 small dots
+      const corners: { a: UIAnchor; x: number; y: number }[] = [
+        { a: "tl", x: r.x, y: r.y }, { a: "tc", x: r.x + r.w / 2, y: r.y }, { a: "tr", x: r.x + r.w, y: r.y },
+        { a: "cl", x: r.x, y: r.y + r.h / 2 }, { a: "c", x: r.x + r.w / 2, y: r.y + r.h / 2 }, { a: "cr", x: r.x + r.w, y: r.y + r.h / 2 },
+        { a: "bl", x: r.x, y: r.y + r.h }, { a: "bc", x: r.x + r.w / 2, y: r.y + r.h }, { a: "br", x: r.x + r.w, y: r.y + r.h },
+      ];
+      for (const c of corners) {
+        if (Math.abs(sx - c.x) < grab * 0.7 && Math.abs(sy - c.y) < grab * 0.7) {
+          setAnchorKeepPos(sel, c.a);
+          return;
+        }
+      }
     }
+
     for (let i = ui.length - 1; i >= 0; i--) {
       const el = ui[i];
       const r = resolveUIRect(el, virt.w, virt.h);
       if (sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h) {
-        setSelId(el.id);
-        dragRef.current = { id: el.id, mode: "move", sx, sy, ox: el.x, oy: el.y, ow: el.w, oh: el.h };
+        let ids: string[];
+        if (multiMode) {
+          ids = selIds.includes(el.id) ? selIds.filter(i => i !== el.id) : [...selIds, el.id];
+        } else {
+          ids = selIds.includes(el.id) ? selIds : [el.id];
+        }
+        setSelIds(ids);
+        const dragIds = ids.length > 0 ? ids : [el.id];
+        const orig: Record<string, { x: number; y: number; w: number; h: number }> = {};
+        for (const id of dragIds) {
+          const e2 = ui.find(u => u.id === id); if (!e2) continue;
+          orig[id] = { x: e2.x, y: e2.y, w: e2.w, h: e2.h };
+        }
+        dragRef.current = { ids: dragIds, mode: "move", sx, sy, orig };
         return;
       }
     }
-    setSelId(null);
+    if (!multiMode) setSelIds([]);
   };
   const onPointerMove = (ev: React.PointerEvent) => {
     const d = dragRef.current; if (!d) return;
     const { sx, sy } = toVirt(ev);
     const dx = sx - d.sx, dy = sy - d.sy;
-    if (d.mode === "move") scheduleDragUpdate(d.id, { x: Math.round(d.ox + dx), y: Math.round(d.oy + dy) });
-    else scheduleDragUpdate(d.id, { w: Math.max(16, Math.round(d.ow + dx)), h: Math.max(16, Math.round(d.oh + dy)) });
+    if (d.mode === "move") {
+      scheduleDragUpdate(d.ids.map(id => ({ id, patch: { x: Math.round(d.orig[id].x + dx), y: Math.round(d.orig[id].y + dy) } })));
+    } else {
+      const id = d.ids[0];
+      const o = d.orig[id];
+      scheduleDragUpdate([{ id, patch: { w: Math.max(16, Math.round(o.w + dx)), h: Math.max(16, Math.round(o.h + dy)) } }]);
+    }
   };
   const onPointerUp = () => { dragRef.current = null; };
 
@@ -256,7 +384,12 @@ export function UIEditor({ scene, onChange }: Props) {
                 <span className="text-[9px] font-display tracking-wider">{k.label}</span>
               </button>
             ))}
-            <button onClick={() => { if (confirm("Clear all UI?")) onChange({ ...scene, ui: [] }); }}
+            <button onClick={() => { setMultiMode(m => !m); if (multiMode) setSelIds([]); }}
+              className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border active:scale-95 transition ${multiMode ? "border-primary bg-primary/20 text-primary-glow" : "border-border/50 bg-background/40 text-muted-foreground"}`}>
+              <span className="text-base leading-none">{multiMode ? "☑" : "☐"}</span>
+              <span className="text-[9px] font-display tracking-wider">MULTI</span>
+            </button>
+            <button onClick={() => { if (confirm("Clear all UI?")) { onChange({ ...scene, ui: [] }); setSelIds([]); } }}
               className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive active:scale-95">
               <span className="text-base leading-none">✕</span>
               <span className="text-[9px] font-display tracking-wider">CLEAR</span>
@@ -307,7 +440,7 @@ export function UIEditor({ scene, onChange }: Props) {
           onPointerUp={onSheetHandleUp}
           onPointerCancel={onSheetHandleUp}>
           <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
-          {sel && (
+          {selectedEls.length === 1 && sel && (
             <div className="mt-1.5 flex items-center justify-between w-full px-3">
               <span className="font-display text-[11px] tracking-[0.22em] text-primary-glow truncate">{sel.kind.toUpperCase()} · {sel.name}</span>
               <div className="flex items-center gap-1">
@@ -315,16 +448,22 @@ export function UIEditor({ scene, onChange }: Props) {
                   <button key={s} onClick={() => setSnap(s)}
                     className={`w-1.5 h-1.5 rounded-full ${snap === s ? "bg-primary-glow" : "bg-muted-foreground/30"}`} />
                 ))}
-                <button onClick={() => setSelId(null)} className="ml-2 text-[10px] font-display tracking-widest text-muted-foreground px-2 py-0.5 rounded border border-border">✕</button>
+                <button onClick={() => setSelIds([])} className="ml-2 text-[10px] font-display tracking-widest text-muted-foreground px-2 py-0.5 rounded border border-border">✕</button>
               </div>
             </div>
           )}
-          {!sel && ui.length > 0 && (
+          {selectedEls.length > 1 && (
+            <div className="mt-1.5 flex items-center justify-between w-full px-3">
+              <span className="font-display text-[11px] tracking-[0.22em] text-primary-glow truncate">{selectedEls.length} SELECTED · MULTI EDIT</span>
+              <button onClick={() => setSelIds([])} className="text-[10px] font-display tracking-widest text-muted-foreground px-2 py-0.5 rounded border border-border">✕</button>
+            </div>
+          )}
+          {selectedEls.length === 0 && ui.length > 0 && (
             <span className="mt-0.5 font-display text-[10px] tracking-[0.2em] text-muted-foreground">
-              {ui.length} ELEMENT{ui.length > 1 ? "S" : ""} · TAP TO EDIT
+              {ui.length} ELEMENT{ui.length > 1 ? "S" : ""} · {multiMode ? "TAP TO MULTI-SELECT" : "TAP TO EDIT"}
             </span>
           )}
-          {!sel && ui.length === 0 && (
+          {selectedEls.length === 0 && ui.length === 0 && (
             <span className="mt-0.5 font-display text-[10px] tracking-[0.2em] text-muted-foreground">
               ADD A COMPONENT ABOVE
             </span>
@@ -333,11 +472,11 @@ export function UIEditor({ scene, onChange }: Props) {
 
         {/* Sheet content */}
         <div ref={inspectorRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6">
-          {!sel ? (
+          {selectedEls.length === 0 ? (
             ui.length > 0 && (
               <div className="grid grid-cols-2 gap-1.5 pt-1">
                 {ui.map(e => (
-                  <button key={e.id} onClick={() => setSelId(e.id)}
+                  <button key={e.id} onClick={() => multiMode ? toggleSelect(e.id) : setSelIds([e.id])}
                     className="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-border/60 bg-background/40 text-left active:scale-[0.98] hover:border-primary/50 transition">
                     <span className="text-primary-glow text-sm">{KIND_LIST.find(k => k.id === e.kind)?.icon ?? "·"}</span>
                     <div className="min-w-0 flex-1">
@@ -348,8 +487,22 @@ export function UIEditor({ scene, onChange }: Props) {
                 ))}
               </div>
             )
-          ) : (
+          ) : selectedEls.length === 1 && sel ? (
             <ElementInspector el={sel} update={(p) => updateEl(sel.id, p)} remove={() => removeEl(sel.id)} clone={() => cloneEl(sel.id)} />
+          ) : (
+            <MultiInspector
+              els={selectedEls}
+              applyDelta={(dx, dy) => updateMany(selectedEls.map(e => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy } })))}
+              setSize={(w, h) => updateMany(selectedEls.map(e => ({ id: e.id, patch: { ...(w != null ? { w } : {}), ...(h != null ? { h } : {}) } })))}
+              setVisible={(v) => updateMany(selectedEls.map(e => ({ id: e.id, patch: { visible: v } })))}
+              alignAnchor={(a) => selectedEls.forEach(e => setAnchorKeepPos(e, a))}
+              removeAll={() => { onChange({ ...scene, ui: ui.filter(e => !selSet.has(e.id)) }); setSelIds([]); }}
+              cloneAll={() => {
+                const copies = selectedEls.map(e => ({ ...e, id: uid(), x: e.x + 12, y: e.y + 12 }));
+                onChange({ ...scene, ui: [...ui, ...copies] });
+                setSelIds(copies.map(c => c.id));
+              }}
+            />
           )}
         </div>
       </div>
@@ -466,6 +619,93 @@ function ElementInspector({ el, update, remove, clone }: {
           {el.visible === false ? "SHOW" : "HIDE"}
         </button>
         <button onClick={remove} className="col-span-2 min-w-0 py-2 px-1 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-wide truncate sm:col-span-1">✕ DELETE</button>
+      </div>
+    </div>
+  );
+}
+
+function MultiInspector({ els, applyDelta, setSize, setVisible, alignAnchor, removeAll, cloneAll }: {
+  els: UIElement[];
+  applyDelta: (dx: number, dy: number) => void;
+  setSize: (w: number | null, h: number | null) => void;
+  setVisible: (v: boolean) => void;
+  alignAnchor: (a: UIAnchor) => void;
+  removeAll: () => void;
+  cloneAll: () => void;
+}) {
+  const [dx, setDx] = useState(0);
+  const [dy, setDy] = useState(0);
+  const [bw, setBw] = useState<string>("");
+  const [bh, setBh] = useState<string>("");
+  const allVisible = els.every(e => e.visible !== false);
+  return (
+    <div className="space-y-3 pt-2">
+      <div className="rounded-lg border border-border/50 bg-background/40 p-2">
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1.5">SELECTED · {els.length}</div>
+        <div className="flex flex-wrap gap-1">
+          {els.map(e => (
+            <span key={e.id} className="px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-[10px] font-mono text-primary-glow">
+              {e.kind}·{e.name}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">MOVE BY (Δ)</div>
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-end">
+          <NumInput label="ΔX" value={dx} onChange={setDx} />
+          <NumInput label="ΔY" value={dy} onChange={setDy} />
+          <button onClick={() => { applyDelta(dx, dy); setDx(0); setDy(0); }}
+            className="h-9 px-3 rounded border border-primary/50 bg-primary/15 text-primary-glow text-[10px] font-display tracking-widest">APPLY</button>
+        </div>
+        <div className="grid grid-cols-4 gap-1 mt-1.5">
+          {([["←",-8,0],["→",8,0],["↑",0,-8],["↓",0,8]] as const).map(([s, x, y]) => (
+            <button key={s} onClick={() => applyDelta(x, y)}
+              className="py-1.5 rounded border border-border text-muted-foreground text-sm">{s}</button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">SET SIZE</div>
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-end">
+          <div>
+            <div className="text-[10px] font-display tracking-widest text-muted-foreground">W</div>
+            <input type="number" value={bw} placeholder="—" onChange={e => setBw(e.target.value)}
+              className="w-full mt-1 px-2 py-1.5 rounded bg-input/60 border border-border text-xs font-mono focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <div className="text-[10px] font-display tracking-widest text-muted-foreground">H</div>
+            <input type="number" value={bh} placeholder="—" onChange={e => setBh(e.target.value)}
+              className="w-full mt-1 px-2 py-1.5 rounded bg-input/60 border border-border text-xs font-mono focus:outline-none focus:border-primary" />
+          </div>
+          <button onClick={() => { setSize(bw ? Number(bw) : null, bh ? Number(bh) : null); setBw(""); setBh(""); }}
+            className="h-9 px-3 rounded border border-primary/50 bg-primary/15 text-primary-glow text-[10px] font-display tracking-widest">APPLY</button>
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">ANCHOR ALL TO</div>
+        <div className="grid grid-cols-9 gap-1">
+          {ANCHORS.map(a => (
+            <button key={a} onClick={() => alignAnchor(a)}
+              className="h-8 rounded text-[10px] font-mono border border-border text-muted-foreground hover:border-primary/50 hover:text-primary-glow">
+              {a}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5">
+        <button onClick={() => setVisible(!allVisible)}
+          className="py-2 rounded border border-border text-muted-foreground font-display text-[10px] tracking-wide">
+          {allVisible ? "HIDE ALL" : "SHOW ALL"}
+        </button>
+        <button onClick={cloneAll}
+          className="py-2 rounded border border-primary/50 bg-primary/10 text-primary-glow font-display text-[10px] tracking-wide">⧉ CLONE</button>
+        <button onClick={removeAll}
+          className="py-2 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-wide">✕ DELETE</button>
       </div>
     </div>
   );
