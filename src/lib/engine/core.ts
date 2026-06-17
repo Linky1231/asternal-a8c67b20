@@ -395,12 +395,35 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     }
   }
 
-  // Enemy patrol
+  // Enemy patrol (with ledge detection so enemies don't fall off platforms)
   for (const e of scene.entities) {
     if (e.kind !== "enemy" || !e.patrol) continue;
     if (e.patrol._origin === undefined) e.patrol._origin = e.x;
     if (e.x - e.patrol._origin > e.patrol.range) { e.x = e.patrol._origin + e.patrol.range; e.vx = -Math.abs(e.vx || 60); }
     else if (e.x - e.patrol._origin < -e.patrol.range) { e.x = e.patrol._origin - e.patrol.range; e.vx = Math.abs(e.vx || 60); }
+
+    // Ledge detection — only when grounded; probe a small cell just past the
+    // leading edge to see if any solid is underneath. If not, turn around.
+    if (grounded.has(e.id) && (e.patrol.ledgeSafe ?? true)) {
+      const ahead = e.vx >= 0 ? e.x + e.w + 2 : e.x - 2;
+      const probeY = e.y + e.h + 2;
+      const probeW = 4, probeH = 6;
+      let hasGround = false;
+      for (const o of solids) {
+        if (o === e) continue;
+        if (
+          ahead < o.x + o.w &&
+          ahead + probeW > o.x &&
+          probeY < o.y + o.h &&
+          probeY + probeH > o.y
+        ) { hasGround = true; break; }
+      }
+      // also keep them inside scene bounds (treat scene floor as ground)
+      if (!hasGround && probeY < scene.height) {
+        e.vx = -(e.vx || (e.vx === 0 ? 60 : 0));
+        if (e.vx === 0) e.vx = 60;
+      }
+    }
   }
 
   // Player jump + interactions
