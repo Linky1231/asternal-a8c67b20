@@ -1484,3 +1484,112 @@ function ParticleEditor({ entity, onUpdate, onClose }: { entity: Entity; onUpdat
     </div>
   );
 }
+
+function LayersPanel({
+  scene,
+  onChangeScene,
+  selectedId,
+  onSelect,
+}: {
+  scene: import("@/lib/engine/core").Scene;
+  onChangeScene: (s: import("@/lib/engine/core").Scene) => void;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  // Render sorted by z desc (top layer first) — but reorder operates on the
+  // underlying entities array (z is the source of truth for draw order).
+  const sorted = [...scene.entities].sort((a, b) => (b.z ?? 0) - (a.z ?? 0));
+  const patch = (id: string, p: Partial<Entity>) =>
+    onChangeScene({ ...scene, entities: scene.entities.map(e => e.id === id ? { ...e, ...p } : e) });
+  const bumpZ = (id: string, dir: 1 | -1) => {
+    const e = scene.entities.find(x => x.id === id);
+    if (!e) return;
+    const cur = e.z ?? 0;
+    patch(id, { z: Math.max(-20, Math.min(20, cur + dir)) });
+  };
+  const toTop = (id: string) => {
+    const maxZ = scene.entities.reduce((m, e) => Math.max(m, e.z ?? 0), 0);
+    patch(id, { z: Math.min(20, maxZ + 1) });
+  };
+  const toBottom = (id: string) => {
+    const minZ = scene.entities.reduce((m, e) => Math.min(m, e.z ?? 0), 0);
+    patch(id, { z: Math.max(-20, minZ - 1) });
+  };
+  const remove = (id: string) => {
+    const e = scene.entities.find(x => x.id === id);
+    if (!e || e.kind === "player") return;
+    onChangeScene({ ...scene, entities: scene.entities.filter(x => x.id !== id) });
+    if (selectedId === id) onSelect(null);
+  };
+  return (
+    <div className="mt-2 space-y-1">
+      {sorted.length === 0 && (
+        <div className="text-[10px] font-mono text-muted-foreground px-2 py-3 text-center border border-dashed border-border rounded">
+          NO LAYERS
+        </div>
+      )}
+      {sorted.map(e => {
+        const isSel = e.id === selectedId;
+        const visible = e.visible ?? true;
+        const locked = !!e.locked;
+        return (
+          <div
+            key={e.id}
+            className={`group flex items-center gap-1 panel rounded-md pl-1.5 pr-1 py-1 text-xs border ${
+              isSel ? "border-primary/70 bg-primary/10" : "border-border/40"
+            }`}
+          >
+            <button
+              onClick={() => bumpZ(e.id, 1)}
+              title="Forward"
+              className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
+            >▲</button>
+            <button
+              onClick={() => bumpZ(e.id, -1)}
+              title="Backward"
+              className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
+            >▼</button>
+            <span
+              className="w-2.5 h-2.5 rounded-sm shrink-0"
+              style={{ background: e.color, boxShadow: visible ? `0 0 8px ${e.color}` : undefined, opacity: visible ? 1 : 0.3 }}
+            />
+            <button
+              onClick={() => onSelect(e.id)}
+              className="flex-1 flex items-center gap-1.5 text-left min-w-0"
+            >
+              <span className="font-display tracking-wider text-[10px] truncate">{e.kind.toUpperCase()}</span>
+              <span className="ml-auto font-mono text-[9px] text-muted-foreground shrink-0">z{e.z ?? 0}</span>
+            </button>
+            <button
+              onClick={() => patch(e.id, { visible: !visible })}
+              title={visible ? "Hide" : "Show"}
+              className={`w-6 h-6 grid place-items-center rounded text-xs ${visible ? "text-primary-glow" : "text-muted-foreground/50"}`}
+            >{visible ? "◉" : "◌"}</button>
+            <button
+              onClick={() => patch(e.id, { locked: !locked })}
+              title={locked ? "Unlock" : "Lock"}
+              className={`w-6 h-6 grid place-items-center rounded text-xs ${locked ? "text-destructive" : "text-muted-foreground/60"}`}
+            >{locked ? "🔒" : "🔓"}</button>
+            <button
+              onClick={() => toTop(e.id)}
+              title="Move to top"
+              className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
+            >⇈</button>
+            <button
+              onClick={() => toBottom(e.id)}
+              title="Move to bottom"
+              className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
+            >⇊</button>
+            {e.kind !== "player" && (
+              <button
+                onClick={() => remove(e.id)}
+                title="Delete"
+                className="w-6 h-6 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive"
+              >✕</button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
