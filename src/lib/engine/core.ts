@@ -423,6 +423,14 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     }
   }
 
+  // Persist grounded flag for next-frame predictive ledge checks
+  for (const e of scene.entities) {
+    if (e.kind === "platform") continue;
+    (e as Entity & { _grounded?: boolean })._grounded = grounded.has(e.id);
+  }
+
+
+
   // Enemy patrol (with ledge detection so enemies don't fall off platforms)
   for (const e of scene.entities) {
     if (e.kind !== "enemy" || !e.patrol) continue;
