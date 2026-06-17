@@ -104,24 +104,59 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     setPreviewVersion(v => v + 1);
   };
 
+  const displayScale = useRef<number>(1);
+  const dragRect = useRef<DOMRect | null>(null);
+
   const blit = (preview?: (ctx: CanvasRenderingContext2D) => void) => {
     const c = canvasRef.current; const buf = bufferRef.current;
     if (!c || !buf) return;
     const ctx = c.getContext("2d")!;
     const W = c.clientWidth;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    if (c.width !== W * dpr) { c.width = W * dpr; c.height = W * dpr; }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (c.width !== Math.round(W * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(W * dpr); }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
+    ctx.imageSmoothingQuality = "low";
     ctx.clearRect(0, 0, W, W);
     ctx.drawImage(buf, 0, 0, W, W);
+    displayScale.current = W / size;
     if (preview) {
       ctx.save();
-      ctx.scale(W / size, W / size);
+      ctx.scale(displayScale.current, displayScale.current);
       preview(ctx);
       ctx.restore();
     }
+  };
+
+  // Draw a stroke segment directly to the display canvas (no full re-blit).
+  const strokeSegmentDisplay = (x0: number, y0: number, x1: number, y1: number, erase: boolean, w: number) => {
+    const c = canvasRef.current; if (!c) return;
+    const ctx = c.getContext("2d")!;
+    const s = displayScale.current || 1;
+    ctx.save();
+    ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(0.5, w) * s;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x0 * s, y0 * s);
+    ctx.lineTo(x1 * s, y1 * s);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const stampDotDisplay = (x: number, y: number, erase: boolean, w: number) => {
+    const c = canvasRef.current; if (!c) return;
+    const ctx = c.getContext("2d")!;
+    const s = displayScale.current || 1;
+    ctx.save();
+    ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x * s, y * s, Math.max(0.5, w / 2) * s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   };
 
   const getPos = (e: React.PointerEvent) => {
