@@ -65,7 +65,37 @@ export function UIEditor({ scene, onChange }: Props) {
 
   useEffect(() => {
     inspectorRef.current?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    if (selId) setSnap(s => (s === "peek" ? "half" : s));
+    else setSnap("peek");
   }, [selId]);
+
+  // sheet drag (vertical) — snap to peek/half/full
+  const sheetHeightFor = (s: Snap) => {
+    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    if (s === "full") return Math.round(vh * 0.88);
+    if (s === "half") return Math.round(vh * 0.58);
+    return 60;
+  };
+  const onSheetHandleDown = (ev: React.PointerEvent) => {
+    (ev.target as Element).setPointerCapture(ev.pointerId);
+    sheetDragRef.current = { startY: ev.clientY, startSnap: snap, dy: 0 };
+  };
+  const onSheetHandleMove = (ev: React.PointerEvent) => {
+    const d = sheetDragRef.current; if (!d) return;
+    d.dy = ev.clientY - d.startY;
+    setSheetDragOffset(d.dy);
+  };
+  const onSheetHandleUp = () => {
+    const d = sheetDragRef.current; if (!d) { setSheetDragOffset(0); return; }
+    const order: Snap[] = ["peek", "half", "full"];
+    const cur = order.indexOf(d.startSnap);
+    let next = cur;
+    if (d.dy < -40) next = Math.min(2, cur + 1);
+    else if (d.dy > 40) next = Math.max(0, cur - 1);
+    setSnap(order[next]);
+    setSheetDragOffset(0);
+    sheetDragRef.current = null;
+  };
 
   // render loop
   useEffect(() => {
