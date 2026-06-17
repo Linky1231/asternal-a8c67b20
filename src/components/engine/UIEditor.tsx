@@ -155,14 +155,80 @@ export function UIEditor({ scene, onChange }: Props) {
         drawUIElement(ctx, el, W, H, tickRef.current, mockState);
       }
 
+      // multi-select outlines
+      for (const e of selectedEls) {
+        if (e.id === selId) continue;
+        const rr = resolveUIRect(e, W, H);
+        ctx.strokeStyle = "#a78bfa";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(rr.x - 1, rr.y - 1, rr.w + 2, rr.h + 2);
+        ctx.setLineDash([]);
+      }
+
       if (sel) {
         const r = resolveUIRect(sel, W, H);
+        // anchor reference point + dashed guides showing X/Y offsets
+        const ap = anchorScreenPoint(sel.anchor, W, H);
+        ctx.strokeStyle = "rgba(251,191,36,0.85)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(ap.x, ap.y); ctx.lineTo(r.x, ap.y);
+        ctx.moveTo(r.x, ap.y); ctx.lineTo(r.x, r.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // anchor reference marker
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath(); ctx.arc(ap.x, ap.y, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(ap.x, ap.y, 5, 0, Math.PI * 2); ctx.stroke();
+        // X/Y offset labels
+        const lbl = `${Math.round(sel.x)}`;
+        const lbl2 = `${Math.round(sel.y)}`;
+        ctx.font = "600 11px Rajdhani, sans-serif";
+        ctx.fillStyle = "#fbbf24";
+        ctx.textBaseline = "middle";
+        const midX = (ap.x + r.x) / 2;
+        ctx.textAlign = "center";
+        ctx.fillText(`x ${lbl}`, midX, ap.y - 8);
+        ctx.textAlign = "left";
+        ctx.fillText(`y ${lbl2}`, r.x + 4, (ap.y + r.y) / 2);
+        ctx.textAlign = "start";
+
+        // W/H labels on edges
+        ctx.fillStyle = "#7dd3fc";
+        ctx.textAlign = "center";
+        ctx.fillText(`${Math.round(sel.w)}`, r.x + r.w / 2, r.y - 8);
+        ctx.save();
+        ctx.translate(r.x + r.w + 12, r.y + r.h / 2);
+        ctx.rotate(Math.PI / 2);
+        ctx.fillText(`${Math.round(sel.h)}`, 0, 0);
+        ctx.restore();
+        ctx.textAlign = "start";
+
+        // selection outline
         ctx.strokeStyle = "#7dd3fc";
         ctx.lineWidth = 2;
         ctx.setLineDash([8, 6]);
         ctx.strokeRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
         ctx.setLineDash([]);
-        // resize handle (scaled up so it stays grabbable when the canvas is scaled down)
+
+        // 9 anchor pickers around element
+        const ah = Math.max(10, 12 / Math.max(0.001, size.w / virt.w));
+        const pts: { a: UIAnchor; x: number; y: number }[] = [
+          { a: "tl", x: r.x, y: r.y }, { a: "tc", x: r.x + r.w / 2, y: r.y }, { a: "tr", x: r.x + r.w, y: r.y },
+          { a: "cl", x: r.x, y: r.y + r.h / 2 }, { a: "c", x: r.x + r.w / 2, y: r.y + r.h / 2 }, { a: "cr", x: r.x + r.w, y: r.y + r.h / 2 },
+          { a: "bl", x: r.x, y: r.y + r.h }, { a: "bc", x: r.x + r.w / 2, y: r.y + r.h }, { a: "br", x: r.x + r.w, y: r.y + r.h },
+        ];
+        for (const p of pts) {
+          const active = p.a === sel.anchor;
+          ctx.fillStyle = active ? "#fbbf24" : "#0b1e3f";
+          ctx.strokeStyle = active ? "#fbbf24" : "#7dd3fc";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(p.x, p.y, ah / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        }
+        // resize handle (bottom-right)
         const hs = Math.max(14, 16 / Math.max(0.001, size.w / virt.w));
         ctx.fillStyle = "#f8fafc";
         ctx.strokeStyle = "#0ea5e9";
