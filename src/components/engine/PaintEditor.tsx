@@ -160,8 +160,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   };
 
   const getPos = (e: React.PointerEvent) => {
-    const c = canvasRef.current!;
-    const r = c.getBoundingClientRect();
+    const r = dragRect.current ?? canvasRef.current!.getBoundingClientRect();
     return {
       x: ((e.clientX - r.left) / r.width) * size,
       y: ((e.clientY - r.top) / r.height) * size,
