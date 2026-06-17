@@ -393,21 +393,8 @@ function InspectorPanel({
 
 
         <div className="pt-4">
-          <SectionTitle>{t("scene.entities")} · {scene.entities.length}</SectionTitle>
-          <div className="space-y-1 mt-2">
-            {scene.entities.map(e => (
-              <button key={e.id}
-                onClick={() => onSelect(e.id)}
-                className="w-full flex items-center gap-2 panel rounded-md px-2 py-1.5 text-left text-xs"
-              >
-                <span className="w-3 h-3 rounded-sm" style={{ background: e.color, boxShadow: `0 0 8px ${e.color}` }} />
-                <span className="font-display tracking-wider">{e.kind.toUpperCase()}</span>
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                  {Math.round(e.x)},{Math.round(e.y)}
-                </span>
-              </button>
-            ))}
-          </div>
+          <SectionTitle>LAYERS · {scene.entities.length}</SectionTitle>
+          <LayersPanel scene={scene} onChangeScene={onChangeScene} selectedId={null} onSelect={onSelect} />
         </div>
       </div>
     );
@@ -1386,12 +1373,18 @@ function ParticlesButton({ entity, onUpdate }: { entity: Entity; onUpdate: (patc
 
 function ParticleEditor({ entity, onUpdate, onClose }: { entity: Entity; onUpdate: (patch: Partial<Entity>) => void; onClose: () => void }) {
   const t = useT();
+  // If the entity has no emitter yet, the toggle must reflect that (OFF) so
+  // turning it ON actually persists an emitter. Previously the default
+  // {enabled:true} made the toggle appear ON while no emitter was saved,
+  // so the user had to flip it off then on again to make it work.
+  const hasEmitter = !!entity.emitter;
   const em = entity.emitter ?? {
-    enabled: true, rate: 20, lifetime: 1, speed: 80,
+    enabled: false, rate: 20, lifetime: 1, speed: 80,
     direction: 270, spread: 40, size: 4, gravity: 0, color: "#7dd3fc",
   };
   const upd = (patch: Partial<typeof em>) =>
     onUpdate({ emitter: { ...em, ...patch } });
+
 
   // Live preview
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1443,7 +1436,7 @@ function ParticleEditor({ entity, onUpdate, onClose }: { entity: Entity; onUpdat
           <button onClick={onClose} className="text-xs font-display tracking-widest text-muted-foreground">✕</button>
         </div>
 
-        <Toggle label={t("particles.enable")} on={em.enabled} onChange={v => upd({ enabled: v })} />
+        <Toggle label={t("particles.enable")} on={hasEmitter && em.enabled} onChange={v => upd({ enabled: v })} />
 
         <div className="rounded-md overflow-hidden border border-border bg-background">
           <canvas ref={canvasRef} width={320} height={180} className="w-full block" />
@@ -1488,6 +1481,115 @@ function ParticleEditor({ entity, onUpdate, onClose }: { entity: Entity; onUpdat
           >{t("particles.close")}</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LayersPanel({
+  scene,
+  onChangeScene,
+  selectedId,
+  onSelect,
+}: {
+  scene: import("@/lib/engine/core").Scene;
+  onChangeScene: (s: import("@/lib/engine/core").Scene) => void;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  // Render sorted by z desc (top layer first) — but reorder operates on the
+  // underlying entities array (z is the source of truth for draw order).
+  const sorted = [...scene.entities].sort((a, b) => (b.z ?? 0) - (a.z ?? 0));
+  const patch = (id: string, p: Partial<Entity>) =>
+    onChangeScene({ ...scene, entities: scene.entities.map(e => e.id === id ? { ...e, ...p } : e) });
+  const bumpZ = (id: string, dir: 1 | -1) => {
+    const e = scene.entities.find(x => x.id === id);
+    if (!e) return;
+    const cur = e.z ?? 0;
+    patch(id, { z: Math.max(-20, Math.min(20, cur + dir)) });
+  };
+  const toTop = (id: string) => {
+    const maxZ = scene.entities.reduce((m, e) => Math.max(m, e.z ?? 0), 0);
+    patch(id, { z: Math.min(20, maxZ + 1) });
+  };
+  const toBottom = (id: string) => {
+    const minZ = scene.entities.reduce((m, e) => Math.min(m, e.z ?? 0), 0);
+    patch(id, { z: Math.max(-20, minZ - 1) });
+  };
+  const remove = (id: string) => {
+    const e = scene.entities.find(x => x.id === id);
+    if (!e || e.kind === "player") return;
+    onChangeScene({ ...scene, entities: scene.entities.filter(x => x.id !== id) });
+    if (selectedId === id) onSelect(null);
+  };
+  return (
+    <div className="mt-2 space-y-1">
+      {sorted.length === 0 && (
+        <div className="text-[10px] font-mono text-muted-foreground px-2 py-3 text-center border border-dashed border-border rounded">
+          NO LAYERS
+        </div>
+      )}
+      {sorted.map(e => {
+        const isSel = e.id === selectedId;
+        const visible = e.visible ?? true;
+        const locked = !!e.locked;
+        return (
+          <div
+            key={e.id}
+            className={`group flex items-center gap-1 panel rounded-md pl-1.5 pr-1 py-1 text-xs border ${
+              isSel ? "border-primary/70 bg-primary/10" : "border-border/40"
+            }`}
+          >
+            <button
+              onClick={() => bumpZ(e.id, 1)}
+              title="Forward"
+              className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
+            >▲</button>
+            <button
+              onClick={() => bumpZ(e.id, -1)}
+              title="Backward"
+              className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
+            >▼</button>
+            <span
+              className="w-2.5 h-2.5 rounded-sm shrink-0"
+              style={{ background: e.color, boxShadow: visible ? `0 0 8px ${e.color}` : undefined, opacity: visible ? 1 : 0.3 }}
+            />
+            <button
+              onClick={() => onSelect(e.id)}
+              className="flex-1 flex items-center gap-1.5 text-left min-w-0"
+            >
+              <span className="font-display tracking-wider text-[10px] truncate">{e.kind.toUpperCase()}</span>
+              <span className="ml-auto font-mono text-[9px] text-muted-foreground shrink-0">z{e.z ?? 0}</span>
+            </button>
+            <button
+              onClick={() => patch(e.id, { visible: !visible })}
+              title={visible ? "Hide" : "Show"}
+              className={`w-6 h-6 grid place-items-center rounded text-xs ${visible ? "text-primary-glow" : "text-muted-foreground/50"}`}
+            >{visible ? "◉" : "◌"}</button>
+            <button
+              onClick={() => patch(e.id, { locked: !locked })}
+              title={locked ? "Unlock" : "Lock"}
+              className={`w-6 h-6 grid place-items-center rounded text-xs ${locked ? "text-destructive" : "text-muted-foreground/60"}`}
+            >{locked ? "🔒" : "🔓"}</button>
+            <button
+              onClick={() => toTop(e.id)}
+              title="Move to top"
+              className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
+            >⇈</button>
+            <button
+              onClick={() => toBottom(e.id)}
+              title="Move to bottom"
+              className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
+            >⇊</button>
+            {e.kind !== "player" && (
+              <button
+                onClick={() => remove(e.id)}
+                title="Delete"
+                className="w-6 h-6 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive"
+              >✕</button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

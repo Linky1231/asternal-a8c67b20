@@ -239,6 +239,8 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
   const hitTest = (wx: number, wy: number) => {
     for (let i = scene.entities.length - 1; i >= 0; i--) {
       const e = scene.entities[i];
+      if (e.locked) continue;
+      if (e.visible === false) continue;
       if (wx >= e.x && wx <= e.x + e.w && wy >= e.y && wy <= e.y + e.h) return e;
     }
     return null;
