@@ -513,6 +513,8 @@ function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => v
 
 function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number, visualEffects = true) {
   ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   const flip = (e.facing === -1) !== !!e.flipX;
   if (flip) {
     ctx.translate(e.x + e.w, e.y);

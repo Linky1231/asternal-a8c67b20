@@ -3,7 +3,7 @@ import type { Entity, SpriteAsset } from "@/lib/engine/core";
 import { uid } from "@/lib/engine/core";
 import type { AnimationClip, AnimState } from "@/lib/engine/animations";
 import { DEFAULT_ANIM_NAMES, currentFrameImage } from "@/lib/engine/animations";
-import { fileToDataURL, preloadImage } from "@/lib/engine/images";
+import { drawTransparencyGrid, fileToDataURL, preloadImage } from "@/lib/engine/images";
 import { PaintEditor } from "./PaintEditor";
 import { useT } from "@/lib/i18n";
 
@@ -157,15 +157,7 @@ function ClipPanel({
         cnv.width = W * dpr; cnv.height = H * dpr;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // bg
-      ctx.fillStyle = "rgba(2,6,23,0.6)";
-      ctx.fillRect(0, 0, W, H);
-      // checker
-      ctx.fillStyle = "rgba(56,189,248,0.06)";
-      const cs = 16;
-      for (let y = 0; y < H; y += cs)
-        for (let x = (Math.floor(y / cs) % 2) * cs; x < W; x += cs * 2)
-          ctx.fillRect(x, y, cs, cs);
+      drawTransparencyGrid(ctx, 0, 0, W, H, 16);
 
       const t = playing ? (performance.now() - t0) / 1000 : 0;
       const img = currentFrameImage(tempEntity, t, "idle");
@@ -174,6 +166,8 @@ function ClipPanel({
         const maxH = H * 0.8, maxW = W * 0.8;
         let dw = maxW, dh = dw / ratio;
         if (dh > maxH) { dh = maxH; dw = dh * ratio; }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
       } else {
         ctx.fillStyle = "rgba(125,211,252,0.6)";
@@ -327,7 +321,7 @@ function ClipPanel({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/*"
           multiple
           className="hidden"
           onChange={e => { importFrames(e.target.files); e.target.value = ""; }}
