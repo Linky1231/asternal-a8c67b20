@@ -393,21 +393,8 @@ function InspectorPanel({
 
 
         <div className="pt-4">
-          <SectionTitle>{t("scene.entities")} · {scene.entities.length}</SectionTitle>
-          <div className="space-y-1 mt-2">
-            {scene.entities.map(e => (
-              <button key={e.id}
-                onClick={() => onSelect(e.id)}
-                className="w-full flex items-center gap-2 panel rounded-md px-2 py-1.5 text-left text-xs"
-              >
-                <span className="w-3 h-3 rounded-sm" style={{ background: e.color, boxShadow: `0 0 8px ${e.color}` }} />
-                <span className="font-display tracking-wider">{e.kind.toUpperCase()}</span>
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                  {Math.round(e.x)},{Math.round(e.y)}
-                </span>
-              </button>
-            ))}
-          </div>
+          <SectionTitle>LAYERS · {scene.entities.length}</SectionTitle>
+          <LayersPanel scene={scene} onChangeScene={onChangeScene} selectedId={null} onSelect={onSelect} />
         </div>
       </div>
     );
