@@ -19,12 +19,13 @@ const PALETTE = [
 
 const FONTS = ["Rajdhani", "Orbitron", "JetBrains Mono", "Georgia", "Arial"];
 
-export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
+export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#38bdf8");
   const [width, setWidth] = useState(6);
   const [name, setName] = useState("drawing");
   const [stabilize, setStabilize] = useState(true);
+  const [pressureOn, setPressureOn] = useState(true);
   const [previewVersion, setPreviewVersion] = useState(0);
 
   // text overlay state
@@ -44,7 +45,8 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     const buf = document.createElement("canvas");
     buf.width = size; buf.height = size;
     const ctx = buf.getContext("2d")!;
-    // start with transparent (kept) — page bg shows the light checker
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     bufferRef.current = buf;
     blit();
     pushSnapshot();
@@ -64,10 +66,11 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     if (!c || !buf) return;
     const ctx = c.getContext("2d")!;
     const W = c.clientWidth;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
     if (c.width !== W * dpr) { c.width = W * dpr; c.height = W * dpr; }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    // Transparent — checker pattern shows through from the wrapper
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.clearRect(0, 0, W, W);
     ctx.drawImage(buf, 0, 0, W, W);
     if (preview) {
@@ -96,18 +99,29 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
 
   const bctx = () => bufferRef.current!.getContext("2d")!;
 
-  const strokeSegment = (x0: number, y0: number, x1: number, y1: number, erase: boolean) => {
+  const strokeSegment = (x0: number, y0: number, x1: number, y1: number, erase: boolean, w?: number) => {
     const c = bctx();
     c.save();
     c.globalCompositeOperation = erase ? "destination-out" : "source-over";
     c.strokeStyle = color;
-    c.lineWidth = width;
+    c.lineWidth = Math.max(0.5, w ?? width);
     c.lineCap = "round";
     c.lineJoin = "round";
     c.beginPath();
     c.moveTo(x0, y0);
     c.lineTo(x1, y1);
     c.stroke();
+    c.restore();
+  };
+
+  const stampDot = (x: number, y: number, erase: boolean, w?: number) => {
+    const c = bctx();
+    c.save();
+    c.globalCompositeOperation = erase ? "destination-out" : "source-over";
+    c.fillStyle = color;
+    c.beginPath();
+    c.arc(x, y, Math.max(0.5, (w ?? width) / 2), 0, Math.PI * 2);
+    c.fill();
     c.restore();
   };
 
@@ -215,7 +229,9 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     pushSnapshot();
     drag.current = { active: true, tool, last: p, start: p, smooth: p };
     if (tool === "brush" || tool === "eraser") {
-      strokeSegment(p.x, p.y, p.x + 0.01, p.y + 0.01, tool === "eraser");
+      const pr = pressureOn && e.pressure > 0 && e.pressure !== 0.5 ? e.pressure : 0.5;
+      const w = width * (pressureOn ? (0.4 + 1.2 * pr) : 1);
+      stampDot(p.x, p.y, tool === "eraser", w);
       blit();
     } else if (tool === "fill") {
       floodFill(p.x, p.y, color);
@@ -229,26 +245,29 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
     if (activePointers.current.size > 1) { cancelStroke(); return; }
     const p = getPos(e);
     if (drag.current.tool === "brush" || drag.current.tool === "eraser") {
-      // Use coalesced events for full-resolution input, draw directly to the
-      // real pointer position (no lag). Light smoothing only when stabilize is on,
-      // applied via midpoint quadratic curves rather than a low-pass filter.
       const events = (typeof e.nativeEvent.getCoalescedEvents === "function"
         ? e.nativeEvent.getCoalescedEvents()
         : []) as PointerEvent[];
       const points = events.length ? events.map(ev => {
         const c = canvasRef.current!;
         const r = c.getBoundingClientRect();
-        return { x: ((ev.clientX - r.left) / r.width) * size, y: ((ev.clientY - r.top) / r.height) * size };
-      }) : [p];
+        return {
+          x: ((ev.clientX - r.left) / r.width) * size,
+          y: ((ev.clientY - r.top) / r.height) * size,
+          pressure: ev.pressure,
+        };
+      }) : [{ x: p.x, y: p.y, pressure: e.pressure }];
       const erase = drag.current.tool === "eraser";
       for (const pt of points) {
+        const pr = pressureOn && pt.pressure > 0 && pt.pressure !== 0.5 ? pt.pressure : 0.5;
+        const w = width * (pressureOn ? (0.4 + 1.2 * pr) : 1);
         if (stabilize) {
           const mx = (drag.current.last.x + pt.x) / 2;
           const my = (drag.current.last.y + pt.y) / 2;
-          strokeSegment(drag.current.last.x, drag.current.last.y, mx, my, erase);
+          strokeSegment(drag.current.last.x, drag.current.last.y, mx, my, erase, w);
           drag.current.last = { x: mx, y: my };
         } else {
-          strokeSegment(drag.current.last.x, drag.current.last.y, pt.x, pt.y, erase);
+          strokeSegment(drag.current.last.x, drag.current.last.y, pt.x, pt.y, erase, w);
           drag.current.last = pt;
         }
       }
@@ -596,6 +615,29 @@ export function PaintEditor({ onSave, onClose, size = 384 }: Props) {
               />
             </span>
             <input type="checkbox" checked={stabilize} onChange={(e) => setStabilize(e.target.checked)} className="sr-only" />
+          </label>
+
+          <label className="flex items-center justify-between text-[12px] font-medium text-foreground/85 cursor-pointer select-none">
+            <span>Pressure sensitive</span>
+            <span
+              role="switch"
+              aria-checked={pressureOn}
+              onClick={() => setPressureOn(!pressureOn)}
+              className="relative w-[42px] h-[26px] rounded-full transition-colors"
+              style={{
+                background: pressureOn ? "oklch(0.7 0.17 145)" : "oklch(0.35 0.02 260)",
+                boxShadow: "inset 0 1px 2px oklch(0 0 0 / 0.3)",
+              }}
+            >
+              <span
+                className="absolute top-[2px] w-[22px] h-[22px] rounded-full bg-white transition-all"
+                style={{
+                  left: pressureOn ? "18px" : "2px",
+                  boxShadow: "0 2px 4px oklch(0 0 0 / 0.3)",
+                }}
+              />
+            </span>
+            <input type="checkbox" checked={pressureOn} onChange={(e) => setPressureOn(e.target.checked)} className="sr-only" />
           </label>
         </div>
       </div>
