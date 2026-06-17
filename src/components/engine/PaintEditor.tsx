@@ -66,10 +66,11 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     if (!c || !buf) return;
     const ctx = c.getContext("2d")!;
     const W = c.clientWidth;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
     if (c.width !== W * dpr) { c.width = W * dpr; c.height = W * dpr; }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    // Transparent — checker pattern shows through from the wrapper
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.clearRect(0, 0, W, W);
     ctx.drawImage(buf, 0, 0, W, W);
     if (preview) {
