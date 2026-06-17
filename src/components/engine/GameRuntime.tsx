@@ -76,7 +76,7 @@ export function GameRuntime({
     let cssW = 0;
     let cssH = 0;
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.25 : 1.5);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       cssW = Math.max(1, canvas.clientWidth);
       cssH = Math.max(1, canvas.clientHeight);
       const nextW = Math.round(cssW * dpr);
@@ -84,6 +84,8 @@ export function GameRuntime({
       if (canvas.width !== nextW) canvas.width = nextW;
       if (canvas.height !== nextH) canvas.height = nextH;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
     };
     resize();
     window.addEventListener("resize", resize);
