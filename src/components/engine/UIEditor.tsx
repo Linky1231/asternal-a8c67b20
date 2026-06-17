@@ -369,7 +369,7 @@ export function UIEditor({ scene, onChange }: Props) {
           onPointerUp={onSheetHandleUp}
           onPointerCancel={onSheetHandleUp}>
           <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
-          {sel && (
+          {selectedEls.length === 1 && sel && (
             <div className="mt-1.5 flex items-center justify-between w-full px-3">
               <span className="font-display text-[11px] tracking-[0.22em] text-primary-glow truncate">{sel.kind.toUpperCase()} · {sel.name}</span>
               <div className="flex items-center gap-1">
@@ -377,16 +377,22 @@ export function UIEditor({ scene, onChange }: Props) {
                   <button key={s} onClick={() => setSnap(s)}
                     className={`w-1.5 h-1.5 rounded-full ${snap === s ? "bg-primary-glow" : "bg-muted-foreground/30"}`} />
                 ))}
-                <button onClick={() => setSelId(null)} className="ml-2 text-[10px] font-display tracking-widest text-muted-foreground px-2 py-0.5 rounded border border-border">✕</button>
+                <button onClick={() => setSelIds([])} className="ml-2 text-[10px] font-display tracking-widest text-muted-foreground px-2 py-0.5 rounded border border-border">✕</button>
               </div>
             </div>
           )}
-          {!sel && ui.length > 0 && (
+          {selectedEls.length > 1 && (
+            <div className="mt-1.5 flex items-center justify-between w-full px-3">
+              <span className="font-display text-[11px] tracking-[0.22em] text-primary-glow truncate">{selectedEls.length} SELECTED · MULTI EDIT</span>
+              <button onClick={() => setSelIds([])} className="text-[10px] font-display tracking-widest text-muted-foreground px-2 py-0.5 rounded border border-border">✕</button>
+            </div>
+          )}
+          {selectedEls.length === 0 && ui.length > 0 && (
             <span className="mt-0.5 font-display text-[10px] tracking-[0.2em] text-muted-foreground">
-              {ui.length} ELEMENT{ui.length > 1 ? "S" : ""} · TAP TO EDIT
+              {ui.length} ELEMENT{ui.length > 1 ? "S" : ""} · {multiMode ? "TAP TO MULTI-SELECT" : "TAP TO EDIT"}
             </span>
           )}
-          {!sel && ui.length === 0 && (
+          {selectedEls.length === 0 && ui.length === 0 && (
             <span className="mt-0.5 font-display text-[10px] tracking-[0.2em] text-muted-foreground">
               ADD A COMPONENT ABOVE
             </span>
@@ -395,11 +401,11 @@ export function UIEditor({ scene, onChange }: Props) {
 
         {/* Sheet content */}
         <div ref={inspectorRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6">
-          {!sel ? (
+          {selectedEls.length === 0 ? (
             ui.length > 0 && (
               <div className="grid grid-cols-2 gap-1.5 pt-1">
                 {ui.map(e => (
-                  <button key={e.id} onClick={() => setSelId(e.id)}
+                  <button key={e.id} onClick={() => multiMode ? toggleSelect(e.id) : setSelIds([e.id])}
                     className="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-border/60 bg-background/40 text-left active:scale-[0.98] hover:border-primary/50 transition">
                     <span className="text-primary-glow text-sm">{KIND_LIST.find(k => k.id === e.kind)?.icon ?? "·"}</span>
                     <div className="min-w-0 flex-1">
@@ -410,8 +416,22 @@ export function UIEditor({ scene, onChange }: Props) {
                 ))}
               </div>
             )
-          ) : (
+          ) : selectedEls.length === 1 && sel ? (
             <ElementInspector el={sel} update={(p) => updateEl(sel.id, p)} remove={() => removeEl(sel.id)} clone={() => cloneEl(sel.id)} />
+          ) : (
+            <MultiInspector
+              els={selectedEls}
+              applyDelta={(dx, dy) => updateMany(selectedEls.map(e => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy } })))}
+              setSize={(w, h) => updateMany(selectedEls.map(e => ({ id: e.id, patch: { ...(w != null ? { w } : {}), ...(h != null ? { h } : {}) } })))}
+              setVisible={(v) => updateMany(selectedEls.map(e => ({ id: e.id, patch: { visible: v } })))}
+              alignAnchor={(a) => selectedEls.forEach(e => setAnchorKeepPos(e, a))}
+              removeAll={() => { onChange({ ...scene, ui: ui.filter(e => !selSet.has(e.id)) }); setSelIds([]); }}
+              cloneAll={() => {
+                const copies = selectedEls.map(e => ({ ...e, id: uid(), x: e.x + 12, y: e.y + 12 }));
+                onChange({ ...scene, ui: [...ui, ...copies] });
+                setSelIds(copies.map(c => c.id));
+              }}
+            />
           )}
         </div>
       </div>
