@@ -25,6 +25,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   const [width, setWidth] = useState(6);
   const [name, setName] = useState("drawing");
   const [stabilize, setStabilize] = useState(true);
+  const [pressureOn, setPressureOn] = useState(true);
   const [previewVersion, setPreviewVersion] = useState(0);
 
   // text overlay state
