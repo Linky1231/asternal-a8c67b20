@@ -458,10 +458,14 @@ export function UIEditor({ scene, onChange }: Props) {
           height: activeSheetH,
           transform: `translateY(${sheetTranslate}px)`,
           transition: sheetDragRef.current ? "none" : "transform 240ms cubic-bezier(0.32, 0.72, 0, 1), height 240ms cubic-bezier(0.32, 0.72, 0, 1)",
+          WebkitBackdropFilter: "blur(24px)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+          willChange: "transform, height",
         }}>
         {/* Drag handle */}
         <div
           className="shrink-0 flex flex-col items-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none select-none"
+          style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none", touchAction: "none" }}
           onPointerDown={onSheetHandleDown}
           onPointerMove={onSheetHandleMove}
           onPointerUp={onSheetHandleUp}
@@ -498,7 +502,9 @@ export function UIEditor({ scene, onChange }: Props) {
         </div>
 
         {/* Sheet content */}
-        <div ref={inspectorRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6">
+        <div ref={inspectorRef}
+          className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6"
+          style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" } as React.CSSProperties}>
           {selectedEls.length === 0 ? (
             ui.length > 0 && (
               <div className="grid grid-cols-2 gap-1.5 pt-1">
