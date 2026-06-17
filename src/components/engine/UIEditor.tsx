@@ -318,7 +318,12 @@ export function UIEditor({ scene, onChange }: Props) {
                 <span className="text-[9px] font-display tracking-wider">{k.label}</span>
               </button>
             ))}
-            <button onClick={() => { if (confirm("Clear all UI?")) onChange({ ...scene, ui: [] }); }}
+            <button onClick={() => { setMultiMode(m => !m); if (multiMode) setSelIds([]); }}
+              className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border active:scale-95 transition ${multiMode ? "border-primary bg-primary/20 text-primary-glow" : "border-border/50 bg-background/40 text-muted-foreground"}`}>
+              <span className="text-base leading-none">{multiMode ? "☑" : "☐"}</span>
+              <span className="text-[9px] font-display tracking-wider">MULTI</span>
+            </button>
+            <button onClick={() => { if (confirm("Clear all UI?")) { onChange({ ...scene, ui: [] }); setSelIds([]); } }}
               className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive active:scale-95">
               <span className="text-base leading-none">✕</span>
               <span className="text-[9px] font-display tracking-wider">CLEAR</span>
