@@ -20,20 +20,24 @@ const KIND_LIST: { id: UIElementKind; icon: string; label: string }[] = [
 
 const ANCHORS: UIAnchor[] = ["tl","tc","tr","cl","c","cr","bl","bc","br"];
 
+type Snap = "peek" | "half" | "full";
+
 export function UIEditor({ scene, onChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inspectorRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const [selId, setSelId] = useState<string | null>(null);
-  // `virt` = the size the game will actually render at (used for layout math
-  // so what you place here lands at the same spot in PLAY). `size` = the
-  // scaled-down on-screen size of the preview inside the editor.
+  const [snap, setSnap] = useState<Snap>("peek");
   const [virt, setVirt] = useState({ w: 360, h: 640 });
   const [size, setSize] = useState({ w: 360, h: 640 });
   const dragRef = useRef<{ id: string; mode: "move" | "resize"; sx: number; sy: number; ox: number; oy: number; ow: number; oh: number } | null>(null);
+  const sheetDragRef = useRef<{ startY: number; startSnap: Snap; dy: number } | null>(null);
+  const [sheetDragOffset, setSheetDragOffset] = useState(0);
   const tickRef = useRef(0);
   const moveFrame = useRef(0);
   const pendingDragUpdate = useRef<{ id: string; patch: Partial<UIElement> } | null>(null);
+
 
   const ui = scene.ui ?? [];
   const sel = ui.find(e => e.id === selId) ?? null;
@@ -61,7 +65,37 @@ export function UIEditor({ scene, onChange }: Props) {
 
   useEffect(() => {
     inspectorRef.current?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    if (selId) setSnap(s => (s === "peek" ? "half" : s));
+    else setSnap("peek");
   }, [selId]);
+
+  // sheet drag (vertical) — snap to peek/half/full
+  const sheetHeightFor = (s: Snap) => {
+    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    if (s === "full") return Math.round(vh * 0.88);
+    if (s === "half") return Math.round(vh * 0.58);
+    return 60;
+  };
+  const onSheetHandleDown = (ev: React.PointerEvent) => {
+    (ev.target as Element).setPointerCapture(ev.pointerId);
+    sheetDragRef.current = { startY: ev.clientY, startSnap: snap, dy: 0 };
+  };
+  const onSheetHandleMove = (ev: React.PointerEvent) => {
+    const d = sheetDragRef.current; if (!d) return;
+    d.dy = ev.clientY - d.startY;
+    setSheetDragOffset(d.dy);
+  };
+  const onSheetHandleUp = () => {
+    const d = sheetDragRef.current; if (!d) { setSheetDragOffset(0); return; }
+    const order: Snap[] = ["peek", "half", "full"];
+    const cur = order.indexOf(d.startSnap);
+    let next = cur;
+    if (d.dy < -40) next = Math.min(2, cur + 1);
+    else if (d.dy > 40) next = Math.max(0, cur - 1);
+    setSnap(order[next]);
+    setSheetDragOffset(0);
+    sheetDragRef.current = null;
+  };
 
   // render loop
   useEffect(() => {
@@ -206,29 +240,35 @@ export function UIEditor({ scene, onChange }: Props) {
   };
   const onPointerUp = () => { dragRef.current = null; };
 
+  const sheetH = sheetHeightFor(snap);
+  const sheetTranslate = Math.max(-200, Math.min(sheetH - 60, sheetDragOffset));
+
   return (
-    <div className={`h-full w-full grid overflow-hidden sm:grid-rows-[auto_1fr_auto] ${sel ? "grid-rows-[auto_minmax(140px,30dvh)_minmax(0,1fr)]" : "grid-rows-[auto_minmax(0,1fr)_auto]"}`}>
-      {/* Toolbar */}
-      <div className="px-1.5 pt-1.5 panel border-b">
-        <div className="flex gap-1 pb-1.5 overflow-x-auto no-scrollbar sm:gap-1.5">
-          {KIND_LIST.map(k => (
-            <button key={k.id} onClick={() => addEl(k.id)}
-              className="shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-md border border-border/40 text-muted-foreground hover:border-primary/50 hover:text-primary-glow transition sm:px-3">
-              <span className="text-base leading-none">{k.icon}</span>
-              <span className="text-[9px] font-display tracking-wider">{k.label}</span>
+    <div className="relative h-full w-full overflow-hidden bg-background">
+      {/* Toolbar — floating glass at top */}
+      <div className="absolute top-0 left-0 right-0 z-30 px-2 pt-2">
+        <div className="rounded-2xl border border-border/40 bg-card/70 backdrop-blur-xl shadow-[0_8px_24px_oklch(0_0_0/0.35)] px-1.5 py-1.5">
+          <div className="flex gap-1 overflow-x-auto no-scrollbar">
+            {KIND_LIST.map(k => (
+              <button key={k.id} onClick={() => addEl(k.id)}
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border/50 bg-background/40 text-muted-foreground active:scale-95 hover:border-primary/50 hover:text-primary-glow transition">
+                <span className="text-base leading-none">{k.icon}</span>
+                <span className="text-[9px] font-display tracking-wider">{k.label}</span>
+              </button>
+            ))}
+            <button onClick={() => { if (confirm("Clear all UI?")) onChange({ ...scene, ui: [] }); }}
+              className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive active:scale-95">
+              <span className="text-base leading-none">✕</span>
+              <span className="text-[9px] font-display tracking-wider">CLEAR</span>
             </button>
-          ))}
-          <button onClick={() => { if (confirm("Clear all UI?")) onChange({ ...scene, ui: [] }); }}
-            className="shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-md border border-destructive/30 text-destructive sm:px-3">
-            <span className="text-base leading-none">✕</span>
-            <span className="text-[9px] font-display tracking-wider">CLEAR</span>
-          </button>
+          </div>
         </div>
       </div>
 
-      {/* Preview canvas */}
-      <div ref={wrapRef} className="relative w-full h-full min-h-0 grid place-items-center bg-background overflow-hidden p-1">
-        <div className="relative rounded-xl border border-primary/30 shadow-[0_0_18px_oklch(0.68_0.21_250/0.25)] overflow-hidden bg-black"
+      {/* Preview canvas — fills entire surface */}
+      <div ref={wrapRef} className="absolute inset-0 grid place-items-center overflow-hidden"
+        style={{ paddingTop: 64, paddingBottom: Math.max(60, sheetH - sheetTranslate) + 8 }}>
+        <div className="relative rounded-xl border border-primary/30 shadow-[0_0_24px_oklch(0.68_0.21_250/0.3)] overflow-hidden bg-black"
           style={{ width: size.w, height: size.h }}>
           <canvas
             ref={canvasRef}
@@ -240,53 +280,95 @@ export function UIEditor({ scene, onChange }: Props) {
             onPointerCancel={onPointerUp}
           />
         </div>
-        <div className="absolute top-1 left-1 panel rounded-md px-1.5 py-0.5 text-[9px] font-mono text-primary-glow pointer-events-none">
+        <div className="absolute top-[68px] left-3 panel rounded-md px-1.5 py-0.5 text-[9px] font-mono text-primary-glow pointer-events-none">
           UI·{ui.length}·{virt.w}×{virt.h}
         </div>
       </div>
 
-      {/* Inspector */}
-      <div ref={inspectorRef} className={`panel border-t overflow-y-auto overflow-x-hidden ${sel ? "p-2.5 pb-20 sm:pb-10" : "px-2 py-1.5"} space-y-2 sm:max-h-[42vh]`}>
-        {!sel ? (
-          ui.length === 0 ? (
-            <div className="text-[10px] font-mono text-muted-foreground text-center py-1">
-              Add a component from the toolbar above
+      {/* Backdrop when sheet is expanded */}
+      {sel && snap === "full" && (
+        <div className="absolute inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity"
+          onClick={() => setSnap("half")} />
+      )}
+
+      {/* Bottom sheet */}
+      <div ref={sheetRef}
+        className="absolute left-0 right-0 bottom-0 z-50 rounded-t-2xl border-t border-x border-border/50 bg-card/95 backdrop-blur-2xl shadow-[0_-12px_36px_oklch(0_0_0/0.5)] flex flex-col"
+        style={{
+          height: sheetH,
+          transform: `translateY(${sheetTranslate}px)`,
+          transition: sheetDragRef.current ? "none" : "transform 240ms cubic-bezier(0.32, 0.72, 0, 1), height 240ms cubic-bezier(0.32, 0.72, 0, 1)",
+        }}>
+        {/* Drag handle */}
+        <div
+          className="shrink-0 flex flex-col items-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none select-none"
+          onPointerDown={onSheetHandleDown}
+          onPointerMove={onSheetHandleMove}
+          onPointerUp={onSheetHandleUp}
+          onPointerCancel={onSheetHandleUp}>
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
+          {sel && (
+            <div className="mt-1.5 flex items-center justify-between w-full px-3">
+              <span className="font-display text-[11px] tracking-[0.22em] text-primary-glow truncate">{sel.kind.toUpperCase()} · {sel.name}</span>
+              <div className="flex items-center gap-1">
+                {(["peek","half","full"] as Snap[]).map(s => (
+                  <button key={s} onClick={() => setSnap(s)}
+                    className={`w-1.5 h-1.5 rounded-full ${snap === s ? "bg-primary-glow" : "bg-muted-foreground/30"}`} />
+                ))}
+                <button onClick={() => setSelId(null)} className="ml-2 text-[10px] font-display tracking-widest text-muted-foreground px-2 py-0.5 rounded border border-border">✕</button>
+              </div>
             </div>
+          )}
+          {!sel && ui.length > 0 && (
+            <span className="mt-0.5 font-display text-[10px] tracking-[0.2em] text-muted-foreground">
+              {ui.length} ELEMENT{ui.length > 1 ? "S" : ""} · TAP TO EDIT
+            </span>
+          )}
+          {!sel && ui.length === 0 && (
+            <span className="mt-0.5 font-display text-[10px] tracking-[0.2em] text-muted-foreground">
+              ADD A COMPONENT ABOVE
+            </span>
+          )}
+        </div>
+
+        {/* Sheet content */}
+        <div ref={inspectorRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6">
+          {!sel ? (
+            ui.length > 0 && (
+              <div className="grid grid-cols-2 gap-1.5 pt-1">
+                {ui.map(e => (
+                  <button key={e.id} onClick={() => setSelId(e.id)}
+                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-border/60 bg-background/40 text-left active:scale-[0.98] hover:border-primary/50 transition">
+                    <span className="text-primary-glow text-sm">{KIND_LIST.find(k => k.id === e.kind)?.icon ?? "·"}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[9px] font-display tracking-widest text-muted-foreground">{e.kind.toUpperCase()}</div>
+                      <div className="text-xs font-mono text-foreground truncate">{e.name}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
           ) : (
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-              {ui.map(e => (
-                <button key={e.id} onClick={() => setSelId(e.id)}
-                  className="shrink-0 px-2 py-1.5 rounded border border-border text-[10px] font-mono text-muted-foreground flex items-center gap-1.5 hover:border-primary/50">
-                  <span className="text-primary-glow">{e.kind.toUpperCase()}</span>
-                  <span className="max-w-[80px] truncate">{e.name}</span>
-                </button>
-              ))}
-            </div>
-          )
-        ) : (
-          <ElementInspector el={sel} update={(p) => updateEl(sel.id, p)} remove={() => removeEl(sel.id)} clone={() => cloneEl(sel.id)} back={() => setSelId(null)} />
-        )}
+            <ElementInspector el={sel} update={(p) => updateEl(sel.id, p)} remove={() => removeEl(sel.id)} clone={() => cloneEl(sel.id)} />
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function ElementInspector({ el, update, remove, clone, back }: {
+function ElementInspector({ el, update, remove, clone }: {
   el: UIElement;
   update: (p: Partial<UIElement>) => void;
   remove: () => void;
   clone: () => void;
-  back: () => void;
 }) {
+
   const fileRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="space-y-2.5">
-      <div className="flex items-center justify-between gap-2 sticky -top-2.5 -mx-2.5 px-2.5 py-1.5 bg-card/95 backdrop-blur z-10 border-b border-border/40">
-        <span className="font-display text-xs tracking-[0.22em] text-primary-glow truncate">{el.kind.toUpperCase()} · {el.name}</span>
-        <button onClick={back} className="shrink-0 text-[10px] font-display tracking-widest text-muted-foreground px-2 py-1 rounded border border-border">← BACK</button>
-      </div>
-
+    <div className="space-y-2.5 pt-2">
       <LabeledInput label="NAME" value={el.name} onChange={v => update({ name: v })} />
+
 
       <div>
         <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">ANCHOR</div>
