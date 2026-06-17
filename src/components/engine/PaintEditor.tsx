@@ -229,7 +229,9 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     pushSnapshot();
     drag.current = { active: true, tool, last: p, start: p, smooth: p };
     if (tool === "brush" || tool === "eraser") {
-      strokeSegment(p.x, p.y, p.x + 0.01, p.y + 0.01, tool === "eraser");
+      const pr = pressureOn && e.pressure > 0 && e.pressure !== 0.5 ? e.pressure : 0.5;
+      const w = width * (pressureOn ? (0.4 + 1.2 * pr) : 1);
+      stampDot(p.x, p.y, tool === "eraser", w);
       blit();
     } else if (tool === "fill") {
       floodFill(p.x, p.y, color);
