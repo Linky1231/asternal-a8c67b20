@@ -51,8 +51,13 @@ export function UIEditor({ scene, onChange }: Props) {
   useEffect(() => {
     const fit = () => {
       const w = wrapRef.current; if (!w) return;
-      const aw = Math.max(80, w.clientWidth - 8);
-      const ah = Math.max(80, w.clientHeight - 8);
+      const cs = getComputedStyle(w);
+      const padT = parseFloat(cs.paddingTop) || 0;
+      const padB = parseFloat(cs.paddingBottom) || 0;
+      const padL = parseFloat(cs.paddingLeft) || 0;
+      const padR = parseFloat(cs.paddingRight) || 0;
+      const aw = Math.max(80, w.clientWidth - padL - padR - 8);
+      const ah = Math.max(80, w.clientHeight - padT - padB - 8);
       const HEADER = 56, TABS = 72;
       const vw = Math.max(240, window.innerWidth);
       const vh = Math.max(240, window.innerHeight - HEADER - TABS);
@@ -65,7 +70,7 @@ export function UIEditor({ scene, onChange }: Props) {
     if (wrapRef.current) ro.observe(wrapRef.current);
     window.addEventListener("resize", fit);
     return () => { window.removeEventListener("resize", fit); ro.disconnect(); };
-  }, []);
+  }, [snap, sheetDragOffset]);
 
   useEffect(() => {
     inspectorRef.current?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
