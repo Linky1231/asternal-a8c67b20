@@ -419,9 +419,10 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
         ) { hasGround = true; break; }
       }
       // also keep them inside scene bounds (treat scene floor as ground)
-      if (!hasGround && probeY < scene.height) {
-        e.vx = -(e.vx || (e.vx === 0 ? 60 : 0));
-        if (e.vx === 0) e.vx = 60;
+      if (!hasGround) {
+        // reverse and step back to keep enemy safely on the platform
+        e.vx = e.vx >= 0 ? -Math.abs(e.vx || 60) : Math.abs(e.vx || 60);
+        e.x += e.vx >= 0 ? 2 : -2;
       }
     }
   }
