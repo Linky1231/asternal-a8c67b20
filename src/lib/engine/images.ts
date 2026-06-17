@@ -9,8 +9,6 @@ export function getImage(src: string): HTMLImageElement | null {
   if (img) return img.complete && img.naturalWidth > 0 ? img : null;
   img = new Image();
   img.decoding = "async";
-  // Preserve PNG transparency (Safari can render bitmaps with black bg otherwise)
-  img.crossOrigin = "anonymous";
   img.src = src;
   cache.set(src, img);
   return null;
