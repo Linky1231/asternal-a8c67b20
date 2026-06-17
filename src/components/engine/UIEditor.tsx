@@ -134,12 +134,14 @@ export function UIEditor({ scene, onChange }: Props) {
       if (now - lastDraw < 30) return;
       lastDraw = now;
       tickRef.current++;
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
       // Canvas internal coords = virtual game size; CSS scales it to fit.
       if (canvas.width !== virt.w * dpr || canvas.height !== virt.h * dpr) {
         canvas.width = virt.w * dpr; canvas.height = virt.h * dpr;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       const W = virt.w, H = virt.h;
       // game backdrop
       ctx.fillStyle = scene.bg || "#0b1e3f";

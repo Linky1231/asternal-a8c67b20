@@ -92,13 +92,15 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     const hasAnimated = scene.entities.some(e => (e.animations ?? []).some(c => c.frames.length > 1 && c.fps > 0));
     const sortedEnts = [...scene.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
     const setupSize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
       const w = canvas.clientWidth, h = canvas.clientHeight;
       if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
         canvas.width = w * dpr;
         canvas.height = h * dpr;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
     };
 
     const render = (t: number) => {

@@ -76,7 +76,7 @@ export function GameRuntime({
     let cssW = 0;
     let cssH = 0;
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
       cssW = Math.max(1, canvas.clientWidth);
       cssH = Math.max(1, canvas.clientHeight);
       const nextW = Math.round(cssW * dpr);
