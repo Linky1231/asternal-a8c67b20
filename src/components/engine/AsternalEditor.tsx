@@ -1386,12 +1386,18 @@ function ParticlesButton({ entity, onUpdate }: { entity: Entity; onUpdate: (patc
 
 function ParticleEditor({ entity, onUpdate, onClose }: { entity: Entity; onUpdate: (patch: Partial<Entity>) => void; onClose: () => void }) {
   const t = useT();
+  // If the entity has no emitter yet, the toggle must reflect that (OFF) so
+  // turning it ON actually persists an emitter. Previously the default
+  // {enabled:true} made the toggle appear ON while no emitter was saved,
+  // so the user had to flip it off then on again to make it work.
+  const hasEmitter = !!entity.emitter;
   const em = entity.emitter ?? {
-    enabled: true, rate: 20, lifetime: 1, speed: 80,
+    enabled: false, rate: 20, lifetime: 1, speed: 80,
     direction: 270, spread: 40, size: 4, gravity: 0, color: "#7dd3fc",
   };
   const upd = (patch: Partial<typeof em>) =>
     onUpdate({ emitter: { ...em, ...patch } });
+
 
   // Live preview
   const canvasRef = useRef<HTMLCanvasElement>(null);
