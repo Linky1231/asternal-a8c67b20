@@ -177,33 +177,49 @@ export function UIEditor({ scene, onChange }: Props) {
   const updateEl = (id: string, patch: Partial<UIElement>) => {
     onChange({ ...scene, ui: ui.map(e => e.id === id ? { ...e, ...patch } : e) });
   };
-  const scheduleDragUpdate = (id: string, patch: Partial<UIElement>) => {
-    pendingDragUpdate.current = { id, patch };
+  const updateMany = (patches: Array<{ id: string; patch: Partial<UIElement> }>) => {
+    const map = new Map(patches.map(p => [p.id, p.patch] as const));
+    onChange({ ...scene, ui: ui.map(e => map.has(e.id) ? { ...e, ...map.get(e.id)! } : e) });
+  };
+  const scheduleDragUpdate = (patches: Array<{ id: string; patch: Partial<UIElement> }>) => {
+    pendingDragUpdate.current = patches;
     if (moveFrame.current) return;
     moveFrame.current = requestAnimationFrame(() => {
       moveFrame.current = 0;
       const next = pendingDragUpdate.current;
       pendingDragUpdate.current = null;
-      if (next) updateEl(next.id, next.patch);
+      if (next) updateMany(next);
     });
   };
 
   const addEl = (kind: UIElementKind) => {
     const el = newUIElement(kind);
     onChange({ ...scene, ui: [...ui, el] });
-    setSelId(el.id);
+    setSelIds([el.id]);
   };
 
   const removeEl = (id: string) => {
     onChange({ ...scene, ui: ui.filter(e => e.id !== id) });
-    if (selId === id) setSelId(null);
+    setSelIds(ids => ids.filter(i => i !== id));
   };
 
   const cloneEl = (id: string) => {
     const e = ui.find(x => x.id === id); if (!e) return;
     const copy: UIElement = { ...e, id: uid(), x: e.x + 12, y: e.y + 12 };
     onChange({ ...scene, ui: [...ui, copy] });
-    setSelId(copy.id);
+    setSelIds([copy.id]);
+  };
+
+  // Change element's anchor while keeping its absolute on-screen position.
+  const setAnchorKeepPos = (el: UIElement, newAnchor: UIAnchor) => {
+    const r = resolveUIRect(el, virt.w, virt.h);
+    const tmp = { ...el, anchor: newAnchor, x: 0, y: 0 };
+    const base = resolveUIRect(tmp, virt.w, virt.h);
+    updateEl(el.id, { anchor: newAnchor, x: Math.round(r.x - base.x), y: Math.round(r.y - base.y) });
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelIds(ids => ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]);
   };
 
   const toVirt = (ev: React.PointerEvent) => {
@@ -212,35 +228,77 @@ export function UIEditor({ scene, onChange }: Props) {
     const sy = (ev.clientY - rect.top) * (virt.h / Math.max(1, rect.height));
     return { sx, sy };
   };
+
+  // anchor reference point on screen
+  const anchorScreenPoint = (a: UIAnchor, W: number, H: number) => {
+    let ax = 0, ay = 0;
+    if (a === "c") return { x: W / 2, y: H / 2 };
+    if (a[0] === "t") ay = 0; else if (a[0] === "c") ay = H / 2; else ay = H;
+    if (a[1] === "l") ax = 0; else if (a[1] === "c") ax = W / 2; else ax = W;
+    return { x: ax, y: ay };
+  };
+
   const onPointerDown = (ev: React.PointerEvent) => {
     (ev.target as Element).setPointerCapture(ev.pointerId);
     const { sx, sy } = toVirt(ev);
-    // resize handle hit (use a generous grab radius in virtual coords)
+    const grab = Math.max(18, 20 / Math.max(0.001, size.w / virt.w));
+
+    // resize handle hit (single selection only)
     if (sel) {
       const r = resolveUIRect(sel, virt.w, virt.h);
-      const grab = Math.max(18, 20 / Math.max(0.001, size.w / virt.w));
       if (sx >= r.x + r.w - grab && sx <= r.x + r.w + grab && sy >= r.y + r.h - grab && sy <= r.y + r.h + grab) {
-        dragRef.current = { id: sel.id, mode: "resize", sx, sy, ox: sel.x, oy: sel.y, ow: sel.w, oh: sel.h };
+        const orig = { [sel.id]: { x: sel.x, y: sel.y, w: sel.w, h: sel.h } };
+        dragRef.current = { ids: [sel.id], mode: "resize", sx, sy, orig };
         return;
       }
+      // anchor preset dots around element — 9 small dots
+      const corners: { a: UIAnchor; x: number; y: number }[] = [
+        { a: "tl", x: r.x, y: r.y }, { a: "tc", x: r.x + r.w / 2, y: r.y }, { a: "tr", x: r.x + r.w, y: r.y },
+        { a: "cl", x: r.x, y: r.y + r.h / 2 }, { a: "c", x: r.x + r.w / 2, y: r.y + r.h / 2 }, { a: "cr", x: r.x + r.w, y: r.y + r.h / 2 },
+        { a: "bl", x: r.x, y: r.y + r.h }, { a: "bc", x: r.x + r.w / 2, y: r.y + r.h }, { a: "br", x: r.x + r.w, y: r.y + r.h },
+      ];
+      for (const c of corners) {
+        if (Math.abs(sx - c.x) < grab * 0.7 && Math.abs(sy - c.y) < grab * 0.7) {
+          setAnchorKeepPos(sel, c.a);
+          return;
+        }
+      }
     }
+
     for (let i = ui.length - 1; i >= 0; i--) {
       const el = ui[i];
       const r = resolveUIRect(el, virt.w, virt.h);
       if (sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h) {
-        setSelId(el.id);
-        dragRef.current = { id: el.id, mode: "move", sx, sy, ox: el.x, oy: el.y, ow: el.w, oh: el.h };
+        let ids: string[];
+        if (multiMode) {
+          ids = selIds.includes(el.id) ? selIds.filter(i => i !== el.id) : [...selIds, el.id];
+        } else {
+          ids = selIds.includes(el.id) ? selIds : [el.id];
+        }
+        setSelIds(ids);
+        const dragIds = ids.length > 0 ? ids : [el.id];
+        const orig: Record<string, { x: number; y: number; w: number; h: number }> = {};
+        for (const id of dragIds) {
+          const e2 = ui.find(u => u.id === id); if (!e2) continue;
+          orig[id] = { x: e2.x, y: e2.y, w: e2.w, h: e2.h };
+        }
+        dragRef.current = { ids: dragIds, mode: "move", sx, sy, orig };
         return;
       }
     }
-    setSelId(null);
+    if (!multiMode) setSelIds([]);
   };
   const onPointerMove = (ev: React.PointerEvent) => {
     const d = dragRef.current; if (!d) return;
     const { sx, sy } = toVirt(ev);
     const dx = sx - d.sx, dy = sy - d.sy;
-    if (d.mode === "move") scheduleDragUpdate(d.id, { x: Math.round(d.ox + dx), y: Math.round(d.oy + dy) });
-    else scheduleDragUpdate(d.id, { w: Math.max(16, Math.round(d.ow + dx)), h: Math.max(16, Math.round(d.oh + dy)) });
+    if (d.mode === "move") {
+      scheduleDragUpdate(d.ids.map(id => ({ id, patch: { x: Math.round(d.orig[id].x + dx), y: Math.round(d.orig[id].y + dy) } })));
+    } else {
+      const id = d.ids[0];
+      const o = d.orig[id];
+      scheduleDragUpdate([{ id, patch: { w: Math.max(16, Math.round(o.w + dx)), h: Math.max(16, Math.round(o.h + dy)) } }]);
+    }
   };
   const onPointerUp = () => { dragRef.current = null; };
 
