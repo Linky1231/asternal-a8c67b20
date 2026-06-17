@@ -366,13 +366,9 @@ function ElementInspector({ el, update, remove, clone, back }: {
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="space-y-2.5">
-      <div className="flex items-center justify-between gap-2 sticky -top-2.5 -mx-2.5 px-2.5 py-1.5 bg-card/95 backdrop-blur z-10 border-b border-border/40">
-        <span className="font-display text-xs tracking-[0.22em] text-primary-glow truncate">{el.kind.toUpperCase()} · {el.name}</span>
-        <button onClick={back} className="shrink-0 text-[10px] font-display tracking-widest text-muted-foreground px-2 py-1 rounded border border-border">← BACK</button>
-      </div>
-
+    <div className="space-y-2.5 pt-2">
       <LabeledInput label="NAME" value={el.name} onChange={v => update({ name: v })} />
+
 
       <div>
         <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">ANCHOR</div>
