@@ -99,18 +99,29 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
 
   const bctx = () => bufferRef.current!.getContext("2d")!;
 
-  const strokeSegment = (x0: number, y0: number, x1: number, y1: number, erase: boolean) => {
+  const strokeSegment = (x0: number, y0: number, x1: number, y1: number, erase: boolean, w?: number) => {
     const c = bctx();
     c.save();
     c.globalCompositeOperation = erase ? "destination-out" : "source-over";
     c.strokeStyle = color;
-    c.lineWidth = width;
+    c.lineWidth = Math.max(0.5, w ?? width);
     c.lineCap = "round";
     c.lineJoin = "round";
     c.beginPath();
     c.moveTo(x0, y0);
     c.lineTo(x1, y1);
     c.stroke();
+    c.restore();
+  };
+
+  const stampDot = (x: number, y: number, erase: boolean, w?: number) => {
+    const c = bctx();
+    c.save();
+    c.globalCompositeOperation = erase ? "destination-out" : "source-over";
+    c.fillStyle = color;
+    c.beginPath();
+    c.arc(x, y, Math.max(0.5, (w ?? width) / 2), 0, Math.PI * 2);
+    c.fill();
     c.restore();
   };
 
