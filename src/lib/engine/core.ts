@@ -86,6 +86,7 @@ export interface Entity {
   checkpoint?: boolean;
   slippery?: boolean;
   sticky?: boolean;
+  locked?: boolean;          // layer lock — editor only, blocks select/move
   powerup?: PowerupKind | null;
   switchId?: string;
   doorId?: string;
