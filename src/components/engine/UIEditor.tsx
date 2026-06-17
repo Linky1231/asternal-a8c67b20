@@ -46,6 +46,17 @@ export function UIEditor({ scene, onChange }: Props) {
   const sel = selectedEls.length === 1 ? selectedEls[0] : null;
   const selId = sel?.id ?? null;
 
+  // Use visualViewport on iOS Safari so URL-bar collapse/expand
+  // doesn't desync the sheet/canvas sizing.
+  const getVH = () => {
+    if (typeof window === "undefined") return 800;
+    return Math.round(window.visualViewport?.height ?? window.innerHeight);
+  };
+  const getVW = () => {
+    if (typeof window === "undefined") return 360;
+    return Math.round(window.visualViewport?.width ?? window.innerWidth);
+  };
+
   // Fit preview to wrap while matching the REAL game canvas aspect (window
   // minus header & tab bar), so anchored offsets are 1:1 with PLAY.
   useEffect(() => {
@@ -59,8 +70,8 @@ export function UIEditor({ scene, onChange }: Props) {
       const aw = Math.max(80, w.clientWidth - padL - padR - 8);
       const ah = Math.max(80, w.clientHeight - padT - padB - 8);
       const HEADER = 56, TABS = 72;
-      const vw = Math.max(240, window.innerWidth);
-      const vh = Math.max(240, window.innerHeight - HEADER - TABS);
+      const vw = Math.max(240, getVW());
+      const vh = Math.max(240, getVH() - HEADER - TABS);
       const sc = Math.min(aw / vw, ah / vh);
       setVirt({ w: vw, h: vh });
       const nextSize = { w: Math.max(120, Math.round(vw * sc)), h: Math.max(120, Math.round(vh * sc)) };
@@ -68,24 +79,31 @@ export function UIEditor({ scene, onChange }: Props) {
     };
     fit();
     window.addEventListener("resize", fit);
-    return () => { window.removeEventListener("resize", fit); };
+    window.addEventListener("orientationchange", fit);
+    window.visualViewport?.addEventListener("resize", fit);
+    return () => {
+      window.removeEventListener("resize", fit);
+      window.removeEventListener("orientationchange", fit);
+      window.visualViewport?.removeEventListener("resize", fit);
+    };
   }, [snap]);
 
   useEffect(() => {
-    inspectorRef.current?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    // Safari doesn't support behavior: "instant" reliably — set scrollTop directly.
+    if (inspectorRef.current) inspectorRef.current.scrollTop = 0;
     if (selId) setSnap(s => (s === "peek" ? "half" : s));
     else setSnap("peek");
   }, [selId]);
 
   // sheet drag (vertical) — snap to peek/half/full
   const sheetHeightFor = (s: Snap) => {
-    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    const vh = getVH();
     if (s === "full") return Math.round(vh * 0.88);
     if (s === "half") return Math.round(vh * 0.58);
     return 60;
   };
   const onSheetHandleDown = (ev: React.PointerEvent) => {
-    (ev.target as Element).setPointerCapture(ev.pointerId);
+    try { (ev.currentTarget as Element).setPointerCapture(ev.pointerId); } catch {}
     sheetDragRef.current = { startY: ev.clientY, startSnap: snap, dy: 0 };
   };
   const onSheetHandleMove = (ev: React.PointerEvent) => {
@@ -310,7 +328,7 @@ export function UIEditor({ scene, onChange }: Props) {
   };
 
   const onPointerDown = (ev: React.PointerEvent) => {
-    (ev.target as Element).setPointerCapture(ev.pointerId);
+    try { (ev.currentTarget as Element).setPointerCapture(ev.pointerId); } catch {}
     const { sx, sy } = toVirt(ev);
     const grab = Math.max(18, 20 / Math.max(0.001, size.w / virt.w));
 
@@ -414,8 +432,15 @@ export function UIEditor({ scene, onChange }: Props) {
           style={{ width: size.w, height: size.h, transform: "translate(-50%, -50%)" }}>
           <canvas
             ref={canvasRef}
-            className="block touch-none"
-            style={{ width: size.w, height: size.h }}
+            className="block touch-none select-none"
+            style={{
+              width: size.w,
+              height: size.h,
+              touchAction: "none",
+              WebkitUserSelect: "none",
+              WebkitTouchCallout: "none",
+              WebkitTapHighlightColor: "transparent",
+            } as React.CSSProperties}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -440,10 +465,14 @@ export function UIEditor({ scene, onChange }: Props) {
           height: activeSheetH,
           transform: `translateY(${sheetTranslate}px)`,
           transition: sheetDragRef.current ? "none" : "transform 240ms cubic-bezier(0.32, 0.72, 0, 1), height 240ms cubic-bezier(0.32, 0.72, 0, 1)",
+          WebkitBackdropFilter: "blur(24px)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+          willChange: "transform, height",
         }}>
         {/* Drag handle */}
         <div
           className="shrink-0 flex flex-col items-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none select-none"
+          style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none", touchAction: "none" }}
           onPointerDown={onSheetHandleDown}
           onPointerMove={onSheetHandleMove}
           onPointerUp={onSheetHandleUp}
@@ -480,7 +509,9 @@ export function UIEditor({ scene, onChange }: Props) {
         </div>
 
         {/* Sheet content */}
-        <div ref={inspectorRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6">
+        <div ref={inspectorRef}
+          className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6"
+          style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" } as React.CSSProperties}>
           {selectedEls.length === 0 ? (
             ui.length > 0 && (
               <div className="grid grid-cols-2 gap-1.5 pt-1">
