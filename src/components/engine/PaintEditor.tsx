@@ -297,10 +297,15 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     }
     activePointerId.current = e.pointerId;
     (e.target as Element).setPointerCapture(e.pointerId);
+    // Cache bounding rect for the whole drag — avoids layout reads per move
+    dragRect.current = canvasRef.current!.getBoundingClientRect();
+    // Ensure display canvas backing-store is sized correctly before drawing on it
+    blit();
     const p = getPos(e);
-    if (tool === "picker") { pickColorAt(p.x, p.y); return; }
+    if (tool === "picker") { pickColorAt(p.x, p.y); dragRect.current = null; return; }
     if (tool === "text") {
       setTextInput({ open: true, x: p.x, y: p.y, value: "", fontSize: Math.max(16, width * 4), font: "Rajdhani" });
+      dragRect.current = null;
       return;
     }
     pushSnapshot();
@@ -308,8 +313,9 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     if (tool === "brush" || tool === "eraser") {
       const pr = pressureOn && e.pressure > 0 && e.pressure !== 0.5 ? e.pressure : 0.5;
       const w = width * (pressureOn ? (0.4 + 1.2 * pr) : 1);
-      stampDot(p.x, p.y, tool === "eraser", w);
-      blit();
+      const erase = tool === "eraser";
+      stampDot(p.x, p.y, erase, w);
+      stampDotDisplay(p.x, p.y, erase, w);
     } else if (tool === "fill") {
       floodFill(p.x, p.y, color);
       blit();
