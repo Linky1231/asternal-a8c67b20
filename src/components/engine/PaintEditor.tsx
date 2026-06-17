@@ -10,11 +10,52 @@ interface Props {
   size?: number;
 }
 
-const PALETTE = [
-  "#000000", "#1f2937", "#6b7280", "#f8fafc",
-  "#ef4444", "#f97316", "#fbbf24", "#22c55e",
-  "#06b6d4", "#38bdf8", "#3b82f6", "#8b5cf6",
-  "#ec4899", "#7c2d12", "#fde68a", "#0ea5e9",
+const PALETTES: { name: string; colors: string[] }[] = [
+  {
+    name: "Neon",
+    colors: [
+      "#000000", "#1f2937", "#6b7280", "#f8fafc",
+      "#ef4444", "#f97316", "#fbbf24", "#22c55e",
+      "#06b6d4", "#38bdf8", "#3b82f6", "#8b5cf6",
+      "#ec4899", "#7c2d12", "#fde68a", "#0ea5e9",
+    ],
+  },
+  {
+    name: "Pastel",
+    colors: [
+      "#ffffff", "#fde2e4", "#fad2e1", "#e2ece9",
+      "#bee1e6", "#cddafd", "#dfe7fd", "#f0efeb",
+      "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff",
+      "#a0c4ff", "#bdb2ff", "#ffc6ff", "#fffffc",
+    ],
+  },
+  {
+    name: "Retro 8-bit",
+    colors: [
+      "#1a1c2c", "#5d275d", "#b13e53", "#ef7d57",
+      "#ffcd75", "#a7f070", "#38b764", "#257179",
+      "#29366f", "#3b5dc9", "#41a6f6", "#73eff7",
+      "#f4f4f4", "#94b0c2", "#566c86", "#333c57",
+    ],
+  },
+  {
+    name: "Earth",
+    colors: [
+      "#2d1b0e", "#5c3a1e", "#8b5a2b", "#c08552",
+      "#dab49d", "#f3e9dc", "#606c38", "#283618",
+      "#bc6c25", "#dda15e", "#fefae0", "#a98467",
+      "#6f4518", "#3f2d20", "#b08968", "#ddb892",
+    ],
+  },
+  {
+    name: "Mono",
+    colors: [
+      "#000000", "#111111", "#222222", "#333333",
+      "#444444", "#555555", "#666666", "#777777",
+      "#888888", "#999999", "#aaaaaa", "#bbbbbb",
+      "#cccccc", "#dddddd", "#eeeeee", "#ffffff",
+    ],
+  },
 ];
 
 const FONTS = ["Rajdhani", "Orbitron", "JetBrains Mono", "Georgia", "Arial"];
@@ -26,6 +67,8 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   const [name, setName] = useState("drawing");
   const [stabilize, setStabilize] = useState(true);
   const [pressureOn, setPressureOn] = useState(true);
+  const [paletteIdx, setPaletteIdx] = useState(0);
+  const PALETTE = PALETTES[paletteIdx].colors;
   const [previewVersion, setPreviewVersion] = useState(0);
 
   // text overlay state
@@ -61,29 +104,63 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     setPreviewVersion(v => v + 1);
   };
 
+  const displayScale = useRef<number>(1);
+  const dragRect = useRef<DOMRect | null>(null);
+
   const blit = (preview?: (ctx: CanvasRenderingContext2D) => void) => {
     const c = canvasRef.current; const buf = bufferRef.current;
     if (!c || !buf) return;
     const ctx = c.getContext("2d")!;
     const W = c.clientWidth;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    if (c.width !== W * dpr) { c.width = W * dpr; c.height = W * dpr; }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (c.width !== Math.round(W * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(W * dpr); }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
+    ctx.imageSmoothingQuality = "low";
     ctx.clearRect(0, 0, W, W);
     ctx.drawImage(buf, 0, 0, W, W);
+    displayScale.current = W / size;
     if (preview) {
       ctx.save();
-      ctx.scale(W / size, W / size);
+      ctx.scale(displayScale.current, displayScale.current);
       preview(ctx);
       ctx.restore();
     }
   };
 
+  // Draw a stroke segment directly to the display canvas (no full re-blit).
+  const strokeSegmentDisplay = (x0: number, y0: number, x1: number, y1: number, erase: boolean, w: number) => {
+    const c = canvasRef.current; if (!c) return;
+    const ctx = c.getContext("2d")!;
+    const s = displayScale.current || 1;
+    ctx.save();
+    ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(0.5, w) * s;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x0 * s, y0 * s);
+    ctx.lineTo(x1 * s, y1 * s);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const stampDotDisplay = (x: number, y: number, erase: boolean, w: number) => {
+    const c = canvasRef.current; if (!c) return;
+    const ctx = c.getContext("2d")!;
+    const s = displayScale.current || 1;
+    ctx.save();
+    ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x * s, y * s, Math.max(0.5, w / 2) * s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
   const getPos = (e: React.PointerEvent) => {
-    const c = canvasRef.current!;
-    const r = c.getBoundingClientRect();
+    const r = dragRect.current ?? canvasRef.current!.getBoundingClientRect();
     return {
       x: ((e.clientX - r.left) / r.width) * size,
       y: ((e.clientY - r.top) / r.height) * size,
@@ -220,10 +297,15 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     }
     activePointerId.current = e.pointerId;
     (e.target as Element).setPointerCapture(e.pointerId);
+    // Cache bounding rect for the whole drag — avoids layout reads per move
+    dragRect.current = canvasRef.current!.getBoundingClientRect();
+    // Ensure display canvas backing-store is sized correctly before drawing on it
+    blit();
     const p = getPos(e);
-    if (tool === "picker") { pickColorAt(p.x, p.y); return; }
+    if (tool === "picker") { pickColorAt(p.x, p.y); dragRect.current = null; return; }
     if (tool === "text") {
       setTextInput({ open: true, x: p.x, y: p.y, value: "", fontSize: Math.max(16, width * 4), font: "Rajdhani" });
+      dragRect.current = null;
       return;
     }
     pushSnapshot();
@@ -231,8 +313,9 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     if (tool === "brush" || tool === "eraser") {
       const pr = pressureOn && e.pressure > 0 && e.pressure !== 0.5 ? e.pressure : 0.5;
       const w = width * (pressureOn ? (0.4 + 1.2 * pr) : 1);
-      stampDot(p.x, p.y, tool === "eraser", w);
-      blit();
+      const erase = tool === "eraser";
+      stampDot(p.x, p.y, erase, w);
+      stampDotDisplay(p.x, p.y, erase, w);
     } else if (tool === "fill") {
       floodFill(p.x, p.y, color);
       blit();
@@ -245,33 +328,30 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     if (activePointers.current.size > 1) { cancelStroke(); return; }
     const p = getPos(e);
     if (drag.current.tool === "brush" || drag.current.tool === "eraser") {
+      const r = dragRect.current!;
       const events = (typeof e.nativeEvent.getCoalescedEvents === "function"
         ? e.nativeEvent.getCoalescedEvents()
         : []) as PointerEvent[];
-      const points = events.length ? events.map(ev => {
-        const c = canvasRef.current!;
-        const r = c.getBoundingClientRect();
-        return {
-          x: ((ev.clientX - r.left) / r.width) * size,
-          y: ((ev.clientY - r.top) / r.height) * size,
-          pressure: ev.pressure,
-        };
-      }) : [{ x: p.x, y: p.y, pressure: e.pressure }];
+      const points = events.length ? events.map(ev => ({
+        x: ((ev.clientX - r.left) / r.width) * size,
+        y: ((ev.clientY - r.top) / r.height) * size,
+        pressure: ev.pressure,
+      })) : [{ x: p.x, y: p.y, pressure: e.pressure }];
       const erase = drag.current.tool === "eraser";
       for (const pt of points) {
         const pr = pressureOn && pt.pressure > 0 && pt.pressure !== 0.5 ? pt.pressure : 0.5;
         const w = width * (pressureOn ? (0.4 + 1.2 * pr) : 1);
+        let x1 = pt.x, y1 = pt.y;
         if (stabilize) {
-          const mx = (drag.current.last.x + pt.x) / 2;
-          const my = (drag.current.last.y + pt.y) / 2;
-          strokeSegment(drag.current.last.x, drag.current.last.y, mx, my, erase, w);
-          drag.current.last = { x: mx, y: my };
-        } else {
-          strokeSegment(drag.current.last.x, drag.current.last.y, pt.x, pt.y, erase, w);
-          drag.current.last = pt;
+          x1 = (drag.current.last.x + pt.x) / 2;
+          y1 = (drag.current.last.y + pt.y) / 2;
         }
+        // Draw to the buffer (truth) AND to the display directly (instant feedback)
+        strokeSegment(drag.current.last.x, drag.current.last.y, x1, y1, erase, w);
+        strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, x1, y1, erase, w);
+        drag.current.last = { x: x1, y: y1 };
       }
-      blit();
+      // No full blit() here — display already has the new segment painted on top.
     } else if (drag.current.tool === "line" || drag.current.tool === "rect" || drag.current.tool === "circle") {
       const t = drag.current.tool;
       blit(ctx => drawPreviewShape(ctx, t, drag.current.start.x, drag.current.start.y, p.x, p.y));
@@ -286,13 +366,16 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     const p = getPos(e);
     const t = drag.current.tool;
     if (t === "brush" || t === "eraser") {
-      strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, t === "eraser");
+      const erase = t === "eraser";
+      strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, erase);
+      strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, p.x, p.y, erase, width);
     } else if (t === "line" || t === "rect" || t === "circle") {
       commitShape(t, drag.current.start.x, drag.current.start.y, p.x, p.y);
+      blit();
     }
     drag.current.active = false;
     activePointerId.current = null;
-    blit();
+    dragRect.current = null;
     setPreviewVersion(v => v + 1);
   };
 
@@ -553,6 +636,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
                 value={color}
                 onChange={e => setColor(e.target.value)}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                aria-label="Color picker"
               />
               <div
                 className="w-10 h-10 rounded-xl pointer-events-none"
@@ -562,23 +646,45 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
                 }}
               />
             </div>
-            <div className="flex-1 grid grid-cols-8 gap-1.5">
-              {PALETTE.map(c => (
-                <button
-                  key={c}
-                  onClick={() => setColor(c)}
-                  className="aspect-square rounded-lg transition-all"
-                  style={{
-                    background: c,
-                    boxShadow: color === c
-                      ? "inset 0 0 0 1.5px oklch(1 0 0 / 0.9), 0 0 0 2px oklch(0.72 0.17 250 / 0.7)"
-                      : "inset 0 0 0 1px oklch(1 0 0 / 0.12)",
-                    transform: color === c ? "scale(1.06)" : undefined,
-                  }}
-                  aria-label={c}
-                />
+            <input
+              type="text"
+              value={color.toUpperCase()}
+              onChange={(e) => {
+                const v = e.target.value.trim();
+                if (/^#?[0-9a-fA-F]{6}$/.test(v)) setColor(v.startsWith("#") ? v : `#${v}`);
+              }}
+              className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-mono w-[88px] tracking-tight focus:outline-none focus:border-primary/50 uppercase"
+              maxLength={7}
+              aria-label="Hex color"
+            />
+            <select
+              value={paletteIdx}
+              onChange={(e) => setPaletteIdx(Number(e.target.value))}
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none focus:border-primary/50"
+              aria-label="Palette"
+            >
+              {PALETTES.map((p, i) => (
+                <option key={p.name} value={i}>{p.name}</option>
               ))}
-            </div>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-8 gap-1.5">
+            {PALETTE.map((c) => (
+              <button
+                key={c}
+                onClick={() => setColor(c)}
+                className="aspect-square rounded-lg transition-all"
+                style={{
+                  background: c,
+                  boxShadow: color.toLowerCase() === c.toLowerCase()
+                    ? "inset 0 0 0 1.5px oklch(1 0 0 / 0.9), 0 0 0 2px oklch(0.72 0.17 250 / 0.7)"
+                    : "inset 0 0 0 1px oklch(1 0 0 / 0.12)",
+                  transform: color.toLowerCase() === c.toLowerCase() ? "scale(1.06)" : undefined,
+                }}
+                aria-label={c}
+              />
+            ))}
           </div>
 
           <div className="flex items-center gap-3 text-[11px] font-medium text-foreground/70">
