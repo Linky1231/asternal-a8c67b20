@@ -1449,7 +1449,7 @@ function ParticleEditor({ entity, onUpdate, onClose }: { entity: Entity; onUpdat
           <button onClick={onClose} className="text-xs font-display tracking-widest text-muted-foreground">✕</button>
         </div>
 
-        <Toggle label={t("particles.enable")} on={em.enabled} onChange={v => upd({ enabled: v })} />
+        <Toggle label={t("particles.enable")} on={hasEmitter && em.enabled} onChange={v => upd({ enabled: v })} />
 
         <div className="rounded-md overflow-hidden border border-border bg-background">
           <canvas ref={canvasRef} width={320} height={180} className="w-full block" />
