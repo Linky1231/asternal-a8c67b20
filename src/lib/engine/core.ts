@@ -39,7 +39,7 @@ export type PowerupKind = "speed" | "djump" | "invuln";
 export interface MovingSpec { axis: "x" | "y"; range: number; speed: number; _origin?: number; _dir?: number }
 export interface CrumbleSpec { delay: number; respawn: number; _t?: number; _state?: "idle" | "break" | "gone"; _rt?: number }
 export interface SpringSpec { force: number }
-export interface PatrolSpec { range: number; _origin?: number }
+export interface PatrolSpec { range: number; ledgeSafe?: boolean; _origin?: number }
 
 export interface ParticleEmitter {
   enabled: boolean;
