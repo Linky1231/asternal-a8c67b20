@@ -357,13 +357,13 @@ export function UIEditor({ scene, onChange }: Props) {
   );
 }
 
-function ElementInspector({ el, update, remove, clone, back }: {
+function ElementInspector({ el, update, remove, clone }: {
   el: UIElement;
   update: (p: Partial<UIElement>) => void;
   remove: () => void;
   clone: () => void;
-  back: () => void;
 }) {
+
   const fileRef = useRef<HTMLInputElement>(null);
   return (
     <div className="space-y-2.5 pt-2">
