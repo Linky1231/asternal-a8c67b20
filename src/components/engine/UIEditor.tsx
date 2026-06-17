@@ -207,8 +207,8 @@ export function UIEditor({ scene, onChange }: Props) {
   const onPointerUp = () => { dragRef.current = null; };
 
   return (
-    <div className={`h-full w-full grid overflow-hidden sm:grid-rows-[auto_1fr_auto] ${sel ? "grid-rows-[auto_minmax(0,1fr)_minmax(180px,48dvh)]" : "grid-rows-[auto_minmax(0,1fr)_auto]"}`}>
-      {/* Toolbar: add elements — compact single row on mobile */}
+    <div className={`h-full w-full grid overflow-hidden sm:grid-rows-[auto_1fr_auto] ${sel ? "grid-rows-[auto_minmax(140px,30dvh)_minmax(0,1fr)]" : "grid-rows-[auto_minmax(0,1fr)_auto]"}`}>
+      {/* Toolbar */}
       <div className="px-1.5 pt-1.5 panel border-b">
         <div className="flex gap-1 pb-1.5 overflow-x-auto no-scrollbar sm:gap-1.5">
           {KIND_LIST.map(k => (
@@ -226,9 +226,9 @@ export function UIEditor({ scene, onChange }: Props) {
         </div>
       </div>
 
-      {/* Preview canvas — bigger on mobile */}
+      {/* Preview canvas */}
       <div ref={wrapRef} className="relative w-full h-full min-h-0 grid place-items-center bg-background overflow-hidden p-1">
-        <div className="relative rounded-2xl border-2 border-primary/30 shadow-[0_0_24px_oklch(0.68_0.21_250/0.3)] overflow-hidden bg-black"
+        <div className="relative rounded-xl border border-primary/30 shadow-[0_0_18px_oklch(0.68_0.21_250/0.25)] overflow-hidden bg-black"
           style={{ width: size.w, height: size.h }}>
           <canvas
             ref={canvasRef}
@@ -240,13 +240,13 @@ export function UIEditor({ scene, onChange }: Props) {
             onPointerCancel={onPointerUp}
           />
         </div>
-        <div className="absolute top-1.5 left-1.5 panel rounded-md px-1.5 py-0.5 text-[9px] font-mono text-primary-glow">
+        <div className="absolute top-1 left-1 panel rounded-md px-1.5 py-0.5 text-[9px] font-mono text-primary-glow pointer-events-none">
           UI·{ui.length}·{virt.w}×{virt.h}
         </div>
       </div>
 
-      {/* Inspector — compact chip list when nothing selected; full panel when editing */}
-      <div ref={inspectorRef} className={`panel border-t overflow-y-auto overflow-x-hidden ${sel ? "p-3 pb-24 sm:pb-10" : "px-2 py-1.5"} space-y-2 sm:max-h-[42vh]`}>
+      {/* Inspector */}
+      <div ref={inspectorRef} className={`panel border-t overflow-y-auto overflow-x-hidden ${sel ? "p-2.5 pb-20 sm:pb-10" : "px-2 py-1.5"} space-y-2 sm:max-h-[42vh]`}>
         {!sel ? (
           ui.length === 0 ? (
             <div className="text-[10px] font-mono text-muted-foreground text-center py-1">
@@ -280,33 +280,33 @@ function ElementInspector({ el, update, remove, clone, back }: {
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="font-display text-xs tracking-[0.25em] text-primary-glow">{el.kind.toUpperCase()} · {el.name}</span>
-        <button onClick={back} className="text-xs text-muted-foreground">← Back</button>
+    <div className="space-y-2.5">
+      <div className="flex items-center justify-between gap-2 sticky -top-2.5 -mx-2.5 px-2.5 py-1.5 bg-card/95 backdrop-blur z-10 border-b border-border/40">
+        <span className="font-display text-xs tracking-[0.22em] text-primary-glow truncate">{el.kind.toUpperCase()} · {el.name}</span>
+        <button onClick={back} className="shrink-0 text-[10px] font-display tracking-widest text-muted-foreground px-2 py-1 rounded border border-border">← BACK</button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <LabeledInput label="NAME" value={el.name} onChange={v => update({ name: v })} />
-        <div>
-          <div className="text-[10px] font-display tracking-widest text-muted-foreground">ANCHOR</div>
-          <div className="grid grid-cols-3 gap-0.5 mt-1 w-fit">
-            {ANCHORS.map(a => (
-              <button key={a} onClick={() => update({ anchor: a })}
-                className={`w-7 h-7 rounded text-[10px] font-mono border ${el.anchor === a ? "bg-primary/30 border-primary text-primary-glow" : "border-border text-muted-foreground"}`}>
-                {a}
-              </button>
-            ))}
-          </div>
+      <LabeledInput label="NAME" value={el.name} onChange={v => update({ name: v })} />
+
+      <div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">ANCHOR</div>
+        <div className="grid grid-cols-9 gap-1">
+          {ANCHORS.map(a => (
+            <button key={a} onClick={() => update({ anchor: a })}
+              className={`h-8 rounded text-[10px] font-mono border ${el.anchor === a ? "bg-primary/30 border-primary text-primary-glow" : "border-border text-muted-foreground"}`}>
+              {a}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-4 gap-1.5">
         <NumInput label="X" value={el.x} onChange={v => update({ x: v })} />
         <NumInput label="Y" value={el.y} onChange={v => update({ y: v })} />
         <NumInput label="W" value={el.w} onChange={v => update({ w: v })} />
         <NumInput label="H" value={el.h} onChange={v => update({ h: v })} />
       </div>
+
 
       {(el.kind === "button" || el.kind === "label" || el.kind === "panel") && (
         <LabeledInput label="TEXT" value={el.text ?? ""} onChange={v => update({ text: v })} />
