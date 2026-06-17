@@ -76,7 +76,7 @@ export function GameRuntime({
     let cssW = 0;
     let cssH = 0;
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
       cssW = Math.max(1, canvas.clientWidth);
       cssH = Math.max(1, canvas.clientHeight);
       const nextW = Math.round(cssW * dpr);
@@ -513,6 +513,8 @@ function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => v
 
 function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number, visualEffects = true) {
   ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   const flip = (e.facing === -1) !== !!e.flipX;
   if (flip) {
     ctx.translate(e.x + e.w, e.y);

@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Scene, UIElement, UIElementKind, UIAnchor, UIAction, UIBind } from "@/lib/engine/core";
 import { newUIElement, resolveUIRect, uid } from "@/lib/engine/core";
-import { getRenderableImage } from "@/lib/engine/images";
-import { fileToDataURL } from "@/lib/engine/images";
+import { drawTransparencyGrid, fileToDataURL, getRenderableImage } from "@/lib/engine/images";
 
 interface Props {
   scene: Scene;
@@ -135,12 +134,14 @@ export function UIEditor({ scene, onChange }: Props) {
       if (now - lastDraw < 30) return;
       lastDraw = now;
       tickRef.current++;
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
       // Canvas internal coords = virtual game size; CSS scales it to fit.
       if (canvas.width !== virt.w * dpr || canvas.height !== virt.h * dpr) {
         canvas.width = virt.w * dpr; canvas.height = virt.h * dpr;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       const W = virt.w, H = virt.h;
       // game backdrop
       ctx.fillStyle = scene.bg || "#0b1e3f";
@@ -610,7 +611,14 @@ function ElementInspector({ el, update, remove, clone }: {
         <div className="space-y-1.5">
           <div className="text-[10px] font-display tracking-widest text-muted-foreground">IMAGE</div>
           <div className="flex items-center gap-2">
-            {el.image && <img src={el.image} alt="" className="w-12 h-12 rounded border border-border object-contain bg-background" />}
+            {el.image && (
+              <img
+                src={el.image}
+                alt=""
+                className="w-12 h-12 rounded border border-border object-contain"
+                style={{ backgroundColor: "#e5e7eb", backgroundImage: "linear-gradient(45deg,#9ca3af 25%,transparent 25%),linear-gradient(-45deg,#9ca3af 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#9ca3af 75%),linear-gradient(-45deg,transparent 75%,#9ca3af 75%)", backgroundSize: "12px 12px", backgroundPosition: "0 0,0 6px,6px -6px,-6px 0", imageRendering: "auto" }}
+              />
+            )}
             <button onClick={() => fileRef.current?.click()} className="flex-1 py-2 rounded border border-primary/50 bg-primary/10 text-primary-glow text-[10px] font-display tracking-widest">PICK IMAGE</button>
             {el.image && <button onClick={() => update({ image: null })} className="py-2 px-3 rounded border border-border text-muted-foreground text-[10px] font-display">CLEAR</button>}
           </div>
@@ -806,6 +814,7 @@ export function drawUIElement(ctx: CanvasRenderingContext2D, el: UIElement, W: n
     const img = getRenderableImage(el.image);
     if (img) {
       ctx.save(); path(); ctx.clip();
+      drawTransparencyGrid(ctx, r.x, r.y, r.w, r.h, 16);
       ctx.drawImage(img, r.x, r.y, r.w, r.h);
       ctx.restore();
     } else {

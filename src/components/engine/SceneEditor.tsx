@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Entity, EntityKind, Scene } from "@/lib/engine/core";
 import { KIND_PRESETS, uid } from "@/lib/engine/core";
-import { getRenderableImage } from "@/lib/engine/images";
+import { drawTransparencyGrid, getRenderableImage } from "@/lib/engine/images";
 import { currentFrameRenderable } from "@/lib/engine/animations";
 
 interface Props {
@@ -92,13 +92,15 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     const hasAnimated = scene.entities.some(e => (e.animations ?? []).some(c => c.frames.length > 1 && c.fps > 0));
     const sortedEnts = [...scene.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
     const setupSize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
       const w = canvas.clientWidth, h = canvas.clientHeight;
       if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
         canvas.width = w * dpr;
         canvas.height = h * dpr;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
     };
 
     const render = (t: number) => {
@@ -139,6 +141,7 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         const animImg = currentFrameRenderable(e, tSec, "idle");
         const drawFit = (img: HTMLImageElement | ImageBitmap) => {
           const fit = e.textureFit ?? "stretch";
+          drawTransparencyGrid(ctx, 0, 0, e.w, e.h, 16);
           if (fit === "stretch") { ctx.drawImage(img, 0, 0, e.w, e.h); return; }
           const sa = img.width / img.height;
           const da = e.w / e.h;

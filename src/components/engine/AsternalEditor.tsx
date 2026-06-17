@@ -787,10 +787,10 @@ function TexturePicker({ texture, fit = "stretch", onPick, onClear, onFit }: {
         <button
           onClick={() => inputRef.current?.click()}
           className="relative w-16 h-16 rounded-md border border-border bg-input/40 grid place-items-center overflow-hidden glow-border"
-          style={{ backgroundImage: "linear-gradient(45deg,#1f2937 25%,transparent 25%),linear-gradient(-45deg,#1f2937 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1f2937 75%),linear-gradient(-45deg,transparent 75%,#1f2937 75%)", backgroundSize: "12px 12px", backgroundPosition: "0 0,0 6px,6px -6px,-6px 0" }}
+          style={{ backgroundColor: "#e5e7eb", backgroundImage: "linear-gradient(45deg,#9ca3af 25%,transparent 25%),linear-gradient(-45deg,#9ca3af 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#9ca3af 75%),linear-gradient(-45deg,transparent 75%,#9ca3af 75%)", backgroundSize: "12px 12px", backgroundPosition: "0 0,0 6px,6px -6px,-6px 0" }}
         >
           {texture ? (
-            <img src={texture} alt="texture" className="absolute inset-0 w-full h-full" style={{ objectFit: fit === "stretch" ? "fill" : fit }} />
+            <img src={texture} alt="texture" className="absolute inset-0 w-full h-full" style={{ objectFit: fit === "stretch" ? "fill" : fit, imageRendering: "auto" }} />
           ) : (
             <span className="text-xl text-muted-foreground">＋</span>
           )}
@@ -991,11 +991,14 @@ function AssetsPanel({
       <div className="grid grid-cols-2 gap-2">
         {sprites.map(sp => (
           <div key={sp.id} className="panel rounded-lg p-2 border border-border/60 glow-border">
-            <div className="aspect-square rounded-md bg-input/40 grid place-items-center overflow-hidden border border-border/30">
+            <div
+              className="aspect-square rounded-md grid place-items-center overflow-hidden border border-border/30"
+              style={{ backgroundColor: "#e5e7eb", backgroundImage: "linear-gradient(45deg,#9ca3af 25%,transparent 25%),linear-gradient(-45deg,#9ca3af 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#9ca3af 75%),linear-gradient(-45deg,transparent 75%,#9ca3af 75%)", backgroundSize: "16px 16px", backgroundPosition: "0 0,0 8px,8px -8px,-8px 0" }}
+            >
               {sp.frames[0]?.composite && (
                 <img src={sp.frames[0].composite} alt={sp.name}
                   className="w-full h-full object-contain"
-                  style={{ imageRendering: "pixelated" }} />
+                  style={{ imageRendering: "auto" }} />
               )}
             </div>
             <div className="mt-1.5">
