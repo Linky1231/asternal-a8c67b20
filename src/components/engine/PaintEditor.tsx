@@ -328,33 +328,30 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     if (activePointers.current.size > 1) { cancelStroke(); return; }
     const p = getPos(e);
     if (drag.current.tool === "brush" || drag.current.tool === "eraser") {
+      const r = dragRect.current!;
       const events = (typeof e.nativeEvent.getCoalescedEvents === "function"
         ? e.nativeEvent.getCoalescedEvents()
         : []) as PointerEvent[];
-      const points = events.length ? events.map(ev => {
-        const c = canvasRef.current!;
-        const r = c.getBoundingClientRect();
-        return {
-          x: ((ev.clientX - r.left) / r.width) * size,
-          y: ((ev.clientY - r.top) / r.height) * size,
-          pressure: ev.pressure,
-        };
-      }) : [{ x: p.x, y: p.y, pressure: e.pressure }];
+      const points = events.length ? events.map(ev => ({
+        x: ((ev.clientX - r.left) / r.width) * size,
+        y: ((ev.clientY - r.top) / r.height) * size,
+        pressure: ev.pressure,
+      })) : [{ x: p.x, y: p.y, pressure: e.pressure }];
       const erase = drag.current.tool === "eraser";
       for (const pt of points) {
         const pr = pressureOn && pt.pressure > 0 && pt.pressure !== 0.5 ? pt.pressure : 0.5;
         const w = width * (pressureOn ? (0.4 + 1.2 * pr) : 1);
+        let x1 = pt.x, y1 = pt.y;
         if (stabilize) {
-          const mx = (drag.current.last.x + pt.x) / 2;
-          const my = (drag.current.last.y + pt.y) / 2;
-          strokeSegment(drag.current.last.x, drag.current.last.y, mx, my, erase, w);
-          drag.current.last = { x: mx, y: my };
-        } else {
-          strokeSegment(drag.current.last.x, drag.current.last.y, pt.x, pt.y, erase, w);
-          drag.current.last = pt;
+          x1 = (drag.current.last.x + pt.x) / 2;
+          y1 = (drag.current.last.y + pt.y) / 2;
         }
+        // Draw to the buffer (truth) AND to the display directly (instant feedback)
+        strokeSegment(drag.current.last.x, drag.current.last.y, x1, y1, erase, w);
+        strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, x1, y1, erase, w);
+        drag.current.last = { x: x1, y: y1 };
       }
-      blit();
+      // No full blit() here — display already has the new segment painted on top.
     } else if (drag.current.tool === "line" || drag.current.tool === "rect" || drag.current.tool === "circle") {
       const t = drag.current.tool;
       blit(ctx => drawPreviewShape(ctx, t, drag.current.start.x, drag.current.start.y, p.x, p.y));
