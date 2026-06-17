@@ -20,20 +20,24 @@ const KIND_LIST: { id: UIElementKind; icon: string; label: string }[] = [
 
 const ANCHORS: UIAnchor[] = ["tl","tc","tr","cl","c","cr","bl","bc","br"];
 
+type Snap = "peek" | "half" | "full";
+
 export function UIEditor({ scene, onChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inspectorRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const [selId, setSelId] = useState<string | null>(null);
-  // `virt` = the size the game will actually render at (used for layout math
-  // so what you place here lands at the same spot in PLAY). `size` = the
-  // scaled-down on-screen size of the preview inside the editor.
+  const [snap, setSnap] = useState<Snap>("peek");
   const [virt, setVirt] = useState({ w: 360, h: 640 });
   const [size, setSize] = useState({ w: 360, h: 640 });
   const dragRef = useRef<{ id: string; mode: "move" | "resize"; sx: number; sy: number; ox: number; oy: number; ow: number; oh: number } | null>(null);
+  const sheetDragRef = useRef<{ startY: number; startSnap: Snap; dy: number } | null>(null);
+  const [sheetDragOffset, setSheetDragOffset] = useState(0);
   const tickRef = useRef(0);
   const moveFrame = useRef(0);
   const pendingDragUpdate = useRef<{ id: string; patch: Partial<UIElement> } | null>(null);
+
 
   const ui = scene.ui ?? [];
   const sel = ui.find(e => e.id === selId) ?? null;
