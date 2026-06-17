@@ -528,7 +528,7 @@ export function UIEditor({ scene, onChange }: Props) {
               </div>
             )
           ) : selectedEls.length === 1 && sel ? (
-            <ElementInspector el={sel} update={(p) => updateEl(sel.id, p)} remove={() => removeEl(sel.id)} clone={() => cloneEl(sel.id)} />
+            <ElementInspector key={sel.id} el={sel} update={(p) => updateEl(sel.id, p)} remove={() => removeEl(sel.id)} clone={() => cloneEl(sel.id)} />
           ) : (
             <MultiInspector
               els={selectedEls}
