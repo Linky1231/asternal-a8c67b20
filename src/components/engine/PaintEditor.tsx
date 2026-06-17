@@ -45,7 +45,8 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     const buf = document.createElement("canvas");
     buf.width = size; buf.height = size;
     const ctx = buf.getContext("2d")!;
-    // start with transparent (kept) — page bg shows the light checker
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     bufferRef.current = buf;
     blit();
     pushSnapshot();
