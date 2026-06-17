@@ -366,13 +366,16 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     const p = getPos(e);
     const t = drag.current.tool;
     if (t === "brush" || t === "eraser") {
-      strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, t === "eraser");
+      const erase = t === "eraser";
+      strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, erase);
+      strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, p.x, p.y, erase, width);
     } else if (t === "line" || t === "rect" || t === "circle") {
       commitShape(t, drag.current.start.x, drag.current.start.y, p.x, p.y);
+      blit();
     }
     drag.current.active = false;
     activePointerId.current = null;
-    blit();
+    dragRect.current = null;
     setPreviewVersion(v => v + 1);
   };
 
