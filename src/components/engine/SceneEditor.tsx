@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { Entity, EntityKind, Scene } from "@/lib/engine/core";
 import { KIND_PRESETS, uid } from "@/lib/engine/core";
 import { drawTransparencyGrid, getRenderableImage } from "@/lib/engine/images";
@@ -14,8 +14,8 @@ interface Props {
 
 type HandleId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 const HANDLES: HandleId[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
-const HANDLE_PX = 14; // screen-space handle size
-const SNAP = 20;
+const HANDLE_PX = 14;
+const SNAP_OPTIONS = [0, 8, 20, 40] as const;
 
 function handlePos(e: Entity, h: HandleId) {
   const cx = e.x + e.w / 2;
@@ -32,15 +32,16 @@ function handlePos(e: Entity, h: HandleId) {
   }
 }
 
-function resizeEntity(e: Entity, h: HandleId, wx: number, wy: number): Entity {
-  const snap = (v: number) => Math.round(v / SNAP) * SNAP;
+function resizeEntity(e: Entity, h: HandleId, wx: number, wy: number, snap: number): Entity {
+  const sn = (v: number) => snap > 0 ? Math.round(v / snap) * snap : Math.round(v);
+  const minSize = Math.max(snap || 8, 8);
   let { x, y, w, h: he } = e;
   const right = x + w;
   const bottom = y + he;
-  if (h.includes("w")) { const nx = Math.min(snap(wx), right - SNAP); w = right - nx; x = nx; }
-  if (h.includes("e")) { const nr = Math.max(snap(wx), x + SNAP); w = nr - x; }
-  if (h.includes("n")) { const ny = Math.min(snap(wy), bottom - SNAP); he = bottom - ny; y = ny; }
-  if (h.includes("s")) { const nb = Math.max(snap(wy), y + SNAP); he = nb - y; }
+  if (h.includes("w")) { const nx = Math.min(sn(wx), right - minSize); w = right - nx; x = nx; }
+  if (h.includes("e")) { const nr = Math.max(sn(wx), x + minSize); w = nr - x; }
+  if (h.includes("n")) { const ny = Math.min(sn(wy), bottom - minSize); he = bottom - ny; y = ny; }
+  if (h.includes("s")) { const nb = Math.max(sn(wy), y + minSize); he = nb - y; }
   return { ...e, x, y, w, h: he };
 }
 
@@ -49,9 +50,126 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(0.55);
+  const [snap, setSnap] = useState<number>(20);
   const animRef = useRef(0);
 
-  // Pointer tracking for multi-touch
+  // ---------- Undo / Redo history ----------
+  const undoStack = useRef<Scene[]>([]);
+  const redoStack = useRef<Scene[]>([]);
+  const lastScene = useRef<Scene>(scene);
+  const applyingHistory = useRef(false);
+  const [, forceTick] = useState(0);
+  const refreshUI = () => forceTick(t => t + 1);
+
+  useEffect(() => {
+    if (applyingHistory.current) {
+      applyingHistory.current = false;
+      lastScene.current = scene;
+      return;
+    }
+    if (lastScene.current !== scene && lastScene.current.id === scene.id) {
+      undoStack.current.push(lastScene.current);
+      if (undoStack.current.length > 80) undoStack.current.shift();
+      redoStack.current = [];
+    }
+    lastScene.current = scene;
+  }, [scene]);
+
+  const undo = useCallback(() => {
+    const prev = undoStack.current.pop();
+    if (!prev) return;
+    redoStack.current.push(lastScene.current);
+    applyingHistory.current = true;
+    onChange(prev);
+    refreshUI();
+  }, [onChange]);
+
+  const redo = useCallback(() => {
+    const next = redoStack.current.pop();
+    if (!next) return;
+    undoStack.current.push(lastScene.current);
+    applyingHistory.current = true;
+    onChange(next);
+    refreshUI();
+  }, [onChange]);
+
+  // ---------- Entity ops ----------
+  const selected = scene.entities.find(e => e.id === selectedId) ?? null;
+
+  const duplicateSelected = useCallback(() => {
+    if (!selected) return;
+    if (selected.kind === "player") return; // only one player
+    const offset = snap > 0 ? snap : 16;
+    const copy: Entity = {
+      ...selected,
+      id: uid(),
+      x: selected.x + offset,
+      y: selected.y + offset,
+    };
+    onChange({ ...scene, entities: [...scene.entities, copy] });
+    onSelect(copy.id);
+  }, [selected, scene, snap, onChange, onSelect]);
+
+  const deleteSelected = useCallback(() => {
+    if (!selected || selected.kind === "player") return;
+    onChange({ ...scene, entities: scene.entities.filter(e => e.id !== selected.id) });
+    onSelect(null);
+  }, [selected, scene, onChange, onSelect]);
+
+  const bringToFront = useCallback(() => {
+    if (!selected) return;
+    const maxZ = scene.entities.reduce((m, e) => Math.max(m, e.z ?? 0), 0);
+    onChange({
+      ...scene,
+      entities: scene.entities.map(e => e.id === selected.id ? { ...e, z: maxZ + 1 } : e),
+    });
+  }, [selected, scene, onChange]);
+
+  const sendToBack = useCallback(() => {
+    if (!selected) return;
+    const minZ = scene.entities.reduce((m, e) => Math.min(m, e.z ?? 0), 0);
+    onChange({
+      ...scene,
+      entities: scene.entities.map(e => e.id === selected.id ? { ...e, z: minZ - 1 } : e),
+    });
+  }, [selected, scene, onChange]);
+
+  const flipH = useCallback(() => {
+    if (!selected) return;
+    onChange({
+      ...scene,
+      entities: scene.entities.map(e => e.id === selected.id ? { ...e, flipX: !e.flipX } : e),
+    });
+  }, [selected, scene, onChange]);
+
+  const flipV = useCallback(() => {
+    if (!selected) return;
+    onChange({
+      ...scene,
+      entities: scene.entities.map(e => e.id === selected.id ? { ...e, flipY: !(e as Entity & { flipY?: boolean }).flipY } as Entity : e),
+    });
+  }, [selected, scene, onChange]);
+
+  // ---------- Keyboard ----------
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      const tgt = ev.target as HTMLElement | null;
+      if (tgt && (tgt.tagName === "INPUT" || tgt.tagName === "TEXTAREA" || tgt.isContentEditable)) return;
+      const mod = ev.ctrlKey || ev.metaKey;
+      if (mod && ev.key.toLowerCase() === "z" && !ev.shiftKey) { ev.preventDefault(); undo(); return; }
+      if (mod && (ev.key.toLowerCase() === "y" || (ev.key.toLowerCase() === "z" && ev.shiftKey))) { ev.preventDefault(); redo(); return; }
+      if (mod && ev.key.toLowerCase() === "d") { ev.preventDefault(); duplicateSelected(); return; }
+      if (ev.key === "Delete" || ev.key === "Backspace") { if (selected) { ev.preventDefault(); deleteSelected(); } return; }
+      if (ev.key === "]") { ev.preventDefault(); bringToFront(); return; }
+      if (ev.key === "[") { ev.preventDefault(); sendToBack(); return; }
+      if (ev.key.toLowerCase() === "h") { ev.preventDefault(); flipH(); return; }
+      if (ev.key.toLowerCase() === "v") { ev.preventDefault(); flipV(); return; }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo, duplicateSelected, deleteSelected, bringToFront, sendToBack, flipH, flipV, selected]);
+
+  // Pointer tracking
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const gesture = useRef<{
     mode: "idle" | "pan" | "move" | "resize" | "place" | "pinch";
@@ -66,7 +184,6 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     pinchStartPan?: { x: number; y: number };
   }>({ mode: "idle" });
 
-  // Fit on mount/resize
   useEffect(() => {
     const fit = () => {
       const wrap = wrapRef.current;
@@ -83,7 +200,6 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     return () => window.removeEventListener("resize", fit);
   }, [scene.width, scene.height]);
 
-  // Draw (continuous to support texture load + dashed-marquee animation)
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
@@ -114,19 +230,19 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       ctx.translate(pan.x, pan.y);
       ctx.scale(scale, scale);
 
-      // bg
       const grd = ctx.createLinearGradient(0, 0, 0, scene.height);
       grd.addColorStop(0, "#0b1e3f");
       grd.addColorStop(1, "#030712");
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, scene.width, scene.height);
 
-      // grid
+      // grid (uses current snap)
+      const gridStep = snap > 0 ? Math.max(snap, 8) : 40;
       ctx.strokeStyle = "rgba(56,189,248,0.16)";
       ctx.lineWidth = 1 / scale;
       ctx.beginPath();
-      for (let x = 0; x <= scene.width; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, scene.height); }
-      for (let y = 0; y <= scene.height; y += 40) { ctx.moveTo(0, y); ctx.lineTo(scene.width, y); }
+      for (let x = 0; x <= scene.width; x += gridStep) { ctx.moveTo(x, 0); ctx.lineTo(x, scene.height); }
+      for (let y = 0; y <= scene.height; y += gridStep) { ctx.moveTo(0, y); ctx.lineTo(scene.width, y); }
       ctx.stroke();
       ctx.strokeStyle = "rgba(125,211,252,0.6)";
       ctx.lineWidth = 2 / scale;
@@ -135,9 +251,10 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       const tSec = t / 1000;
       for (const e of sortedEnts) {
         ctx.save();
-        const flip = (e.facing === -1) !== !!e.flipX;
-        if (flip) { ctx.translate(e.x + e.w, e.y); ctx.scale(-1, 1); }
-        else ctx.translate(e.x, e.y);
+        const flipX = (e.facing === -1) !== !!e.flipX;
+        const flipY = !!(e as Entity & { flipY?: boolean }).flipY;
+        ctx.translate(e.x + (flipX ? e.w : 0), e.y + (flipY ? e.h : 0));
+        ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
         const animImg = currentFrameRenderable(e, tSec, "idle");
         const drawFit = (img: HTMLImageElement | ImageBitmap) => {
           const fit = e.textureFit ?? "stretch";
@@ -163,7 +280,6 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         ctx.restore();
       }
 
-      // hitbox overlays in world-space (for all entities; selected one gets stronger highlight)
       for (const e of scene.entities) {
         const hb = e.hitbox;
         if (!hb) continue;
@@ -177,29 +293,18 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         ctx.restore();
       }
 
-      // modern selection overlay (screen-space crispness)
       const sel = scene.entities.find(e => e.id === selectedId);
       if (sel) {
-        ctx.restore(); // back to screen space
+        ctx.restore();
         const sx = pan.x + sel.x * scale;
         const sy = pan.y + sel.y * scale;
         const sw = sel.w * scale;
         const sh = sel.h * scale;
 
-        // outer subtle glow
-        ctx.save();
-        ctx.shadowColor = "#7dd3fc";
-        ctx.shadowBlur = 12;
-        ctx.strokeStyle = "rgba(125,211,252,0.0)";
-        ctx.strokeRect(sx, sy, sw, sh);
-        ctx.restore();
-
-        // crisp 1px frame
         ctx.lineWidth = 1.25;
         ctx.strokeStyle = "#7dd3fc";
         ctx.strokeRect(sx + 0.5, sy + 0.5, sw - 1, sh - 1);
 
-        // size label
         const label = `${Math.round(sel.w)} × ${Math.round(sel.h)}`;
         ctx.font = "600 11px ui-monospace, SFMono-Regular, Menlo, monospace";
         const tw = ctx.measureText(label).width + 10;
@@ -213,7 +318,6 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         ctx.fillStyle = "#7dd3fc";
         ctx.fillText(label, lx + 5, ly + 13);
 
-        // handles (8) — square, white fill, cyan border
         for (const h of HANDLES) {
           const wp = handlePos(sel, h);
           const hx = pan.x + wp.x * scale - HANDLE_PX / 2;
@@ -232,7 +336,7 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     };
     animRef.current = requestAnimationFrame(render);
     return () => { mounted = false; cancelAnimationFrame(animRef.current); };
-  }, [scene, pan, scale, selectedId]);
+  }, [scene, pan, scale, selectedId, snap]);
 
   const screenToWorld = (sx: number, sy: number) => ({
     x: (sx - pan.x) / scale,
@@ -282,26 +386,22 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     };
   };
 
+  const snapVal = (v: number) => snap > 0 ? Math.round(v / snap) * snap : Math.round(v);
+
   const onPointerDown = (ev: React.PointerEvent) => {
     (ev.target as Element).setPointerCapture(ev.pointerId);
     const { sx, sy } = getLocal(ev);
     pointers.current.set(ev.pointerId, { x: sx, y: sy });
 
-    if (pointers.current.size >= 2) {
-      beginPinch();
-      return;
-    }
+    if (pointers.current.size >= 2) { beginPinch(); return; }
 
     const w = screenToWorld(sx, sy);
 
-    // Always: if a selection handle is hit, start resizing (regardless of tool)
     const handle = hitHandle(sx, sy);
     if (handle && selectedId) {
       const ent = scene.entities.find(e => e.id === selectedId)!;
       gesture.current = {
-        mode: "resize",
-        handle,
-        entId: ent.id,
+        mode: "resize", handle, entId: ent.id,
         entStartX: ent.x, entStartY: ent.y, entStartW: ent.w, entStartH: ent.h,
         startSX: sx, startSY: sy,
       };
@@ -331,8 +431,8 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       const ent: Entity = {
         ...preset,
         id: uid(),
-        x: Math.round((w.x - preset.w / 2) / SNAP) * SNAP,
-        y: Math.round((w.y - preset.h / 2) / SNAP) * SNAP,
+        x: snapVal(w.x - preset.w / 2),
+        y: snapVal(w.y - preset.h / 2),
       };
       let entities = scene.entities;
       if (tool === "player") entities = entities.filter(e => e.kind !== "player");
@@ -357,16 +457,13 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       const cy = (a.y + b.y) / 2;
       const ratio = dist / (g.pinchStartDist || 1);
       const newScale = Math.max(0.15, Math.min(3, (g.pinchStartScale || 1) * ratio));
-      // keep pinch center anchored: world point under start center should stay under current center
       const startC = g.pinchStartCenter!;
       const startPan = g.pinchStartPan!;
       const startScale = g.pinchStartScale!;
       const worldX = (startC.x - startPan.x) / startScale;
       const worldY = (startC.y - startPan.y) / startScale;
-      const newPanX = cx - worldX * newScale;
-      const newPanY = cy - worldY * newScale;
       setScale(newScale);
-      setPan({ x: newPanX, y: newPanY });
+      setPan({ x: cx - worldX * newScale, y: cy - worldY * newScale });
       return;
     }
 
@@ -380,7 +477,7 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       const dy = (sy - (g.startSY || 0)) / scale;
       const entities = scene.entities.map(e =>
         e.id === g.entId
-          ? { ...e, x: Math.round(((g.entStartX || 0) + dx) / SNAP) * SNAP, y: Math.round(((g.entStartY || 0) + dy) / SNAP) * SNAP }
+          ? { ...e, x: snapVal((g.entStartX || 0) + dx), y: snapVal((g.entStartY || 0) + dy) }
           : e
       );
       onChange({ ...scene, entities });
@@ -389,7 +486,7 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       const entities = scene.entities.map(e => {
         if (e.id !== g.entId) return e;
         const base: Entity = { ...e, x: g.entStartX!, y: g.entStartY!, w: g.entStartW!, h: g.entStartH! };
-        return resizeEntity(base, g.handle!, w.x, w.y);
+        return resizeEntity(base, g.handle!, w.x, w.y, snap);
       });
       onChange({ ...scene, entities });
     }
@@ -405,6 +502,10 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     }
   };
 
+  const canUndo = undoStack.current.length > 0;
+  const canRedo = redoStack.current.length > 0;
+  const hasSel = !!selected;
+
   return (
     <div ref={wrapRef} className="relative h-full w-full overflow-hidden cyber-grid">
       <canvas
@@ -418,10 +519,65 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       <div className="absolute top-2 left-2 panel rounded-md px-2 py-1 text-[10px] font-mono text-primary-glow">
         {scene.width}×{scene.height} · {Math.round(scale * 100)}%
       </div>
+
+      {/* Floating power toolbar */}
+      <div className="absolute top-2 right-2 flex flex-col gap-1.5">
+        <div className="panel rounded-lg border border-border/60 p-1 flex gap-1 shadow-lg backdrop-blur">
+          <TBtn label="Undo (⌘Z)" disabled={!canUndo} onClick={undo}>↶</TBtn>
+          <TBtn label="Redo (⌘⇧Z)" disabled={!canRedo} onClick={redo}>↷</TBtn>
+        </div>
+        <div className="panel rounded-lg border border-border/60 p-1 flex gap-1 shadow-lg backdrop-blur">
+          <TBtn label="Duplicate (⌘D)" disabled={!hasSel} onClick={duplicateSelected}>⎘</TBtn>
+          <TBtn label="Bring to front (])" disabled={!hasSel} onClick={bringToFront}>⤒</TBtn>
+          <TBtn label="Send to back ([)" disabled={!hasSel} onClick={sendToBack}>⤓</TBtn>
+        </div>
+        <div className="panel rounded-lg border border-border/60 p-1 flex gap-1 shadow-lg backdrop-blur">
+          <TBtn label="Flip Horizontal (H)" disabled={!hasSel} onClick={flipH}>⇋</TBtn>
+          <TBtn label="Flip Vertical (V)" disabled={!hasSel} onClick={flipV}>⇵</TBtn>
+          <TBtn label="Delete (⌫)" disabled={!hasSel} onClick={deleteSelected}>✕</TBtn>
+        </div>
+        <div className="panel rounded-lg border border-border/60 p-1 flex gap-1 shadow-lg backdrop-blur items-center">
+          <span className="text-[9px] font-display tracking-widest text-muted-foreground pl-1.5 pr-0.5">SNAP</span>
+          {SNAP_OPTIONS.map(opt => (
+            <button
+              key={opt}
+              onClick={() => setSnap(opt)}
+              className={`min-w-[28px] h-7 px-1 rounded text-[10px] font-mono ${
+                snap === opt
+                  ? "bg-primary/25 text-primary-glow border border-primary/60"
+                  : "text-muted-foreground border border-transparent"
+              }`}
+            >
+              {opt === 0 ? "off" : opt}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 panel rounded-full px-3 py-1 text-[10px] font-mono text-muted-foreground whitespace-nowrap">
-        pinch · zoom · drag handles · resize
+        pinch · zoom · ⌘Z undo · ⌘D dup · H/V flip · [ ] layer
       </div>
     </div>
+  );
+}
+
+function TBtn({
+  children, onClick, disabled, label,
+}: { children: React.ReactNode; onClick: () => void; disabled?: boolean; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      className={`w-9 h-9 grid place-items-center rounded-md text-base transition ${
+        disabled
+          ? "text-muted-foreground/40 cursor-not-allowed"
+          : "text-primary-glow hover:bg-primary/15 active:scale-95"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
