@@ -46,6 +46,17 @@ export function UIEditor({ scene, onChange }: Props) {
   const sel = selectedEls.length === 1 ? selectedEls[0] : null;
   const selId = sel?.id ?? null;
 
+  // Use visualViewport on iOS Safari so URL-bar collapse/expand
+  // doesn't desync the sheet/canvas sizing.
+  const getVH = () => {
+    if (typeof window === "undefined") return 800;
+    return Math.round(window.visualViewport?.height ?? window.innerHeight);
+  };
+  const getVW = () => {
+    if (typeof window === "undefined") return 360;
+    return Math.round(window.visualViewport?.width ?? window.innerWidth);
+  };
+
   // Fit preview to wrap while matching the REAL game canvas aspect (window
   // minus header & tab bar), so anchored offsets are 1:1 with PLAY.
   useEffect(() => {
@@ -59,8 +70,8 @@ export function UIEditor({ scene, onChange }: Props) {
       const aw = Math.max(80, w.clientWidth - padL - padR - 8);
       const ah = Math.max(80, w.clientHeight - padT - padB - 8);
       const HEADER = 56, TABS = 72;
-      const vw = Math.max(240, window.innerWidth);
-      const vh = Math.max(240, window.innerHeight - HEADER - TABS);
+      const vw = Math.max(240, getVW());
+      const vh = Math.max(240, getVH() - HEADER - TABS);
       const sc = Math.min(aw / vw, ah / vh);
       setVirt({ w: vw, h: vh });
       const nextSize = { w: Math.max(120, Math.round(vw * sc)), h: Math.max(120, Math.round(vh * sc)) };
@@ -68,18 +79,25 @@ export function UIEditor({ scene, onChange }: Props) {
     };
     fit();
     window.addEventListener("resize", fit);
-    return () => { window.removeEventListener("resize", fit); };
+    window.addEventListener("orientationchange", fit);
+    window.visualViewport?.addEventListener("resize", fit);
+    return () => {
+      window.removeEventListener("resize", fit);
+      window.removeEventListener("orientationchange", fit);
+      window.visualViewport?.removeEventListener("resize", fit);
+    };
   }, [snap]);
 
   useEffect(() => {
-    inspectorRef.current?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    // Safari doesn't support behavior: "instant" reliably — set scrollTop directly.
+    if (inspectorRef.current) inspectorRef.current.scrollTop = 0;
     if (selId) setSnap(s => (s === "peek" ? "half" : s));
     else setSnap("peek");
   }, [selId]);
 
   // sheet drag (vertical) — snap to peek/half/full
   const sheetHeightFor = (s: Snap) => {
-    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    const vh = getVH();
     if (s === "full") return Math.round(vh * 0.88);
     if (s === "half") return Math.round(vh * 0.58);
     return 60;
