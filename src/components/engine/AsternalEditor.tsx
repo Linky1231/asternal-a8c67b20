@@ -991,11 +991,14 @@ function AssetsPanel({
       <div className="grid grid-cols-2 gap-2">
         {sprites.map(sp => (
           <div key={sp.id} className="panel rounded-lg p-2 border border-border/60 glow-border">
-            <div className="aspect-square rounded-md bg-input/40 grid place-items-center overflow-hidden border border-border/30">
+            <div
+              className="aspect-square rounded-md grid place-items-center overflow-hidden border border-border/30"
+              style={{ backgroundColor: "#e5e7eb", backgroundImage: "linear-gradient(45deg,#9ca3af 25%,transparent 25%),linear-gradient(-45deg,#9ca3af 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#9ca3af 75%),linear-gradient(-45deg,transparent 75%,#9ca3af 75%)", backgroundSize: "16px 16px", backgroundPosition: "0 0,0 8px,8px -8px,-8px 0" }}
+            >
               {sp.frames[0]?.composite && (
                 <img src={sp.frames[0].composite} alt={sp.name}
                   className="w-full h-full object-contain"
-                  style={{ imageRendering: "pixelated" }} />
+                  style={{ imageRendering: "auto" }} />
               )}
             </div>
             <div className="mt-1.5">

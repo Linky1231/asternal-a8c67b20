@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Scene, UIElement, UIElementKind, UIAnchor, UIAction, UIBind } from "@/lib/engine/core";
 import { newUIElement, resolveUIRect, uid } from "@/lib/engine/core";
-import { getRenderableImage } from "@/lib/engine/images";
-import { fileToDataURL } from "@/lib/engine/images";
+import { drawTransparencyGrid, fileToDataURL, getRenderableImage } from "@/lib/engine/images";
 
 interface Props {
   scene: Scene;
@@ -806,6 +805,7 @@ export function drawUIElement(ctx: CanvasRenderingContext2D, el: UIElement, W: n
     const img = getRenderableImage(el.image);
     if (img) {
       ctx.save(); path(); ctx.clip();
+      drawTransparencyGrid(ctx, r.x, r.y, r.w, r.h, 16);
       ctx.drawImage(img, r.x, r.y, r.w, r.h);
       ctx.restore();
     } else {
