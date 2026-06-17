@@ -328,7 +328,7 @@ export function UIEditor({ scene, onChange }: Props) {
   };
 
   const onPointerDown = (ev: React.PointerEvent) => {
-    (ev.target as Element).setPointerCapture(ev.pointerId);
+    try { (ev.currentTarget as Element).setPointerCapture(ev.pointerId); } catch {}
     const { sx, sy } = toVirt(ev);
     const grab = Math.max(18, 20 / Math.max(0.001, size.w / virt.w));
 
