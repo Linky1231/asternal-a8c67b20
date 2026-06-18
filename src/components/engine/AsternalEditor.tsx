@@ -707,16 +707,52 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
       <SectionTitle>AUDIO</SectionTitle>
       <div className="grid grid-cols-2 gap-2">
         <Toggle label="Mute" on={project.settings.muted ?? false} onChange={v => set({ muted: v })} />
-        <Toggle label="Music" on={project.settings.music ?? false} onChange={v => set({ music: v })} />
+        <Toggle
+          label="Music"
+          on={(project.settings.music ?? false) && !!project.settings.musicUrl}
+          onChange={v => set({ music: v })}
+        />
       </div>
       <Slider label="Volume" value={Math.round((project.settings.volume ?? 0.8) * 100)} min={0} max={100} step={5}
         onChange={v => set({ volume: v / 100 })} />
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-display tracking-widest text-muted-foreground">MUSIC FILE</label>
+        {project.settings.musicUrl ? (
+          <div className="flex items-center gap-2 panel rounded-md px-3 py-2">
+            <span className="flex-1 text-xs font-mono text-primary-glow truncate">
+              ♪ {project.settings.musicName || "track"}
+            </span>
+            <button
+              onClick={() => set({ musicUrl: null, musicName: null, music: false })}
+              className="text-[10px] font-display tracking-widest text-muted-foreground hover:text-primary-glow px-2 py-1 rounded border border-border"
+            >REMOVE</button>
+          </div>
+        ) : (
+          <label className="block">
+            <input
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={async e => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const url = String(reader.result || "");
+                  if (url) set({ musicUrl: url, musicName: f.name, music: true });
+                };
+                reader.readAsDataURL(f);
+                e.target.value = "";
+              }}
+            />
+            <span className="block text-center py-2.5 rounded-md bg-primary/15 border border-primary/50 text-primary-glow font-display text-xs tracking-widest cursor-pointer">
+              ⤒ UPLOAD MUSIC
+            </span>
+          </label>
+        )}
+      </div>
 
-      <SectionTitle>GRID</SectionTitle>
-      <Toggle label="Show grid" on={project.settings.showGrid ?? true} onChange={v => set({ showGrid: v })} />
-      <Toggle label="Snap to grid" on={project.settings.snapToGrid ?? false} onChange={v => set({ snapToGrid: v })} />
-      <Slider label="Grid size" value={project.settings.gridSize ?? 16} min={4} max={64} step={2}
-        onChange={v => set({ gridSize: v })} />
+
 
       <SectionTitle>DATA</SectionTitle>
       <div className="grid grid-cols-2 gap-2">
