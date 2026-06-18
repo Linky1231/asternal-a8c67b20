@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Entity, EntityKind, Scene } from "@/lib/engine/core";
 import { KIND_PRESETS, uid } from "@/lib/engine/core";
-import { drawTransparencyGrid, getRenderableImage } from "@/lib/engine/images";
+import { getRenderableImage } from "@/lib/engine/images";
 import { currentFrameRenderable } from "@/lib/engine/animations";
 
 interface Props {
@@ -258,7 +258,6 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         const animImg = currentFrameRenderable(e, tSec, "idle");
         const drawFit = (img: HTMLImageElement | ImageBitmap) => {
           const fit = e.textureFit ?? "stretch";
-          drawTransparencyGrid(ctx, 0, 0, e.w, e.h, 16);
           if (fit === "stretch") { ctx.drawImage(img, 0, 0, e.w, e.h); return; }
           const sa = img.width / img.height;
           const da = e.w / e.h;
