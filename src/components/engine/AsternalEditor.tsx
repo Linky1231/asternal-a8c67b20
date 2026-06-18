@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox } from "@/lib/engine/core";
 import { newScene, uid, DEFAULT_SETTINGS } from "@/lib/engine/core";
-import { loadProject, saveProject } from "@/lib/engine/storage";
+import { loadProject, loadProjectById, saveProject, saveProjectById, getCurrentProjectId, setCurrentProjectId } from "@/lib/engine/storage";
 import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
 import { AnimationEditor } from "./AnimationEditor";
 import { PaintEditor } from "./PaintEditor";
 import { UIEditor } from "./UIEditor";
+import { ProjectManager } from "./ProjectManager";
 
 import { ScriptEditor } from "./ScriptEditor";
 import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
@@ -30,21 +31,44 @@ const TOOL_LIST: { id: Tool; tKey: string; icon: string }[] = [
 export function AsternalEditor() {
   const t = useT();
   const [project, setProject] = useState<Project | null>(null);
+  const [projectId, setProjectId] = useState<string>("");
   const [tool, setTool] = useState<Tool>("select");
   const [tab, setTab] = useState<Tab>("build");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [showManager, setShowManager] = useState(false);
 
   useEffect(() => {
-    setProject(loadProject());
+    const id = getCurrentProjectId();
+    setProjectId(id);
+    setProject(loadProjectById(id) ?? loadProject());
   }, []);
 
+  const openProject = (id: string) => {
+    setCurrentProjectId(id);
+    const p = loadProjectById(id);
+    if (!p) return;
+    setProjectId(id);
+    setProject(p);
+    setSelectedId(null);
+    setTab("build");
+    setShowManager(false);
+  };
+
+  const exitToManager = () => {
+    if (project && projectId) {
+      saveProjectById(projectId, project);
+      setSavedAt(Date.now());
+    }
+    setShowManager(true);
+  };
+
   useEffect(() => {
-    if (project) {
+    if (project && projectId) {
       const persist = () => {
-        saveProject(project);
+        saveProjectById(projectId, project);
         setSavedAt(Date.now());
       };
       let idleId: number | null = null;
@@ -61,7 +85,7 @@ export function AsternalEditor() {
         if (idleId !== null) (window as typeof window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(idleId);
       };
     }
-  }, [project]);
+  }, [project, projectId]);
 
   // Listen for goal-reached events from the runtime to support scene transitions
   useEffect(() => {
@@ -82,6 +106,10 @@ export function AsternalEditor() {
     () => project?.scenes.find(s => s.id === project.activeSceneId),
     [project]
   );
+
+  if (showManager) {
+    return <ProjectManager onOpen={openProject} onClose={project ? () => setShowManager(false) : undefined} />;
+  }
 
   if (!project || !activeScene) {
     return <div className="flex h-screen items-center justify-center text-muted-foreground">Booting engine…</div>;
@@ -131,6 +159,12 @@ export function AsternalEditor() {
         </div>
         <div className="flex items-center gap-1.5">
           <button
+            onClick={exitToManager}
+            aria-label="Salir al gestor de proyectos"
+            title="Salir"
+            className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
+          >⌂</button>
+          <button
             onClick={() => setHelpOpen(true)}
             aria-label="Help"
             className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
@@ -139,7 +173,7 @@ export function AsternalEditor() {
             onClick={() => {
               if (project.settings.fpsCap !== 60) {
                 const next = { ...project, settings: { ...project.settings, fpsCap: 60 as const } };
-                saveProject(next);
+                saveProjectById(projectId, next);
                 setProject(next);
               }
               setPlaying(true);
