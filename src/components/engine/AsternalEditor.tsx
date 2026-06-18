@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox } from "@/lib/engine/core";
 import { newScene, uid, DEFAULT_SETTINGS } from "@/lib/engine/core";
-import { loadProject, saveProject } from "@/lib/engine/storage";
+import { loadProject, loadProjectById, saveProject, saveProjectById, getCurrentProjectId, setCurrentProjectId } from "@/lib/engine/storage";
 import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
 import { AnimationEditor } from "./AnimationEditor";
 import { PaintEditor } from "./PaintEditor";
 import { UIEditor } from "./UIEditor";
+import { ProjectManager } from "./ProjectManager";
 
 import { ScriptEditor } from "./ScriptEditor";
 import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
@@ -30,16 +31,39 @@ const TOOL_LIST: { id: Tool; tKey: string; icon: string }[] = [
 export function AsternalEditor() {
   const t = useT();
   const [project, setProject] = useState<Project | null>(null);
+  const [projectId, setProjectId] = useState<string>("");
   const [tool, setTool] = useState<Tool>("select");
   const [tab, setTab] = useState<Tab>("build");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [showManager, setShowManager] = useState(false);
 
   useEffect(() => {
-    setProject(loadProject());
+    const id = getCurrentProjectId();
+    setProjectId(id);
+    setProject(loadProjectById(id) ?? loadProject());
   }, []);
+
+  const openProject = (id: string) => {
+    setCurrentProjectId(id);
+    const p = loadProjectById(id);
+    if (!p) return;
+    setProjectId(id);
+    setProject(p);
+    setSelectedId(null);
+    setTab("build");
+    setShowManager(false);
+  };
+
+  const exitToManager = () => {
+    if (project && projectId) {
+      saveProjectById(projectId, project);
+      setSavedAt(Date.now());
+    }
+    setShowManager(true);
+  };
 
   useEffect(() => {
     if (project) {
