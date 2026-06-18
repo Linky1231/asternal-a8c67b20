@@ -159,6 +159,8 @@ export interface ProjectSettings {
   volume?: number;       // 0..1
   muted?: boolean;
   music?: boolean;
+  musicUrl?: string | null;       // dataURL or URL to custom audio file
+  musicName?: string | null;      // display name of the uploaded track
   touchControls?: boolean;
   autoPause?: boolean;
   showHitboxes?: boolean;
@@ -350,12 +352,11 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
   const solids = scene.entities.filter((e) => e.solid);
   const interactables = scene.entities.filter((e) => e.collectible || e.hazard || e.goal || e.switchId || e.checkpoint || e.crumble);
 
-  // Horizontal pass
+  // Horizontal pass — robust AABB resolution with MTV fallback
   for (const e of scene.entities) {
     if (e.kind === "platform") continue;
 
-    // Predictive ledge detection for enemies: if currently grounded and the
-    // next step would put their leading foot over empty space, reverse first.
+    // Predictive ledge detection for enemies
     if (e.kind === "enemy" && Math.abs(e.vx) > 0.1) {
       const wasGrounded = (e as Entity & { _grounded?: boolean })._grounded;
       const ledgeSafe = e.patrol ? (e.patrol.ledgeSafe ?? true) : true;
@@ -374,27 +375,32 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
             probeY + probeH > o.y
           ) { hasGround = true; break; }
         }
-        if (!hasGround) {
-          e.vx = -e.vx;
-        }
+        if (!hasGround) e.vx = -e.vx;
       }
     }
 
     e.x += e.vx * dt;
     for (const o of solids) {
       if (o === e || !o.solid) continue;
-      if (intersects(e, o)) {
-        const A = aabb(e), B = aabb(o);
-        const ox = e.hitbox?.x ?? 0;
-        if (e.vx > 0) e.x = B.x - A.w - ox;
-        else if (e.vx < 0) e.x = B.x + B.w - ox;
-        if (e.kind === "enemy") e.vx = -e.vx;
-      }
+      if (!intersects(e, o)) continue;
+      const A = aabb(e), B = aabb(o);
+      const ox = e.hitbox?.x ?? 0;
+      // Decide push direction: prefer the side opposite the motion;
+      // for zero/ambiguous motion, pick the shortest separation (MTV).
+      const pushRight = B.x + B.w - A.x;      // distance to push e to the right
+      const pushLeft  = A.x + A.w - B.x;      // distance to push e to the left
+      let dir: 1 | -1;
+      if (e.vx > 0.01) dir = -1;
+      else if (e.vx < -0.01) dir = 1;
+      else dir = pushLeft < pushRight ? -1 : 1;
+      if (dir === -1) e.x = B.x - A.w - ox;
+      else e.x = B.x + B.w - ox;
+      if (e.kind === "enemy") e.vx = -Math.abs(e.vx) * dir;
     }
   }
 
 
-  // Vertical pass
+  // Vertical pass — robust AABB resolution with MTV fallback
   const grounded = new Set<string>();
   const groundedOn = new Map<string, Entity>();
   for (const e of scene.entities) {
@@ -402,26 +408,31 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     e.y += e.vy * dt;
     for (const o of solids) {
       if (o === e || !o.solid) continue;
-      if (intersects(e, o)) {
-        const A = aabb(e), B = aabb(o);
-        const oy = e.hitbox?.y ?? 0;
-        if (e.vy > 0) {
-          e.y = B.y - A.h - oy;
-          // spring bounce
-          if (o.spring) {
-            e.vy = -(o.spring.force || 720);
-          } else {
-            e.vy = 0;
-            grounded.add(e.id);
-            groundedOn.set(e.id, o);
-          }
-        } else if (e.vy < 0) {
-          e.y = B.y + B.h - oy;
+      if (!intersects(e, o)) continue;
+      const A = aabb(e), B = aabb(o);
+      const oy = e.hitbox?.y ?? 0;
+      const pushDown = B.y + B.h - A.y;
+      const pushUp   = A.y + A.h - B.y;
+      let dir: 1 | -1;
+      if (e.vy > 0.01) dir = -1;       // moving down → push up (land on top)
+      else if (e.vy < -0.01) dir = 1;  // moving up → push down (bonk head)
+      else dir = pushUp < pushDown ? -1 : 1;
+      if (dir === -1) {
+        e.y = B.y - A.h - oy;
+        if (o.spring) {
+          e.vy = -(o.spring.force || 720);
+        } else {
           e.vy = 0;
+          grounded.add(e.id);
+          groundedOn.set(e.id, o);
         }
+      } else {
+        e.y = B.y + B.h - oy;
+        e.vy = 0;
       }
     }
   }
+
 
   // Persist grounded flag for next-frame predictive ledge checks
   for (const e of scene.entities) {
@@ -518,9 +529,15 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       } else if (o.hazard) {
         if (state.invulnT <= 0) {
           emit(state, { x: e.x + e.w / 2, y: e.y + e.h / 2, color: "#f43f5e", count: 14 });
+          // Knockback player away from hazard so they don't get stuck inside
+          const A = aabb(e), B = aabb(o);
+          const dirX = (A.x + A.w / 2) < (B.x + B.w / 2) ? -1 : 1;
+          e.vx = dirX * 260;
+          e.vy = -320;
           if (state.lives > 1) { state.lives -= 1; state.invulnT = 1.2; if (state.checkpoint) { e.x = state.checkpoint.x; e.y = state.checkpoint.y; e.vx = 0; e.vy = 0; } }
           else state.dead = true;
         }
+
       } else if (o.goal) {
         state.win = true;
         if (typeof window !== "undefined") {

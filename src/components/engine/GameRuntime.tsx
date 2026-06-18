@@ -15,6 +15,7 @@ interface Props {
   volume?: number;
   muted?: boolean;
   music?: boolean;
+  musicUrl?: string | null;
   touchControls?: boolean;
   autoPause?: boolean;
   showHitboxes?: boolean;
@@ -23,7 +24,7 @@ interface Props {
 
 export function GameRuntime({
   scene, fpsCap, showHUD,
-  showFPS = true, volume = 0.8, muted = false, music = false,
+  showFPS = true, volume = 0.8, muted = false, music = false, musicUrl = null,
   touchControls = true, autoPause = true, showHitboxes = false,
   onExit,
 }: Props) {
@@ -34,9 +35,10 @@ export function GameRuntime({
   useEffect(() => { setVolume(volume); }, [volume]);
   useEffect(() => { setMuted(muted); }, [muted]);
   useEffect(() => {
-    if (music && !muted) startMusic(); else stopMusic();
+    if (music && !muted && musicUrl) startMusic(musicUrl);
+    else stopMusic();
     return () => stopMusic();
-  }, [music, muted]);
+  }, [music, muted, musicUrl]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
