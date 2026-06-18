@@ -159,6 +159,12 @@ export function AsternalEditor() {
         </div>
         <div className="flex items-center gap-1.5">
           <button
+            onClick={exitToManager}
+            aria-label="Salir al gestor de proyectos"
+            title="Salir"
+            className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
+          >⌂</button>
+          <button
             onClick={() => setHelpOpen(true)}
             aria-label="Help"
             className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
@@ -167,7 +173,7 @@ export function AsternalEditor() {
             onClick={() => {
               if (project.settings.fpsCap !== 60) {
                 const next = { ...project, settings: { ...project.settings, fpsCap: 60 as const } };
-                saveProject(next);
+                saveProjectById(projectId, next);
                 setProject(next);
               }
               setPlaying(true);
