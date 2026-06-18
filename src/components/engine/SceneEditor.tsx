@@ -502,10 +502,6 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     }
   };
 
-  const canUndo = undoStack.current.length > 0;
-  const canRedo = redoStack.current.length > 0;
-  const hasSel = !!selected;
-
   return (
     <div ref={wrapRef} className="relative h-full w-full overflow-hidden cyber-grid">
       <canvas
@@ -519,57 +515,7 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       <div className="absolute top-2 left-2 panel rounded-md px-2 py-1 text-[10px] font-mono text-primary-glow">
         {scene.width}×{scene.height} · {Math.round(scale * 100)}%
       </div>
-
-      {/* Compact mobile toolbar — single horizontal strip pinned to bottom, scrolls if needed */}
-      <div className="absolute bottom-2 left-2 right-2 panel rounded-xl border border-border/60 px-1.5 py-1 shadow-lg backdrop-blur">
-        <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
-          <TBtn label="Undo" disabled={!canUndo} onClick={undo}>↶</TBtn>
-          <TBtn label="Redo" disabled={!canRedo} onClick={redo}>↷</TBtn>
-          <span className="w-px h-6 bg-border/60 mx-0.5 shrink-0" />
-          <TBtn label="Duplicar" disabled={!hasSel} onClick={duplicateSelected}>⎘</TBtn>
-          <TBtn label="Al frente" disabled={!hasSel} onClick={bringToFront}>⤒</TBtn>
-          <TBtn label="Atrás" disabled={!hasSel} onClick={sendToBack}>⤓</TBtn>
-          <TBtn label="Flip H" disabled={!hasSel} onClick={flipH}>⇋</TBtn>
-          <TBtn label="Flip V" disabled={!hasSel} onClick={flipV}>⇵</TBtn>
-          <TBtn label="Borrar" disabled={!hasSel} onClick={deleteSelected}>✕</TBtn>
-          <span className="w-px h-6 bg-border/60 mx-0.5 shrink-0" />
-          <span className="text-[9px] font-display tracking-widest text-muted-foreground px-1 shrink-0">SNAP</span>
-          {SNAP_OPTIONS.map(opt => (
-            <button
-              key={opt}
-              onClick={() => setSnap(opt)}
-              className={`shrink-0 min-w-[30px] h-8 px-1.5 rounded-md text-[10px] font-mono ${
-                snap === opt
-                  ? "bg-primary/25 text-primary-glow border border-primary/60"
-                  : "text-muted-foreground border border-transparent"
-              }`}
-            >
-              {opt === 0 ? "off" : opt}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
-  );
-}
-
-function TBtn({
-  children, onClick, disabled, label,
-}: { children: React.ReactNode; onClick: () => void; disabled?: boolean; label: string }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      aria-label={label}
-      className={`shrink-0 w-9 h-9 grid place-items-center rounded-md text-base transition ${
-        disabled
-          ? "text-muted-foreground/40 cursor-not-allowed"
-          : "text-primary-glow hover:bg-primary/15 active:scale-95"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 
