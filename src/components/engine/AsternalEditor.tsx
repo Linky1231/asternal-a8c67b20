@@ -107,6 +107,10 @@ export function AsternalEditor() {
     [project]
   );
 
+  if (showManager) {
+    return <ProjectManager onOpen={openProject} onClose={project ? () => setShowManager(false) : undefined} />;
+  }
+
   if (!project || !activeScene) {
     return <div className="flex h-screen items-center justify-center text-muted-foreground">Booting engine…</div>;
   }
