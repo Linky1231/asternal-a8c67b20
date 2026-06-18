@@ -134,6 +134,7 @@ export function AsternalEditor() {
           volume={playProject.settings.volume ?? 0.8}
           muted={playProject.settings.muted ?? false}
           music={playProject.settings.music ?? false}
+          musicUrl={playProject.settings.musicUrl ?? null}
           touchControls={playProject.settings.touchControls ?? true}
           autoPause={playProject.settings.autoPause ?? true}
           showHitboxes={playProject.settings.showHitboxes ?? false}
