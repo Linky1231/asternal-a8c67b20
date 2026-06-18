@@ -520,29 +520,25 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         {scene.width}×{scene.height} · {Math.round(scale * 100)}%
       </div>
 
-      {/* Floating power toolbar */}
-      <div className="absolute top-2 right-2 flex flex-col gap-1.5">
-        <div className="panel rounded-lg border border-border/60 p-1 flex gap-1 shadow-lg backdrop-blur">
-          <TBtn label="Undo (⌘Z)" disabled={!canUndo} onClick={undo}>↶</TBtn>
-          <TBtn label="Redo (⌘⇧Z)" disabled={!canRedo} onClick={redo}>↷</TBtn>
-        </div>
-        <div className="panel rounded-lg border border-border/60 p-1 flex gap-1 shadow-lg backdrop-blur">
-          <TBtn label="Duplicate (⌘D)" disabled={!hasSel} onClick={duplicateSelected}>⎘</TBtn>
-          <TBtn label="Bring to front (])" disabled={!hasSel} onClick={bringToFront}>⤒</TBtn>
-          <TBtn label="Send to back ([)" disabled={!hasSel} onClick={sendToBack}>⤓</TBtn>
-        </div>
-        <div className="panel rounded-lg border border-border/60 p-1 flex gap-1 shadow-lg backdrop-blur">
-          <TBtn label="Flip Horizontal (H)" disabled={!hasSel} onClick={flipH}>⇋</TBtn>
-          <TBtn label="Flip Vertical (V)" disabled={!hasSel} onClick={flipV}>⇵</TBtn>
-          <TBtn label="Delete (⌫)" disabled={!hasSel} onClick={deleteSelected}>✕</TBtn>
-        </div>
-        <div className="panel rounded-lg border border-border/60 p-1 flex gap-1 shadow-lg backdrop-blur items-center">
-          <span className="text-[9px] font-display tracking-widest text-muted-foreground pl-1.5 pr-0.5">SNAP</span>
+      {/* Compact mobile toolbar — single horizontal strip pinned to bottom, scrolls if needed */}
+      <div className="absolute bottom-2 left-2 right-2 panel rounded-xl border border-border/60 px-1.5 py-1 shadow-lg backdrop-blur">
+        <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
+          <TBtn label="Undo" disabled={!canUndo} onClick={undo}>↶</TBtn>
+          <TBtn label="Redo" disabled={!canRedo} onClick={redo}>↷</TBtn>
+          <span className="w-px h-6 bg-border/60 mx-0.5 shrink-0" />
+          <TBtn label="Duplicar" disabled={!hasSel} onClick={duplicateSelected}>⎘</TBtn>
+          <TBtn label="Al frente" disabled={!hasSel} onClick={bringToFront}>⤒</TBtn>
+          <TBtn label="Atrás" disabled={!hasSel} onClick={sendToBack}>⤓</TBtn>
+          <TBtn label="Flip H" disabled={!hasSel} onClick={flipH}>⇋</TBtn>
+          <TBtn label="Flip V" disabled={!hasSel} onClick={flipV}>⇵</TBtn>
+          <TBtn label="Borrar" disabled={!hasSel} onClick={deleteSelected}>✕</TBtn>
+          <span className="w-px h-6 bg-border/60 mx-0.5 shrink-0" />
+          <span className="text-[9px] font-display tracking-widest text-muted-foreground px-1 shrink-0">SNAP</span>
           {SNAP_OPTIONS.map(opt => (
             <button
               key={opt}
               onClick={() => setSnap(opt)}
-              className={`min-w-[28px] h-7 px-1 rounded text-[10px] font-mono ${
+              className={`shrink-0 min-w-[30px] h-8 px-1.5 rounded-md text-[10px] font-mono ${
                 snap === opt
                   ? "bg-primary/25 text-primary-glow border border-primary/60"
                   : "text-muted-foreground border border-transparent"
@@ -552,10 +548,6 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 panel rounded-full px-3 py-1 text-[10px] font-mono text-muted-foreground whitespace-nowrap">
-        pinch · zoom · ⌘Z undo · ⌘D dup · H/V flip · [ ] layer
       </div>
     </div>
   );
@@ -570,7 +562,7 @@ function TBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className={`w-9 h-9 grid place-items-center rounded-md text-base transition ${
+      className={`shrink-0 w-9 h-9 grid place-items-center rounded-md text-base transition ${
         disabled
           ? "text-muted-foreground/40 cursor-not-allowed"
           : "text-primary-glow hover:bg-primary/15 active:scale-95"
