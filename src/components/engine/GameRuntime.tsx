@@ -15,6 +15,7 @@ interface Props {
   volume?: number;
   muted?: boolean;
   music?: boolean;
+  musicUrl?: string | null;
   touchControls?: boolean;
   autoPause?: boolean;
   showHitboxes?: boolean;
