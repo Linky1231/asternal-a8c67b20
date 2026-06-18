@@ -62,22 +62,33 @@ export function vibrate(ms: number) {
   }
 }
 
-// --- Background music: arpeggiated drone ---
-let musicTimer: ReturnType<typeof setInterval> | null = null;
-const NOTES = [220, 277, 330, 415, 494];
+// --- Background music: plays a user-provided audio file (no default) ---
+let musicEl: HTMLAudioElement | null = null;
+let musicSrc: string | null = null;
 
-export function startMusic() {
-  if (musicTimer || muted) return;
-  let i = 0;
-  const tick = () => {
-    if (muted) return;
-    beep(NOTES[i % NOTES.length], 0.6, "triangle", 0.07, 0);
-    i++;
-  };
-  tick();
-  musicTimer = setInterval(tick, 700);
+export function startMusic(url?: string | null) {
+  if (muted) { stopMusic(); return; }
+  if (!url) { stopMusic(); return; }
+  if (musicEl && musicSrc === url) {
+    musicEl.volume = volume;
+    if (musicEl.paused) musicEl.play().catch(() => {});
+    return;
+  }
+  stopMusic();
+  try {
+    const a = new Audio(url);
+    a.loop = true;
+    a.volume = volume;
+    a.play().catch(() => {});
+    musicEl = a;
+    musicSrc = url;
+  } catch { /* ignore */ }
 }
 
 export function stopMusic() {
-  if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+  if (musicEl) {
+    try { musicEl.pause(); } catch { /* ignore */ }
+    musicEl = null;
+    musicSrc = null;
+  }
 }
