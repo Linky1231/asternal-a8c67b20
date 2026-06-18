@@ -502,6 +502,24 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     }
   };
 
+  return (
+    <div ref={wrapRef} className="relative h-full w-full overflow-hidden cyber-grid">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 h-full w-full touch-none"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      />
+      <div className="absolute top-2 left-2 panel rounded-md px-2 py-1 text-[10px] font-mono text-primary-glow">
+        {scene.width}×{scene.height} · {Math.round(scale * 100)}%
+      </div>
+    </div>
+  );
+}
+
+function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
