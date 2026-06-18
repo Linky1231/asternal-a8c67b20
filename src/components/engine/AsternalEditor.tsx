@@ -66,9 +66,9 @@ export function AsternalEditor() {
   };
 
   useEffect(() => {
-    if (project) {
+    if (project && projectId) {
       const persist = () => {
-        saveProject(project);
+        saveProjectById(projectId, project);
         setSavedAt(Date.now());
       };
       let idleId: number | null = null;
@@ -85,7 +85,7 @@ export function AsternalEditor() {
         if (idleId !== null) (window as typeof window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(idleId);
       };
     }
-  }, [project]);
+  }, [project, projectId]);
 
   // Listen for goal-reached events from the runtime to support scene transitions
   useEffect(() => {
