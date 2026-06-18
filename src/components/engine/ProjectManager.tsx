@@ -181,7 +181,6 @@ export function ProjectManager({
                 onClick={() => handleDelete(m)}
                 className="text-[10px] font-display px-2 py-1.5 rounded-md border border-destructive/50 text-destructive"
                 title="Borrar"
-                disabled={items.length <= 1}
               >✕</button>
             </div>
           </div>
