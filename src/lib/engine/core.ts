@@ -159,6 +159,8 @@ export interface ProjectSettings {
   volume?: number;       // 0..1
   muted?: boolean;
   music?: boolean;
+  musicUrl?: string | null;       // dataURL or URL to custom audio file
+  musicName?: string | null;      // display name of the uploaded track
   touchControls?: boolean;
   autoPause?: boolean;
   showHitboxes?: boolean;
