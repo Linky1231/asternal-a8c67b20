@@ -529,9 +529,15 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       } else if (o.hazard) {
         if (state.invulnT <= 0) {
           emit(state, { x: e.x + e.w / 2, y: e.y + e.h / 2, color: "#f43f5e", count: 14 });
+          // Knockback player away from hazard so they don't get stuck inside
+          const A = aabb(e), B = aabb(o);
+          const dirX = (A.x + A.w / 2) < (B.x + B.w / 2) ? -1 : 1;
+          e.vx = dirX * 260;
+          e.vy = -320;
           if (state.lives > 1) { state.lives -= 1; state.invulnT = 1.2; if (state.checkpoint) { e.x = state.checkpoint.x; e.y = state.checkpoint.y; e.vx = 0; e.vy = 0; } }
           else state.dead = true;
         }
+
       } else if (o.goal) {
         state.win = true;
         if (typeof window !== "undefined") {
