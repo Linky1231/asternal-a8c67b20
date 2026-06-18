@@ -3,7 +3,7 @@ let ctx: AudioContext | null = null;
 let volume = 0.8;
 let muted = false;
 
-export function setVolume(v: number) { volume = Math.max(0, Math.min(1, v)); }
+export function setVolume(v: number) { volume = Math.max(0, Math.min(1, v)); if (musicEl) musicEl.volume = volume; }
 export function setMuted(v: boolean) { muted = v; if (v) stopMusic(); }
 
 function ac(): AudioContext | null {
