@@ -352,87 +352,97 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
   const solids = scene.entities.filter((e) => e.solid);
   const interactables = scene.entities.filter((e) => e.collectible || e.hazard || e.goal || e.switchId || e.checkpoint || e.crumble);
 
-  // Horizontal pass — robust AABB resolution with MTV fallback
+  // Predictive ledge detection for enemies (before moving)
   for (const e of scene.entities) {
-    if (e.kind === "platform") continue;
-
-    // Predictive ledge detection for enemies
-    if (e.kind === "enemy" && Math.abs(e.vx) > 0.1) {
-      const wasGrounded = (e as Entity & { _grounded?: boolean })._grounded;
-      const ledgeSafe = e.patrol ? (e.patrol.ledgeSafe ?? true) : true;
-      if (wasGrounded && ledgeSafe) {
-        const nextX = e.x + e.vx * dt;
-        const ahead = e.vx >= 0 ? nextX + e.w + 1 : nextX - 1;
-        const probeY = e.y + e.h + 2;
-        const probeW = 3, probeH = 6;
-        let hasGround = false;
-        for (const o of solids) {
-          if (o === e || !o.solid) continue;
-          if (
-            ahead < o.x + o.w &&
-            ahead + probeW > o.x &&
-            probeY < o.y + o.h &&
-            probeY + probeH > o.y
-          ) { hasGround = true; break; }
-        }
-        if (!hasGround) e.vx = -e.vx;
-      }
-    }
-
-    e.x += e.vx * dt;
+    if (e.kind !== "enemy" || Math.abs(e.vx) <= 0.1) continue;
+    const wasGrounded = (e as Entity & { _grounded?: boolean })._grounded;
+    const ledgeSafe = e.patrol ? (e.patrol.ledgeSafe ?? true) : true;
+    if (!wasGrounded || !ledgeSafe) continue;
+    const nextX = e.x + e.vx * dt;
+    const ahead = e.vx >= 0 ? nextX + e.w + 1 : nextX - 1;
+    const probeY = e.y + e.h + 2;
+    const probeW = 3, probeH = 6;
+    let hasGround = false;
     for (const o of solids) {
       if (o === e || !o.solid) continue;
-      if (!intersects(e, o)) continue;
-      const A = aabb(e), B = aabb(o);
-      const ox = e.hitbox?.x ?? 0;
-      // Decide push direction: prefer the side opposite the motion;
-      // for zero/ambiguous motion, pick the shortest separation (MTV).
-      const pushRight = B.x + B.w - A.x;      // distance to push e to the right
-      const pushLeft  = A.x + A.w - B.x;      // distance to push e to the left
-      let dir: 1 | -1;
-      if (e.vx > 0.01) dir = -1;
-      else if (e.vx < -0.01) dir = 1;
-      else dir = pushLeft < pushRight ? -1 : 1;
-      if (dir === -1) e.x = B.x - A.w - ox;
-      else e.x = B.x + B.w - ox;
-      if (e.kind === "enemy") e.vx = -Math.abs(e.vx) * dir;
+      if (
+        ahead < o.x + o.w &&
+        ahead + probeW > o.x &&
+        probeY < o.y + o.h &&
+        probeY + probeH > o.y
+      ) { hasGround = true; break; }
     }
+    if (!hasGround) e.vx = -e.vx;
   }
 
-
-  // Vertical pass — robust AABB resolution with MTV fallback
+  // --- Unified collision resolution (MTV-based) ---
+  // 1) Integrate position on both axes
+  // 2) Iteratively resolve each overlap on its smallest-penetration axis.
+  // This prevents corner-snagging, wall-sticking, and enemies inverting wrong.
   const grounded = new Set<string>();
   const groundedOn = new Map<string, Entity>();
+  const EPS = 0.001;
+
   for (const e of scene.entities) {
     if (e.kind === "platform") continue;
+    e.x += e.vx * dt;
     e.y += e.vy * dt;
-    for (const o of solids) {
-      if (o === e || !o.solid) continue;
-      if (!intersects(e, o)) continue;
-      const A = aabb(e), B = aabb(o);
-      const oy = e.hitbox?.y ?? 0;
-      const pushDown = B.y + B.h - A.y;
-      const pushUp   = A.y + A.h - B.y;
-      let dir: 1 | -1;
-      if (e.vy > 0.01) dir = -1;       // moving down → push up (land on top)
-      else if (e.vy < -0.01) dir = 1;  // moving up → push down (bonk head)
-      else dir = pushUp < pushDown ? -1 : 1;
-      if (dir === -1) {
-        e.y = B.y - A.h - oy;
-        if (o.spring) {
-          e.vy = -(o.spring.force || 720);
-        } else {
-          e.vy = 0;
-          grounded.add(e.id);
-          groundedOn.set(e.id, o);
-        }
-      } else {
-        e.y = B.y + B.h - oy;
-        e.vy = 0;
-      }
-    }
   }
 
+  for (let iter = 0; iter < 4; iter++) {
+    let anyHit = false;
+    for (const e of scene.entities) {
+      if (e.kind === "platform") continue;
+      for (const o of solids) {
+        if (o === e || !o.solid) continue;
+        if (!intersects(e, o)) continue;
+        anyHit = true;
+        const A = aabb(e), B = aabb(o);
+        const ox = e.hitbox?.x ?? 0;
+        const oy = e.hitbox?.y ?? 0;
+        const pushLeft  = A.x + A.w - B.x;     // push e leftward by this
+        const pushRight = B.x + B.w - A.x;     // push e rightward by this
+        const pushUp    = A.y + A.h - B.y;     // push e upward by this
+        const pushDown  = B.y + B.h - A.y;     // push e downward by this
+        const minX = Math.min(pushLeft, pushRight);
+        const minY = Math.min(pushUp, pushDown);
+
+        // Bias toward landing on top when falling onto a platform edge
+        // (vertical pen slightly larger than horizontal but clearly falling)
+        const fallingOnTop =
+          e.vy > 10 && pushUp <= minY + 6 && pushUp <= pushDown;
+
+        if (minY < minX || fallingOnTop) {
+          // Resolve on Y
+          if (pushUp <= pushDown) {
+            e.y -= pushUp + EPS;
+            if (o.spring) {
+              e.vy = -(o.spring.force || 720);
+            } else {
+              if (e.vy > 0) e.vy = 0;
+              grounded.add(e.id);
+              groundedOn.set(e.id, o);
+            }
+          } else {
+            e.y += pushDown + EPS;
+            if (e.vy < 0) e.vy = 0;
+          }
+        } else {
+          // Resolve on X
+          if (pushLeft <= pushRight) {
+            e.x -= pushLeft + EPS;
+            if (e.kind === "enemy") e.vx = -Math.abs(e.vx);
+            else if (e.vx > 0) e.vx = 0;
+          } else {
+            e.x += pushRight + EPS;
+            if (e.kind === "enemy") e.vx = Math.abs(e.vx);
+            else if (e.vx < 0) e.vx = 0;
+          }
+        }
+      }
+    }
+    if (!anyHit) break;
+  }
 
   // Persist grounded flag for next-frame predictive ledge checks
   for (const e of scene.entities) {
