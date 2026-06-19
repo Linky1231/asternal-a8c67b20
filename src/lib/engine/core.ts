@@ -397,6 +397,8 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       // Non-solid entities (coins, goals, hazard enemies) must remain in place
       // so the interaction loop below can detect overlap with the player.
       if (!e.solid) continue;
+      for (const o of solids) {
+        if (o === e || !o.solid) continue;
         if (!intersects(e, o)) continue;
         anyHit = true;
         const A = aabb(e), B = aabb(o);
