@@ -393,6 +393,10 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     let anyHit = false;
     for (const e of scene.entities) {
       if (e.kind === "platform") continue;
+      // Only solid entities participate in push resolution.
+      // Non-solid entities (coins, goals, hazard enemies) must remain in place
+      // so the interaction loop below can detect overlap with the player.
+      if (!e.solid) continue;
       for (const o of solids) {
         if (o === e || !o.solid) continue;
         if (!intersects(e, o)) continue;
