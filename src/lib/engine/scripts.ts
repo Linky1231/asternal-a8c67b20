@@ -324,6 +324,19 @@ function execBlock(b: Block, ctx: ExecCtx) {
     }
     case "comment": break;
     case "hurtPlayer": ctx.state.dead = true; break;
+    case "wait": break; // no-op marker; sub-frame waits handled via onTimer
+    case "setFacing": {
+      const f = (b.value ?? 1) >= 0 ? 1 : -1;
+      ctx.self.facing = f;
+      ctx.self.flipX = f === -1;
+      break;
+    }
+    case "knockback": {
+      const target = ctx.other ?? ctx.self;
+      target.vx = b.x ?? 240;
+      target.vy = b.y ?? -320;
+      break;
+    }
 
     case "if": {
       const v = b.value ?? 0;
