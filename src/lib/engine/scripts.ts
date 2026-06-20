@@ -188,8 +188,8 @@ export const ALL_BLOCKS: BlockKind[] = [
   "setColor", "setBg", "setVisible", "setOpacity", "setSize",
   "setGravity", "setControllable", "setHazard", "setSolid", "setCollectible", "setGoalFlag",
   "setSceneGravity", "setHitbox", "clearHitbox",
-  "faceTarget", "chase",
-  "log", "comment", "if",
+  "faceTarget", "chase", "knockback", "setFacing",
+  "log", "comment", "if", "wait",
 ];
 
 export interface RuntimeHooks {
