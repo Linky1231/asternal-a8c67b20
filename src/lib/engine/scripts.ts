@@ -190,7 +190,7 @@ export const ALL_BLOCKS: BlockKind[] = [
   "setColor", "setBg", "setVisible", "setOpacity", "setSize",
   "setGravity", "setControllable", "setHazard", "setSolid", "setCollectible", "setGoalFlag",
   "setSceneGravity", "setHitbox", "clearHitbox",
-  "faceTarget", "chase", "knockback", "setFacing",
+  "faceTarget", "chase", "knockback", "setFacing", "pushAway",
   "log", "comment", "if", "wait",
 ];
 
