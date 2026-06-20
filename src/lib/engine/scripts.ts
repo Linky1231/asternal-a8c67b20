@@ -339,6 +339,16 @@ function execBlock(b: Block, ctx: ExecCtx) {
       target.vy = b.y ?? -320;
       break;
     }
+    case "pushAway": {
+      const p = findFirstOfKind(ctx.scene, "player");
+      if (p) {
+        const force = b.value ?? 280;
+        const dir = ctx.self.x < p.x ? -1 : 1;
+        ctx.self.vx = dir * force;
+        ctx.self.vy = -180;
+      }
+      break;
+    }
 
     case "if": {
       const v = b.value ?? 0;
