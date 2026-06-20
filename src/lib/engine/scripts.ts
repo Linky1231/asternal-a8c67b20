@@ -72,7 +72,10 @@ export type BlockKind =
   | "clearHitbox"
   | "removeAllOf"
   | "comment"
-  | "hurtPlayer";
+  | "hurtPlayer"
+  | "wait"
+  | "setFacing"
+  | "knockback";
 
 export interface Block {
   id: string;
