@@ -401,8 +401,9 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       if (!collidesWithSolids(e)) continue;
       for (const o of solids) {
         if (o === e || !o.solid) continue;
-        // Hazards never push physically — interaction loop handles damage.
-        if (o.hazard || e.hazard) continue;
+        // Hazards never push the player physically — interaction loop handles damage.
+        // (But enemy-vs-platform must still resolve so enemies don't fall through.)
+        if ((o.hazard && e.controllable) || (e.hazard && o.controllable)) continue;
         if (!intersects(e, o)) continue;
         anyHit = true;
         const A = aabb(e), B = aabb(o);
