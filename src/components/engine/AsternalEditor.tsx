@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { Settings } from "lucide-react";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox } from "@/lib/engine/core";
 import { newScene, uid, DEFAULT_SETTINGS } from "@/lib/engine/core";
 import { loadProject, loadProjectById, saveProject, saveProjectById, getCurrentProjectId, setCurrentProjectId } from "@/lib/engine/storage";
@@ -307,8 +309,8 @@ export function AsternalEditor() {
           ["ui", t("tab.ui"), "▢"],
           ["assets", t("tab.assets"), "◆"],
           ["scenes", t("tab.scenes"), "▤"],
-          ["settings", t("tab.settings"), "⚙"],
-        ] as [Tab, string, string][]).map(([id, label, icon]) => (
+          ["settings", t("tab.settings"), <Settings size={20} key="settings-icon" />],
+        ] as [Tab, string, ReactNode][]).map(([id, label, icon]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
