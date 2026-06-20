@@ -72,7 +72,10 @@ export type BlockKind =
   | "clearHitbox"
   | "removeAllOf"
   | "comment"
-  | "hurtPlayer";
+  | "hurtPlayer"
+  | "wait"
+  | "setFacing"
+  | "knockback";
 
 export interface Block {
   id: string;
@@ -170,6 +173,9 @@ export const BLOCK_LABELS: Record<BlockKind, string> = {
   removeAllOf: "Remove all of kind",
   comment: "Comment",
   hurtPlayer: "Hurt player",
+  wait: "Wait (ms)",
+  setFacing: "Set facing (-1/1)",
+  knockback: "Knockback (x,y)",
 };
 
 export const ALL_BLOCKS: BlockKind[] = [
@@ -182,8 +188,8 @@ export const ALL_BLOCKS: BlockKind[] = [
   "setColor", "setBg", "setVisible", "setOpacity", "setSize",
   "setGravity", "setControllable", "setHazard", "setSolid", "setCollectible", "setGoalFlag",
   "setSceneGravity", "setHitbox", "clearHitbox",
-  "faceTarget", "chase",
-  "log", "comment", "if",
+  "faceTarget", "chase", "knockback", "setFacing",
+  "log", "comment", "if", "wait",
 ];
 
 export interface RuntimeHooks {
@@ -318,6 +324,19 @@ function execBlock(b: Block, ctx: ExecCtx) {
     }
     case "comment": break;
     case "hurtPlayer": ctx.state.dead = true; break;
+    case "wait": break; // no-op marker; sub-frame waits handled via onTimer
+    case "setFacing": {
+      const f = (b.value ?? 1) >= 0 ? 1 : -1;
+      ctx.self.facing = f;
+      ctx.self.flipX = f === -1;
+      break;
+    }
+    case "knockback": {
+      const target = ctx.other ?? ctx.self;
+      target.vx = b.x ?? 240;
+      target.vy = b.y ?? -320;
+      break;
+    }
 
     case "if": {
       const v = b.value ?? 0;
