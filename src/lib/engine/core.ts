@@ -389,35 +389,35 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     e.y += e.vy * dt;
   }
 
+  // Entities that physically collide with solids: anything with gravity OR
+  // controllable (player). Pickups (coin/goal) and hazard enemies w/o gravity
+  // are skipped so they remain in place for the interaction loop.
+  const collidesWithSolids = (e: Entity) =>
+    e.kind !== "platform" && (e.gravity || e.controllable || e.kind === "enemy");
+
   for (let iter = 0; iter < 4; iter++) {
     let anyHit = false;
     for (const e of scene.entities) {
-      if (e.kind === "platform") continue;
-      // Only solid entities participate in push resolution.
-      // Non-solid entities (coins, goals, hazard enemies) must remain in place
-      // so the interaction loop below can detect overlap with the player.
-      if (!e.solid) continue;
+      if (!collidesWithSolids(e)) continue;
       for (const o of solids) {
         if (o === e || !o.solid) continue;
         if (!intersects(e, o)) continue;
         anyHit = true;
         const A = aabb(e), B = aabb(o);
-        const ox = e.hitbox?.x ?? 0;
-        const oy = e.hitbox?.y ?? 0;
-        const pushLeft  = A.x + A.w - B.x;     // push e leftward by this
-        const pushRight = B.x + B.w - A.x;     // push e rightward by this
-        const pushUp    = A.y + A.h - B.y;     // push e upward by this
-        const pushDown  = B.y + B.h - A.y;     // push e downward by this
+        const pushLeft  = A.x + A.w - B.x;
+        const pushRight = B.x + B.w - A.x;
+        const pushUp    = A.y + A.h - B.y;
+        const pushDown  = B.y + B.h - A.y;
         const minX = Math.min(pushLeft, pushRight);
         const minY = Math.min(pushUp, pushDown);
 
-        // Bias toward landing on top when falling onto a platform edge
-        // (vertical pen slightly larger than horizontal but clearly falling)
-        const fallingOnTop =
-          e.vy > 10 && pushUp <= minY + 6 && pushUp <= pushDown;
+        // Strict MTV: resolve on the axis with the smallest penetration.
+        // Only bias to "land on top" if Y is already the smaller axis AND
+        // we're moving downward — never override when X penetration is
+        // clearly smaller (that's a side hit; player must NOT teleport up).
+        const resolveY = minY <= minX;
 
-        if (minY < minX || fallingOnTop) {
-          // Resolve on Y
+        if (resolveY) {
           if (pushUp <= pushDown) {
             e.y -= pushUp + EPS;
             if (o.spring) {
@@ -432,14 +432,13 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
             if (e.vy < 0) e.vy = 0;
           }
         } else {
-          // Resolve on X
           if (pushLeft <= pushRight) {
             e.x -= pushLeft + EPS;
-            if (e.kind === "enemy") e.vx = -Math.abs(e.vx);
+            if (e.kind === "enemy") e.vx = -Math.abs(e.vx || 60);
             else if (e.vx > 0) e.vx = 0;
           } else {
             e.x += pushRight + EPS;
-            if (e.kind === "enemy") e.vx = Math.abs(e.vx);
+            if (e.kind === "enemy") e.vx = Math.abs(e.vx || 60);
             else if (e.vx < 0) e.vx = 0;
           }
         }
