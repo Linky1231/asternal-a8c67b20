@@ -75,7 +75,8 @@ export type BlockKind =
   | "hurtPlayer"
   | "wait"
   | "setFacing"
-  | "knockback";
+  | "knockback"
+  | "pushAway";
 
 export interface Block {
   id: string;
