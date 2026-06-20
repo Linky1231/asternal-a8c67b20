@@ -75,7 +75,8 @@ export type BlockKind =
   | "hurtPlayer"
   | "wait"
   | "setFacing"
-  | "knockback";
+  | "knockback"
+  | "pushAway";
 
 export interface Block {
   id: string;
@@ -176,6 +177,7 @@ export const BLOCK_LABELS: Record<BlockKind, string> = {
   wait: "Wait (ms)",
   setFacing: "Set facing (-1/1)",
   knockback: "Knockback (x,y)",
+  pushAway: "Push away from player",
 };
 
 export const ALL_BLOCKS: BlockKind[] = [
@@ -188,7 +190,7 @@ export const ALL_BLOCKS: BlockKind[] = [
   "setColor", "setBg", "setVisible", "setOpacity", "setSize",
   "setGravity", "setControllable", "setHazard", "setSolid", "setCollectible", "setGoalFlag",
   "setSceneGravity", "setHitbox", "clearHitbox",
-  "faceTarget", "chase", "knockback", "setFacing",
+  "faceTarget", "chase", "knockback", "setFacing", "pushAway",
   "log", "comment", "if", "wait",
 ];
 
@@ -335,6 +337,16 @@ function execBlock(b: Block, ctx: ExecCtx) {
       const target = ctx.other ?? ctx.self;
       target.vx = b.x ?? 240;
       target.vy = b.y ?? -320;
+      break;
+    }
+    case "pushAway": {
+      const p = findFirstOfKind(ctx.scene, "player");
+      if (p) {
+        const force = b.value ?? 280;
+        const dir = ctx.self.x < p.x ? -1 : 1;
+        ctx.self.vx = dir * force;
+        ctx.self.vy = -180;
+      }
       break;
     }
 
