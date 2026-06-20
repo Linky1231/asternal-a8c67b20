@@ -177,6 +177,7 @@ export const BLOCK_LABELS: Record<BlockKind, string> = {
   wait: "Wait (ms)",
   setFacing: "Set facing (-1/1)",
   knockback: "Knockback (x,y)",
+  pushAway: "Push away from player",
 };
 
 export const ALL_BLOCKS: BlockKind[] = [
