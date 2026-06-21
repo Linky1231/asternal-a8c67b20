@@ -14,6 +14,33 @@ interface Props {
 type HandleId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 const HANDLES: HandleId[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 const HANDLE_PX = 14;
+type HbHandleId = "nw" | "ne" | "se" | "sw";
+const HB_HANDLES: HbHandleId[] = ["nw", "ne", "se", "sw"];
+const HB_HANDLE_PX = 16;
+
+function hbHandlePos(e: Entity, hb: { x: number; y: number; w: number; h: number }, h: HbHandleId) {
+  switch (h) {
+    case "nw": return { x: e.x + hb.x,         y: e.y + hb.y };
+    case "ne": return { x: e.x + hb.x + hb.w,  y: e.y + hb.y };
+    case "se": return { x: e.x + hb.x + hb.w,  y: e.y + hb.y + hb.h };
+    case "sw": return { x: e.x + hb.x,         y: e.y + hb.y + hb.h };
+  }
+}
+
+function resizeHitbox(hb: { x: number; y: number; w: number; h: number }, h: HbHandleId, wx: number, wy: number, ex: number, ey: number): { x: number; y: number; w: number; h: number } {
+  const min = 6;
+  // Convert world coords to entity-local coords
+  const lx = wx - ex;
+  const ly = wy - ey;
+  let { x, y, w, h: he } = hb;
+  const right = x + w;
+  const bottom = y + he;
+  if (h === "nw" || h === "sw") { const nx = Math.min(Math.round(lx), right - min); w = right - nx; x = nx; }
+  if (h === "ne" || h === "se") { const nr = Math.max(Math.round(lx), x + min); w = nr - x; }
+  if (h === "nw" || h === "ne") { const ny = Math.min(Math.round(ly), bottom - min); he = bottom - ny; y = ny; }
+  if (h === "sw" || h === "se") { const nb = Math.max(Math.round(ly), y + min); he = nb - y; }
+  return { x, y, w, h: he };
+}
 const SNAP_OPTIONS = [0, 8, 20, 40] as const;
 
 function handlePos(e: Entity, h: HandleId) {
