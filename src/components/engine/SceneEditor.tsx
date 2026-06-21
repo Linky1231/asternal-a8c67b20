@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { Entity, EntityKind, Scene } from "@/lib/engine/core";
+import type { Entity, EntityKind, Hitbox, Scene } from "@/lib/engine/core";
 import { KIND_PRESETS, uid } from "@/lib/engine/core";
-import { getRenderableImage } from "@/lib/engine/images";
-import { currentFrameRenderable } from "@/lib/engine/animations";
+import { drawEntityVisual } from "@/lib/engine/render";
 
 interface Props {
   scene: Scene;
@@ -15,6 +14,33 @@ interface Props {
 type HandleId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 const HANDLES: HandleId[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 const HANDLE_PX = 14;
+type HbHandleId = "nw" | "ne" | "se" | "sw";
+const HB_HANDLES: HbHandleId[] = ["nw", "ne", "se", "sw"];
+const HB_HANDLE_PX = 16;
+
+function hbHandlePos(e: Entity, hb: { x: number; y: number; w: number; h: number }, h: HbHandleId) {
+  switch (h) {
+    case "nw": return { x: e.x + hb.x,         y: e.y + hb.y };
+    case "ne": return { x: e.x + hb.x + hb.w,  y: e.y + hb.y };
+    case "se": return { x: e.x + hb.x + hb.w,  y: e.y + hb.y + hb.h };
+    case "sw": return { x: e.x + hb.x,         y: e.y + hb.y + hb.h };
+  }
+}
+
+function resizeHitbox(hb: { x: number; y: number; w: number; h: number }, h: HbHandleId, wx: number, wy: number, ex: number, ey: number): { x: number; y: number; w: number; h: number } {
+  const min = 6;
+  // Convert world coords to entity-local coords
+  const lx = wx - ex;
+  const ly = wy - ey;
+  let { x, y, w, h: he } = hb;
+  const right = x + w;
+  const bottom = y + he;
+  if (h === "nw" || h === "sw") { const nx = Math.min(Math.round(lx), right - min); w = right - nx; x = nx; }
+  if (h === "ne" || h === "se") { const nr = Math.max(Math.round(lx), x + min); w = nr - x; }
+  if (h === "nw" || h === "ne") { const ny = Math.min(Math.round(ly), bottom - min); he = bottom - ny; y = ny; }
+  if (h === "sw" || h === "se") { const nb = Math.max(Math.round(ly), y + min); he = nb - y; }
+  return { x, y, w, h: he };
+}
 const SNAP_OPTIONS = [0, 8, 20, 40] as const;
 
 function handlePos(e: Entity, h: HandleId) {
@@ -172,11 +198,13 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
   // Pointer tracking
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const gesture = useRef<{
-    mode: "idle" | "pan" | "move" | "resize" | "place" | "pinch";
+    mode: "idle" | "pan" | "move" | "resize" | "resize-hb" | "place" | "pinch";
     startSX?: number; startSY?: number;
     entStartX?: number; entStartY?: number; entStartW?: number; entStartH?: number;
     entId?: string;
     handle?: HandleId;
+    hbHandle?: HbHandleId;
+    hbStart?: { x: number; y: number; w: number; h: number };
     panStart?: { x: number; y: number };
     pinchStartDist?: number;
     pinchStartScale?: number;
@@ -231,61 +259,36 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       ctx.scale(scale, scale);
 
       const grd = ctx.createLinearGradient(0, 0, 0, scene.height);
-      grd.addColorStop(0, "#0b1e3f");
-      grd.addColorStop(1, "#030712");
+      grd.addColorStop(0, scene.bg || "#ECE9E0");
+      grd.addColorStop(1, scene.bg || "#DDD8CB");
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, scene.width, scene.height);
 
       // grid (uses current snap)
       const gridStep = snap > 0 ? Math.max(snap, 8) : 40;
-      ctx.strokeStyle = "rgba(56,189,248,0.16)";
+      ctx.strokeStyle = "rgba(0,0,0,0.10)";
       ctx.lineWidth = 1 / scale;
       ctx.beginPath();
       for (let x = 0; x <= scene.width; x += gridStep) { ctx.moveTo(x, 0); ctx.lineTo(x, scene.height); }
       for (let y = 0; y <= scene.height; y += gridStep) { ctx.moveTo(0, y); ctx.lineTo(scene.width, y); }
       ctx.stroke();
-      ctx.strokeStyle = "rgba(125,211,252,0.6)";
+      ctx.strokeStyle = "rgba(0,0,0,0.28)";
       ctx.lineWidth = 2 / scale;
       ctx.strokeRect(0, 0, scene.width, scene.height);
 
       const tSec = t / 1000;
       for (const e of sortedEnts) {
-        ctx.save();
-        const flipX = (e.facing === -1) !== !!e.flipX;
-        const flipY = !!(e as Entity & { flipY?: boolean }).flipY;
-        ctx.translate(e.x + (flipX ? e.w : 0), e.y + (flipY ? e.h : 0));
-        ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
-        const animImg = currentFrameRenderable(e, tSec, "idle");
-        const drawFit = (img: HTMLImageElement | ImageBitmap) => {
-          const fit = e.textureFit ?? "stretch";
-          if (fit === "stretch") { ctx.drawImage(img, 0, 0, e.w, e.h); return; }
-          const sa = img.width / img.height;
-          const da = e.w / e.h;
-          const cover = fit === "cover" ? sa > da : sa < da;
-          const dw = cover ? e.h * sa : e.w;
-          const dh = cover ? e.h : e.w / sa;
-          ctx.drawImage(img, (e.w - dw) / 2, (e.h - dh) / 2, dw, dh);
-        };
-        if (animImg) {
-          drawFit(animImg);
-        } else if (e.texture) {
-          const img = getRenderableImage(e.texture);
-          if (img) drawFit(img);
-          else { ctx.fillStyle = "rgba(56,189,248,0.15)"; ctx.fillRect(0, 0, e.w, e.h); }
-        } else {
-          ctx.fillStyle = e.color;
-          ctx.fillRect(0, 0, e.w, e.h);
-        }
-        ctx.restore();
+        drawEntityVisual(ctx, e, tSec, { animClip: "idle", visualEffects: false });
       }
 
+      // hitbox outlines for every entity that has a custom hitbox
       for (const e of scene.entities) {
         const hb = e.hitbox;
         if (!hb) continue;
         const isSel = e.id === selectedId;
         ctx.save();
         ctx.lineWidth = (isSel ? 2 : 1) / scale;
-        ctx.strokeStyle = isSel ? "#f43f5e" : "rgba(244,63,94,0.55)";
+        ctx.strokeStyle = isSel ? "#e23b5a" : "rgba(226,59,90,0.55)";
         ctx.setLineDash([8 / scale, 6 / scale]);
         ctx.strokeRect(e.x + hb.x, e.y + hb.y, hb.w, hb.h);
         ctx.setLineDash([]);
@@ -301,7 +304,7 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         const sh = sel.h * scale;
 
         ctx.lineWidth = 1.25;
-        ctx.strokeStyle = "#7dd3fc";
+        ctx.strokeStyle = "#1a1a1a";
         ctx.strokeRect(sx + 0.5, sy + 0.5, sw - 1, sh - 1);
 
         const label = `${Math.round(sel.w)} × ${Math.round(sel.h)}`;
@@ -309,23 +312,53 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         const tw = ctx.measureText(label).width + 10;
         const lx = sx + sw / 2 - tw / 2;
         const ly = sy - 22;
-        ctx.fillStyle = "rgba(2,6,23,0.85)";
-        ctx.strokeStyle = "rgba(125,211,252,0.7)";
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeStyle = "rgba(0,0,0,0.35)";
         ctx.lineWidth = 1;
         roundRectPath(ctx, lx, ly, tw, 18, 4);
         ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#7dd3fc";
+        ctx.fillStyle = "#1a1a1a";
         ctx.fillText(label, lx + 5, ly + 13);
 
+        // Entity-bounds handles (black on white, "key" look)
         for (const h of HANDLES) {
           const wp = handlePos(sel, h);
           const hx = pan.x + wp.x * scale - HANDLE_PX / 2;
           const hy = pan.y + wp.y * scale - HANDLE_PX / 2;
-          ctx.fillStyle = "#f8fafc";
-          ctx.strokeStyle = "#0ea5e9";
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "#1a1a1a";
           ctx.lineWidth = 1.5;
           ctx.fillRect(hx, hy, HANDLE_PX, HANDLE_PX);
           ctx.strokeRect(hx + 0.5, hy + 0.5, HANDLE_PX - 1, HANDLE_PX - 1);
+        }
+
+        // Hitbox handles — always visible when something is selected so you
+        // can craft/edit the collision box directly on the sprite. If the
+        // entity has no custom hitbox yet, we draw the bounding box as a
+        // hint; the first drag promotes it to a real hitbox.
+        const hb: Hitbox = sel.hitbox ?? { x: 0, y: 0, w: sel.w, h: sel.h };
+        const hbx = pan.x + (sel.x + hb.x) * scale;
+        const hby = pan.y + (sel.y + hb.y) * scale;
+        const hbw = hb.w * scale;
+        const hbh = hb.h * scale;
+        if (sel.hitbox) {
+          ctx.strokeStyle = "#e23b5a";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+          ctx.strokeRect(hbx + 0.5, hby + 0.5, hbw - 1, hbh - 1);
+          ctx.setLineDash([]);
+        }
+        for (const h of HB_HANDLES) {
+          const wp = hbHandlePos(sel, hb, h);
+          const hx = pan.x + wp.x * scale - HB_HANDLE_PX / 2;
+          const hy = pan.y + wp.y * scale - HB_HANDLE_PX / 2;
+          ctx.beginPath();
+          ctx.arc(hx + HB_HANDLE_PX / 2, hy + HB_HANDLE_PX / 2, HB_HANDLE_PX / 2, 0, Math.PI * 2);
+          ctx.fillStyle = "#e23b5a";
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.stroke();
         }
       } else {
         ctx.restore();
@@ -364,6 +397,19 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     return null;
   };
 
+  const hitHbHandle = (sx: number, sy: number): HbHandleId | null => {
+    const sel = scene.entities.find(e => e.id === selectedId);
+    if (!sel) return null;
+    const hb: Hitbox = sel.hitbox ?? { x: 0, y: 0, w: sel.w, h: sel.h };
+    for (const h of HB_HANDLES) {
+      const wp = hbHandlePos(sel, hb, h);
+      const hx = pan.x + wp.x * scale;
+      const hy = pan.y + wp.y * scale;
+      if (Math.abs(sx - hx) <= HB_HANDLE_PX && Math.abs(sy - hy) <= HB_HANDLE_PX) return h;
+    }
+    return null;
+  };
+
   const getLocal = (ev: React.PointerEvent) => {
     const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
     return { sx: ev.clientX - rect.left, sy: ev.clientY - rect.top };
@@ -395,6 +441,20 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     if (pointers.current.size >= 2) { beginPinch(); return; }
 
     const w = screenToWorld(sx, sy);
+
+    // Hitbox handle hit-test takes priority — it sits on top of the sprite.
+    const hbHandle = hitHbHandle(sx, sy);
+    if (hbHandle && selectedId) {
+      const ent = scene.entities.find(e => e.id === selectedId)!;
+      const hb = ent.hitbox ?? { x: 0, y: 0, w: ent.w, h: ent.h };
+      gesture.current = {
+        mode: "resize-hb", hbHandle, entId: ent.id,
+        hbStart: { ...hb },
+        entStartX: ent.x, entStartY: ent.y,
+        startSX: sx, startSY: sy,
+      };
+      return;
+    }
 
     const handle = hitHandle(sx, sy);
     if (handle && selectedId) {
@@ -486,6 +546,14 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         if (e.id !== g.entId) return e;
         const base: Entity = { ...e, x: g.entStartX!, y: g.entStartY!, w: g.entStartW!, h: g.entStartH! };
         return resizeEntity(base, g.handle!, w.x, w.y, snap);
+      });
+      onChange({ ...scene, entities });
+    } else if (g.mode === "resize-hb" && g.entId && g.hbHandle && g.hbStart) {
+      const w = screenToWorld(sx, sy);
+      const entities = scene.entities.map(e => {
+        if (e.id !== g.entId) return e;
+        const next = resizeHitbox(g.hbStart!, g.hbHandle!, w.x, w.y, g.entStartX!, g.entStartY!);
+        return { ...e, hitbox: next };
       });
       onChange({ ...scene, entities });
     }
