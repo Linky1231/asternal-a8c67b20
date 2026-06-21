@@ -275,7 +275,7 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         const sh = sel.h * scale;
 
         ctx.lineWidth = 1.25;
-        ctx.strokeStyle = "#7dd3fc";
+        ctx.strokeStyle = "#1a1a1a";
         ctx.strokeRect(sx + 0.5, sy + 0.5, sw - 1, sh - 1);
 
         const label = `${Math.round(sel.w)} × ${Math.round(sel.h)}`;
@@ -283,23 +283,53 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         const tw = ctx.measureText(label).width + 10;
         const lx = sx + sw / 2 - tw / 2;
         const ly = sy - 22;
-        ctx.fillStyle = "rgba(2,6,23,0.85)";
-        ctx.strokeStyle = "rgba(125,211,252,0.7)";
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeStyle = "rgba(0,0,0,0.35)";
         ctx.lineWidth = 1;
         roundRectPath(ctx, lx, ly, tw, 18, 4);
         ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#7dd3fc";
+        ctx.fillStyle = "#1a1a1a";
         ctx.fillText(label, lx + 5, ly + 13);
 
+        // Entity-bounds handles (black on white, "key" look)
         for (const h of HANDLES) {
           const wp = handlePos(sel, h);
           const hx = pan.x + wp.x * scale - HANDLE_PX / 2;
           const hy = pan.y + wp.y * scale - HANDLE_PX / 2;
-          ctx.fillStyle = "#f8fafc";
-          ctx.strokeStyle = "#0ea5e9";
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "#1a1a1a";
           ctx.lineWidth = 1.5;
           ctx.fillRect(hx, hy, HANDLE_PX, HANDLE_PX);
           ctx.strokeRect(hx + 0.5, hy + 0.5, HANDLE_PX - 1, HANDLE_PX - 1);
+        }
+
+        // Hitbox handles — always visible when something is selected so you
+        // can craft/edit the collision box directly on the sprite. If the
+        // entity has no custom hitbox yet, we draw the bounding box as a
+        // hint; the first drag promotes it to a real hitbox.
+        const hb: Hitbox = sel.hitbox ?? { x: 0, y: 0, w: sel.w, h: sel.h };
+        const hbx = pan.x + (sel.x + hb.x) * scale;
+        const hby = pan.y + (sel.y + hb.y) * scale;
+        const hbw = hb.w * scale;
+        const hbh = hb.h * scale;
+        if (sel.hitbox) {
+          ctx.strokeStyle = "#e23b5a";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+          ctx.strokeRect(hbx + 0.5, hby + 0.5, hbw - 1, hbh - 1);
+          ctx.setLineDash([]);
+        }
+        for (const h of HB_HANDLES) {
+          const wp = hbHandlePos(sel, hb, h);
+          const hx = pan.x + wp.x * scale - HB_HANDLE_PX / 2;
+          const hy = pan.y + wp.y * scale - HB_HANDLE_PX / 2;
+          ctx.beginPath();
+          ctx.arc(hx + HB_HANDLE_PX / 2, hy + HB_HANDLE_PX / 2, HB_HANDLE_PX / 2, 0, Math.PI * 2);
+          ctx.fillStyle = "#e23b5a";
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.stroke();
         }
       } else {
         ctx.restore();
