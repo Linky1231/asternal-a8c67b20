@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Entity, RuntimeInput, RuntimeState, Scene, UIElement } from "@/lib/engine/core";
 import { stepScene, newRuntimeState, resolveUIRect } from "@/lib/engine/core";
 import { getRenderableImage } from "@/lib/engine/images";
-import { drawEntityVisual } from "@/lib/engine/render";
+import { currentFrameRenderable } from "@/lib/engine/animations";
 import { createScriptRunner } from "@/lib/engine/scripts";
 import { startMusic, stopMusic, setVolume, setMuted } from "@/lib/engine/sfx";
 import { drawUIElement } from "./UIEditor";
@@ -514,5 +514,75 @@ function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => v
 }
 
 function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number, visualEffects = true) {
-  drawEntityVisual(ctx, e, time, { visualEffects });
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  const flip = (e.facing === -1) !== !!e.flipX;
+  if (flip) {
+    ctx.translate(e.x + e.w, e.y);
+    ctx.scale(-1, 1);
+  } else {
+    ctx.translate(e.x, e.y);
+  }
+  const animImg = currentFrameRenderable(e, time);
+  const drawFit = (img: HTMLImageElement | ImageBitmap) => {
+    const fit = e.textureFit ?? "stretch";
+    if (fit === "stretch") { ctx.drawImage(img, 0, 0, e.w, e.h); return; }
+    const sa = img.width / img.height;
+    const da = e.w / e.h;
+    const cover = fit === "cover" ? sa > da : sa < da;
+    const dw = cover ? e.h * sa : e.w;
+    const dh = cover ? e.h : e.w / sa;
+    ctx.drawImage(img, (e.w - dw) / 2, (e.h - dh) / 2, dw, dh);
+  };
+  if (animImg) { drawFit(animImg); ctx.restore(); return; }
+  if (e.texture) {
+    const img = getRenderableImage(e.texture);
+    if (img) { drawFit(img); ctx.restore(); return; }
+  }
+  // fallback shape — restore translate to absolute coords for legacy drawing
+  ctx.restore();
+  ctx.save();
+  if (visualEffects) {
+    ctx.shadowColor = e.color;
+    ctx.shadowBlur = e.kind === "coin" ? 10 : e.kind === "goal" ? 12 : 4;
+  }
+  ctx.fillStyle = e.color;
+  if (e.kind === "coin") {
+    ctx.beginPath();
+    ctx.arc(e.x + e.w / 2, e.y + e.h / 2, e.w / 2, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (e.kind === "goal") {
+    ctx.fillStyle = "rgba(125,211,252,0.3)";
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+    ctx.fillStyle = e.color;
+    ctx.fillRect(e.x + e.w / 2 - 2, e.y, 4, e.h);
+    ctx.beginPath();
+    ctx.moveTo(e.x + e.w / 2 + 2, e.y + 4);
+    ctx.lineTo(e.x + e.w / 2 + 22, e.y + 12);
+    ctx.lineTo(e.x + e.w / 2 + 2, e.y + 20);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    const r = e.kind === "platform" ? 4 : 6;
+    roundRect(ctx, e.x, e.y, e.w, e.h, r);
+    ctx.fill();
+    if (e.kind === "player") {
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#020617";
+      ctx.fillRect(e.x + 10, e.y + 16, 6, 6);
+      ctx.fillRect(e.x + 24, e.y + 16, 6, 6);
+    }
+  }
+  ctx.restore();
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }

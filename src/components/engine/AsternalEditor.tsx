@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Settings, Layers } from "lucide-react";
+import { Settings } from "lucide-react";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox } from "@/lib/engine/core";
 import { newScene, uid, DEFAULT_SETTINGS } from "@/lib/engine/core";
 import { loadProject, loadProjectById, saveProject, saveProjectById, getCurrentProjectId, setCurrentProjectId } from "@/lib/engine/storage";
@@ -589,8 +589,8 @@ function ScenesPanel({
       <div className="space-y-2">
         {project.scenes.map(s => (
           <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-2 glow-border">
-            <div className="w-12 h-12 rounded-md bg-accent/40 border border-border grid place-items-center text-foreground shrink-0">
-              <Layers size={22} strokeWidth={1.75} />
+            <div className="w-12 h-12 rounded-md bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center font-display text-primary-glow shrink-0">
+              {s.entities.length}
             </div>
             <div className="flex-1 min-w-0">
               <input
