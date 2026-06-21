@@ -397,6 +397,19 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     return null;
   };
 
+  const hitHbHandle = (sx: number, sy: number): HbHandleId | null => {
+    const sel = scene.entities.find(e => e.id === selectedId);
+    if (!sel) return null;
+    const hb: Hitbox = sel.hitbox ?? { x: 0, y: 0, w: sel.w, h: sel.h };
+    for (const h of HB_HANDLES) {
+      const wp = hbHandlePos(sel, hb, h);
+      const hx = pan.x + wp.x * scale;
+      const hy = pan.y + wp.y * scale;
+      if (Math.abs(sx - hx) <= HB_HANDLE_PX && Math.abs(sy - hy) <= HB_HANDLE_PX) return h;
+    }
+    return null;
+  };
+
   const getLocal = (ev: React.PointerEvent) => {
     const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
     return { sx: ev.clientX - rect.left, sy: ev.clientY - rect.top };
