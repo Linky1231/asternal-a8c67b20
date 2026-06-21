@@ -589,8 +589,8 @@ function ScenesPanel({
       <div className="space-y-2">
         {project.scenes.map(s => (
           <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-2 glow-border">
-            <div className="w-12 h-12 rounded-md bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center font-display text-primary-glow shrink-0">
-              {s.entities.length}
+            <div className="w-12 h-12 rounded-md bg-accent/40 border border-border grid place-items-center text-foreground shrink-0">
+              <Layers size={22} strokeWidth={1.75} />
             </div>
             <div className="flex-1 min-w-0">
               <input
