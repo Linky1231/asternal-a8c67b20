@@ -230,61 +230,36 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       ctx.scale(scale, scale);
 
       const grd = ctx.createLinearGradient(0, 0, 0, scene.height);
-      grd.addColorStop(0, "#0b1e3f");
-      grd.addColorStop(1, "#030712");
+      grd.addColorStop(0, scene.bg || "#ECE9E0");
+      grd.addColorStop(1, scene.bg || "#DDD8CB");
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, scene.width, scene.height);
 
       // grid (uses current snap)
       const gridStep = snap > 0 ? Math.max(snap, 8) : 40;
-      ctx.strokeStyle = "rgba(56,189,248,0.16)";
+      ctx.strokeStyle = "rgba(0,0,0,0.10)";
       ctx.lineWidth = 1 / scale;
       ctx.beginPath();
       for (let x = 0; x <= scene.width; x += gridStep) { ctx.moveTo(x, 0); ctx.lineTo(x, scene.height); }
       for (let y = 0; y <= scene.height; y += gridStep) { ctx.moveTo(0, y); ctx.lineTo(scene.width, y); }
       ctx.stroke();
-      ctx.strokeStyle = "rgba(125,211,252,0.6)";
+      ctx.strokeStyle = "rgba(0,0,0,0.28)";
       ctx.lineWidth = 2 / scale;
       ctx.strokeRect(0, 0, scene.width, scene.height);
 
       const tSec = t / 1000;
       for (const e of sortedEnts) {
-        ctx.save();
-        const flipX = (e.facing === -1) !== !!e.flipX;
-        const flipY = !!(e as Entity & { flipY?: boolean }).flipY;
-        ctx.translate(e.x + (flipX ? e.w : 0), e.y + (flipY ? e.h : 0));
-        ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
-        const animImg = currentFrameRenderable(e, tSec, "idle");
-        const drawFit = (img: HTMLImageElement | ImageBitmap) => {
-          const fit = e.textureFit ?? "stretch";
-          if (fit === "stretch") { ctx.drawImage(img, 0, 0, e.w, e.h); return; }
-          const sa = img.width / img.height;
-          const da = e.w / e.h;
-          const cover = fit === "cover" ? sa > da : sa < da;
-          const dw = cover ? e.h * sa : e.w;
-          const dh = cover ? e.h : e.w / sa;
-          ctx.drawImage(img, (e.w - dw) / 2, (e.h - dh) / 2, dw, dh);
-        };
-        if (animImg) {
-          drawFit(animImg);
-        } else if (e.texture) {
-          const img = getRenderableImage(e.texture);
-          if (img) drawFit(img);
-          else { ctx.fillStyle = "rgba(56,189,248,0.15)"; ctx.fillRect(0, 0, e.w, e.h); }
-        } else {
-          ctx.fillStyle = e.color;
-          ctx.fillRect(0, 0, e.w, e.h);
-        }
-        ctx.restore();
+        drawEntityVisual(ctx, e, tSec, { animClip: "idle", visualEffects: false });
       }
 
+      // hitbox outlines for every entity that has a custom hitbox
       for (const e of scene.entities) {
         const hb = e.hitbox;
         if (!hb) continue;
         const isSel = e.id === selectedId;
         ctx.save();
         ctx.lineWidth = (isSel ? 2 : 1) / scale;
-        ctx.strokeStyle = isSel ? "#f43f5e" : "rgba(244,63,94,0.55)";
+        ctx.strokeStyle = isSel ? "#e23b5a" : "rgba(226,59,90,0.55)";
         ctx.setLineDash([8 / scale, 6 / scale]);
         ctx.strokeRect(e.x + hb.x, e.y + hb.y, hb.w, hb.h);
         ctx.setLineDash([]);
