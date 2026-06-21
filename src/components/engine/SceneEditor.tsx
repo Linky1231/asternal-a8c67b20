@@ -442,6 +442,20 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
 
     const w = screenToWorld(sx, sy);
 
+    // Hitbox handle hit-test takes priority — it sits on top of the sprite.
+    const hbHandle = hitHbHandle(sx, sy);
+    if (hbHandle && selectedId) {
+      const ent = scene.entities.find(e => e.id === selectedId)!;
+      const hb = ent.hitbox ?? { x: 0, y: 0, w: ent.w, h: ent.h };
+      gesture.current = {
+        mode: "resize-hb", hbHandle, entId: ent.id,
+        hbStart: { ...hb },
+        entStartX: ent.x, entStartY: ent.y,
+        startSX: sx, startSY: sy,
+      };
+      return;
+    }
+
     const handle = hitHandle(sx, sy);
     if (handle && selectedId) {
       const ent = scene.entities.find(e => e.id === selectedId)!;
