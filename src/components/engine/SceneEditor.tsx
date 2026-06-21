@@ -548,6 +548,14 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         return resizeEntity(base, g.handle!, w.x, w.y, snap);
       });
       onChange({ ...scene, entities });
+    } else if (g.mode === "resize-hb" && g.entId && g.hbHandle && g.hbStart) {
+      const w = screenToWorld(sx, sy);
+      const entities = scene.entities.map(e => {
+        if (e.id !== g.entId) return e;
+        const next = resizeHitbox(g.hbStart!, g.hbHandle!, w.x, w.y, g.entStartX!, g.entStartY!);
+        return { ...e, hitbox: next };
+      });
+      onChange({ ...scene, entities });
     }
   };
 
