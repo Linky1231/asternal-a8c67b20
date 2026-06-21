@@ -198,11 +198,13 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
   // Pointer tracking
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const gesture = useRef<{
-    mode: "idle" | "pan" | "move" | "resize" | "place" | "pinch";
+    mode: "idle" | "pan" | "move" | "resize" | "resize-hb" | "place" | "pinch";
     startSX?: number; startSY?: number;
     entStartX?: number; entStartY?: number; entStartW?: number; entStartH?: number;
     entId?: string;
     handle?: HandleId;
+    hbHandle?: HbHandleId;
+    hbStart?: { x: number; y: number; w: number; h: number };
     panStart?: { x: number; y: number };
     pinchStartDist?: number;
     pinchStartScale?: number;
