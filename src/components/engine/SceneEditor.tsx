@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { Entity, EntityKind, Scene } from "@/lib/engine/core";
+import type { Entity, EntityKind, Hitbox, Scene } from "@/lib/engine/core";
 import { KIND_PRESETS, uid } from "@/lib/engine/core";
-import { getRenderableImage } from "@/lib/engine/images";
-import { currentFrameRenderable } from "@/lib/engine/animations";
+import { drawEntityVisual } from "@/lib/engine/render";
 
 interface Props {
   scene: Scene;
