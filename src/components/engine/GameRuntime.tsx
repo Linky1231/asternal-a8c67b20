@@ -3,6 +3,7 @@ import type { Entity, RuntimeInput, RuntimeState, Scene, UIElement } from "@/lib
 import { stepScene, newRuntimeState, resolveUIRect } from "@/lib/engine/core";
 import { getRenderableImage } from "@/lib/engine/images";
 import { currentFrameRenderable } from "@/lib/engine/animations";
+import { drawEntityVisual } from "@/lib/engine/render";
 import { createScriptRunner } from "@/lib/engine/scripts";
 import { startMusic, stopMusic, setVolume, setMuted } from "@/lib/engine/sfx";
 import { drawUIElement } from "./UIEditor";
