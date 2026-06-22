@@ -287,10 +287,10 @@ export function AsternalEditor() {
               <button
                 key={toolItem.id}
                 onClick={() => setTool(toolItem.id)}
-                className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border transition ${
+                className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border transition-all duration-200 active:scale-90 hover:-translate-y-0.5 ${
                   tool === toolItem.id
-                    ? "bg-primary/20 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.68_0.21_250/0.5)]"
-                    : "border-border/40 text-muted-foreground"
+                    ? "bg-primary/20 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.68_0.21_250/0.5)] scale-105"
+                    : "border-border/40 text-muted-foreground hover:border-primary/50 hover:text-primary-glow"
                 }`}
               >
                 <span className="text-lg leading-none">{toolItem.icon}</span>
