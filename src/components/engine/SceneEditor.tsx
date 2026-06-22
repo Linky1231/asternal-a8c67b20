@@ -273,8 +273,44 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
           if (img) drawFit(img);
           else { ctx.fillStyle = "rgba(56,189,248,0.15)"; ctx.fillRect(0, 0, e.w, e.h); }
         } else {
+          // Match GameRuntime fallback shapes so editor preview == PLAY preview
+          ctx.save();
+          ctx.shadowColor = e.color;
+          ctx.shadowBlur = e.kind === "coin" ? 10 : e.kind === "goal" ? 12 : 4;
           ctx.fillStyle = e.color;
-          ctx.fillRect(0, 0, e.w, e.h);
+          if (e.kind === "coin") {
+            ctx.beginPath();
+            ctx.arc(e.w / 2, e.h / 2, e.w / 2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (e.kind === "goal") {
+            ctx.fillStyle = "rgba(125,211,252,0.3)";
+            ctx.fillRect(0, 0, e.w, e.h);
+            ctx.fillStyle = e.color;
+            ctx.fillRect(e.w / 2 - 2, 0, 4, e.h);
+            ctx.beginPath();
+            ctx.moveTo(e.w / 2 + 2, 4);
+            ctx.lineTo(e.w / 2 + 22, 12);
+            ctx.lineTo(e.w / 2 + 2, 20);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            const r = e.kind === "platform" ? 4 : 6;
+            ctx.beginPath();
+            ctx.moveTo(r, 0);
+            ctx.arcTo(e.w, 0, e.w, e.h, r);
+            ctx.arcTo(e.w, e.h, 0, e.h, r);
+            ctx.arcTo(0, e.h, 0, 0, r);
+            ctx.arcTo(0, 0, e.w, 0, r);
+            ctx.closePath();
+            ctx.fill();
+            if (e.kind === "player") {
+              ctx.shadowBlur = 0;
+              ctx.fillStyle = "#020617";
+              ctx.fillRect(10, 16, 6, 6);
+              ctx.fillRect(24, 16, 6, 6);
+            }
+          }
+          ctx.restore();
         }
         ctx.restore();
       }
