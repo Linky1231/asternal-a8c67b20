@@ -239,29 +239,30 @@ function ClipPanel({
         </button>
       </div>
 
-      {/* Properties */}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-[10px] font-display tracking-widest text-muted-foreground">NAME</label>
-          <select
-            value={DEFAULT_ANIM_NAMES.includes(clip.name) ? clip.name : "__custom"}
-            onChange={e => {
-              const v = e.target.value;
-              if (v !== "__custom") onUpdate({ name: v });
-            }}
-            className="w-full mt-1 bg-input/60 border border-border rounded-md px-2 py-2 text-sm font-mono"
-          >
-            {DEFAULT_ANIM_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
-            <option value="__custom">custom…</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-[10px] font-display tracking-widest text-muted-foreground">RENAME</label>
-          <input
-            value={clip.name}
-            onChange={e => onUpdate({ name: e.target.value })}
-            className="w-full mt-1 bg-input/60 border border-border rounded-md px-2 py-2 text-sm font-mono"
-          />
+      {/* Name */}
+      <div>
+        <label className="text-[10px] font-display tracking-widest text-muted-foreground">NAME</label>
+        <input
+          value={clip.name}
+          onChange={e => onUpdate({ name: e.target.value })}
+          placeholder="idle, walk, jump…"
+          className="w-full mt-1 bg-input/60 border border-border rounded-md px-2 py-2 text-sm font-mono"
+        />
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {DEFAULT_ANIM_NAMES.map(n => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onUpdate({ name: n })}
+              className={`text-[10px] font-display tracking-widest px-2 py-1 rounded-md border transition ${
+                clip.name === n
+                  ? "bg-primary/20 border-primary text-primary-glow"
+                  : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary-glow"
+              }`}
+            >
+              {n.toUpperCase()}
+            </button>
+          ))}
         </div>
       </div>
 
