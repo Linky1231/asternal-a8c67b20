@@ -503,6 +503,30 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       return;
     }
 
+    // Hitbox interactions (only when select tool active)
+    if (tool === "select" && selectedId) {
+      const hbHandle = hitHbHandle(sx, sy);
+      const sel = scene.entities.find(e => e.id === selectedId);
+      if (hbHandle && sel?.hitbox) {
+        gesture.current = {
+          mode: "hb-resize", handle: hbHandle, entId: sel.id,
+          hbStartX: sel.hitbox.x, hbStartY: sel.hitbox.y,
+          hbStartW: sel.hitbox.w, hbStartH: sel.hitbox.h,
+          startSX: sx, startSY: sy,
+        };
+        return;
+      }
+      if (hitHbBody(sx, sy) && sel?.hitbox) {
+        gesture.current = {
+          mode: "hb-move", entId: sel.id,
+          hbStartX: sel.hitbox.x, hbStartY: sel.hitbox.y,
+          startSX: sx, startSY: sy,
+        };
+        return;
+      }
+    }
+
+
     if (tool === "select") {
       const hit = hitTest(w.x, w.y);
       if (hit) {
