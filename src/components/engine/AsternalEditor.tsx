@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Settings } from "lucide-react";
+import { Settings, Layers } from "lucide-react";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox } from "@/lib/engine/core";
 import { newScene, uid, DEFAULT_SETTINGS } from "@/lib/engine/core";
 import { loadProject, loadProjectById, saveProject, saveProjectById, getCurrentProjectId, setCurrentProjectId } from "@/lib/engine/storage";
