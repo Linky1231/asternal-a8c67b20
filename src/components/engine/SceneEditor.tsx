@@ -608,6 +608,32 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         return resizeEntity(base, g.handle!, w.x, w.y, snap);
       });
       onChange({ ...scene, entities });
+    } else if (g.mode === "hb-move" && g.entId) {
+      const dx = (sx - (g.startSX || 0)) / scale;
+      const dy = (sy - (g.startSY || 0)) / scale;
+      const entities = scene.entities.map(e => {
+        if (e.id !== g.entId || !e.hitbox) return e;
+        return { ...e, hitbox: { ...e.hitbox, x: Math.round((g.hbStartX || 0) + dx), y: Math.round((g.hbStartY || 0) + dy) } };
+      });
+      onChange({ ...scene, entities });
+    } else if (g.mode === "hb-resize" && g.entId && g.handle) {
+      const dx = (sx - (g.startSX || 0)) / scale;
+      const dy = (sy - (g.startSY || 0)) / scale;
+      const entities = scene.entities.map(e => {
+        if (e.id !== g.entId || !e.hitbox) return e;
+        let x = g.hbStartX || 0;
+        let y = g.hbStartY || 0;
+        let w = g.hbStartW || 0;
+        let h = g.hbStartH || 0;
+        if (g.handle!.includes("w")) { x = x + dx; w = w - dx; }
+        if (g.handle!.includes("e")) { w = w + dx; }
+        if (g.handle!.includes("n")) { y = y + dy; h = h - dy; }
+        if (g.handle!.includes("s")) { h = h + dy; }
+        if (w < 4) { x = x + w - 4; w = 4; }
+        if (h < 4) { y = y + h - 4; h = 4; }
+        return { ...e, hitbox: { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) } };
+      });
+      onChange({ ...scene, entities });
     }
   };
 
