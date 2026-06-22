@@ -314,11 +314,13 @@ export function AsternalEditor() {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`min-w-0 flex flex-col items-center gap-0.5 py-2.5 px-0.5 ${
-              tab === id ? "text-primary-glow" : "text-muted-foreground"
+            className={`min-w-0 flex flex-col items-center gap-0.5 py-2.5 px-0.5 transition-all duration-200 active:scale-90 ${
+              tab === id
+                ? "text-primary-glow scale-110"
+                : "text-muted-foreground hover:text-primary-glow/80"
             }`}
           >
-            <span className={`text-lg leading-none ${tab === id ? "glow-text" : ""}`}>{icon}</span>
+            <span className={`text-lg leading-none transition-all ${tab === id ? "glow-text" : ""}`}>{icon}</span>
             <span className="w-full text-center text-[8px] font-display tracking-wide truncate">{label}</span>
           </button>
         ))}
