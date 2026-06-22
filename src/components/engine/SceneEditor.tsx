@@ -172,9 +172,10 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
   // Pointer tracking
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const gesture = useRef<{
-    mode: "idle" | "pan" | "move" | "resize" | "place" | "pinch";
+    mode: "idle" | "pan" | "move" | "resize" | "place" | "pinch" | "hb-move" | "hb-resize";
     startSX?: number; startSY?: number;
     entStartX?: number; entStartY?: number; entStartW?: number; entStartH?: number;
+    hbStartX?: number; hbStartY?: number; hbStartW?: number; hbStartH?: number;
     entId?: string;
     handle?: HandleId;
     panStart?: { x: number; y: number };
@@ -273,8 +274,44 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
           if (img) drawFit(img);
           else { ctx.fillStyle = "rgba(56,189,248,0.15)"; ctx.fillRect(0, 0, e.w, e.h); }
         } else {
+          // Match GameRuntime fallback shapes so editor preview == PLAY preview
+          ctx.save();
+          ctx.shadowColor = e.color;
+          ctx.shadowBlur = e.kind === "coin" ? 10 : e.kind === "goal" ? 12 : 4;
           ctx.fillStyle = e.color;
-          ctx.fillRect(0, 0, e.w, e.h);
+          if (e.kind === "coin") {
+            ctx.beginPath();
+            ctx.arc(e.w / 2, e.h / 2, e.w / 2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (e.kind === "goal") {
+            ctx.fillStyle = "rgba(125,211,252,0.3)";
+            ctx.fillRect(0, 0, e.w, e.h);
+            ctx.fillStyle = e.color;
+            ctx.fillRect(e.w / 2 - 2, 0, 4, e.h);
+            ctx.beginPath();
+            ctx.moveTo(e.w / 2 + 2, 4);
+            ctx.lineTo(e.w / 2 + 22, 12);
+            ctx.lineTo(e.w / 2 + 2, 20);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            const r = e.kind === "platform" ? 4 : 6;
+            ctx.beginPath();
+            ctx.moveTo(r, 0);
+            ctx.arcTo(e.w, 0, e.w, e.h, r);
+            ctx.arcTo(e.w, e.h, 0, e.h, r);
+            ctx.arcTo(0, e.h, 0, 0, r);
+            ctx.arcTo(0, 0, e.w, 0, r);
+            ctx.closePath();
+            ctx.fill();
+            if (e.kind === "player") {
+              ctx.shadowBlur = 0;
+              ctx.fillStyle = "#020617";
+              ctx.fillRect(10, 16, 6, 6);
+              ctx.fillRect(24, 16, 6, 6);
+            }
+          }
+          ctx.restore();
         }
         ctx.restore();
       }
@@ -327,6 +364,33 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
           ctx.fillRect(hx, hy, HANDLE_PX, HANDLE_PX);
           ctx.strokeRect(hx + 0.5, hy + 0.5, HANDLE_PX - 1, HANDLE_PX - 1);
         }
+
+        // Hitbox handles (when selected entity has a hitbox)
+        if (sel.hitbox) {
+          const hb = sel.hitbox;
+          const hbX = pan.x + (sel.x + hb.x) * scale;
+          const hbY = pan.y + (sel.y + hb.y) * scale;
+          const hbW = hb.w * scale;
+          const hbH = hb.h * scale;
+          // Glow fill to indicate draggable body
+          ctx.fillStyle = "rgba(244,63,94,0.10)";
+          ctx.fillRect(hbX, hbY, hbW, hbH);
+          // Corner handles (smaller, pink)
+          const HB_PX = 12;
+          const corners: [HandleId, number, number][] = [
+            ["nw", hbX, hbY],
+            ["ne", hbX + hbW, hbY],
+            ["sw", hbX, hbY + hbH],
+            ["se", hbX + hbW, hbY + hbH],
+          ];
+          for (const [, cx, cy] of corners) {
+            ctx.fillStyle = "#fda4af";
+            ctx.strokeStyle = "#f43f5e";
+            ctx.lineWidth = 1.5;
+            ctx.fillRect(cx - HB_PX / 2, cy - HB_PX / 2, HB_PX, HB_PX);
+            ctx.strokeRect(cx - HB_PX / 2 + 0.5, cy - HB_PX / 2 + 0.5, HB_PX - 1, HB_PX - 1);
+          }
+        }
       } else {
         ctx.restore();
       }
@@ -362,6 +426,38 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       if (Math.abs(sx - hx) <= HANDLE_PX && Math.abs(sy - hy) <= HANDLE_PX) return h;
     }
     return null;
+  };
+
+  const hitHbHandle = (sx: number, sy: number): "nw" | "ne" | "sw" | "se" | null => {
+    const sel = scene.entities.find(e => e.id === selectedId);
+    if (!sel || !sel.hitbox) return null;
+    const hb = sel.hitbox;
+    const hbX = pan.x + (sel.x + hb.x) * scale;
+    const hbY = pan.y + (sel.y + hb.y) * scale;
+    const hbW = hb.w * scale;
+    const hbH = hb.h * scale;
+    const HB_PX = 14;
+    const corners: ["nw" | "ne" | "sw" | "se", number, number][] = [
+      ["nw", hbX, hbY],
+      ["ne", hbX + hbW, hbY],
+      ["sw", hbX, hbY + hbH],
+      ["se", hbX + hbW, hbY + hbH],
+    ];
+    for (const [name, cx, cy] of corners) {
+      if (Math.abs(sx - cx) <= HB_PX && Math.abs(sy - cy) <= HB_PX) return name;
+    }
+    return null;
+  };
+
+  const hitHbBody = (sx: number, sy: number) => {
+    const sel = scene.entities.find(e => e.id === selectedId);
+    if (!sel || !sel.hitbox) return false;
+    const hb = sel.hitbox;
+    const hbX = pan.x + (sel.x + hb.x) * scale;
+    const hbY = pan.y + (sel.y + hb.y) * scale;
+    const hbW = hb.w * scale;
+    const hbH = hb.h * scale;
+    return sx >= hbX && sx <= hbX + hbW && sy >= hbY && sy <= hbY + hbH;
   };
 
   const getLocal = (ev: React.PointerEvent) => {
@@ -406,6 +502,30 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       };
       return;
     }
+
+    // Hitbox interactions (only when select tool active)
+    if (tool === "select" && selectedId) {
+      const hbHandle = hitHbHandle(sx, sy);
+      const sel = scene.entities.find(e => e.id === selectedId);
+      if (hbHandle && sel?.hitbox) {
+        gesture.current = {
+          mode: "hb-resize", handle: hbHandle, entId: sel.id,
+          hbStartX: sel.hitbox.x, hbStartY: sel.hitbox.y,
+          hbStartW: sel.hitbox.w, hbStartH: sel.hitbox.h,
+          startSX: sx, startSY: sy,
+        };
+        return;
+      }
+      if (hitHbBody(sx, sy) && sel?.hitbox) {
+        gesture.current = {
+          mode: "hb-move", entId: sel.id,
+          hbStartX: sel.hitbox.x, hbStartY: sel.hitbox.y,
+          startSX: sx, startSY: sy,
+        };
+        return;
+      }
+    }
+
 
     if (tool === "select") {
       const hit = hitTest(w.x, w.y);
@@ -486,6 +606,32 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
         if (e.id !== g.entId) return e;
         const base: Entity = { ...e, x: g.entStartX!, y: g.entStartY!, w: g.entStartW!, h: g.entStartH! };
         return resizeEntity(base, g.handle!, w.x, w.y, snap);
+      });
+      onChange({ ...scene, entities });
+    } else if (g.mode === "hb-move" && g.entId) {
+      const dx = (sx - (g.startSX || 0)) / scale;
+      const dy = (sy - (g.startSY || 0)) / scale;
+      const entities = scene.entities.map(e => {
+        if (e.id !== g.entId || !e.hitbox) return e;
+        return { ...e, hitbox: { ...e.hitbox, x: Math.round((g.hbStartX || 0) + dx), y: Math.round((g.hbStartY || 0) + dy) } };
+      });
+      onChange({ ...scene, entities });
+    } else if (g.mode === "hb-resize" && g.entId && g.handle) {
+      const dx = (sx - (g.startSX || 0)) / scale;
+      const dy = (sy - (g.startSY || 0)) / scale;
+      const entities = scene.entities.map(e => {
+        if (e.id !== g.entId || !e.hitbox) return e;
+        let x = g.hbStartX || 0;
+        let y = g.hbStartY || 0;
+        let w = g.hbStartW || 0;
+        let h = g.hbStartH || 0;
+        if (g.handle!.includes("w")) { x = x + dx; w = w - dx; }
+        if (g.handle!.includes("e")) { w = w + dx; }
+        if (g.handle!.includes("n")) { y = y + dy; h = h - dy; }
+        if (g.handle!.includes("s")) { h = h + dy; }
+        if (w < 4) { x = x + w - 4; w = 4; }
+        if (h < 4) { y = y + h - 4; h = 4; }
+        return { ...e, hitbox: { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) } };
       });
       onChange({ ...scene, entities });
     }

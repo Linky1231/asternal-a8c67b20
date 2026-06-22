@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Settings } from "lucide-react";
+import { Settings, Layers } from "lucide-react";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox } from "@/lib/engine/core";
 import { newScene, uid, DEFAULT_SETTINGS } from "@/lib/engine/core";
 import { loadProject, loadProjectById, saveProject, saveProjectById, getCurrentProjectId, setCurrentProjectId } from "@/lib/engine/storage";
@@ -190,7 +190,7 @@ export function AsternalEditor() {
       {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
 
       {/* Main */}
-      <main className="relative flex-1 min-h-0">
+      <main key={tab} className="relative flex-1 min-h-0 animate-fade-in">
         {tab === "build" && (
           <SceneEditor
             scene={activeScene}
@@ -287,10 +287,10 @@ export function AsternalEditor() {
               <button
                 key={toolItem.id}
                 onClick={() => setTool(toolItem.id)}
-                className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border transition ${
+                className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border transition-all duration-200 active:scale-90 hover:-translate-y-0.5 ${
                   tool === toolItem.id
-                    ? "bg-primary/20 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.68_0.21_250/0.5)]"
-                    : "border-border/40 text-muted-foreground"
+                    ? "bg-primary/20 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.68_0.21_250/0.5)] scale-105"
+                    : "border-border/40 text-muted-foreground hover:border-primary/50 hover:text-primary-glow"
                 }`}
               >
                 <span className="text-lg leading-none">{toolItem.icon}</span>
@@ -314,11 +314,13 @@ export function AsternalEditor() {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`min-w-0 flex flex-col items-center gap-0.5 py-2.5 px-0.5 ${
-              tab === id ? "text-primary-glow" : "text-muted-foreground"
+            className={`min-w-0 flex flex-col items-center gap-0.5 py-2.5 px-0.5 transition-all duration-200 active:scale-90 ${
+              tab === id
+                ? "text-primary-glow scale-110"
+                : "text-muted-foreground hover:text-primary-glow/80"
             }`}
           >
-            <span className={`text-lg leading-none ${tab === id ? "glow-text" : ""}`}>{icon}</span>
+            <span className={`text-lg leading-none transition-all ${tab === id ? "glow-text" : ""}`}>{icon}</span>
             <span className="w-full text-center text-[8px] font-display tracking-wide truncate">{label}</span>
           </button>
         ))}
@@ -588,9 +590,13 @@ function ScenesPanel({
       <SectionTitle>SCENES</SectionTitle>
       <div className="space-y-2">
         {project.scenes.map(s => (
-          <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-2 glow-border">
-            <div className="w-12 h-12 rounded-md bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center font-display text-primary-glow shrink-0">
-              {s.entities.length}
+          <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-2 glow-border animate-fade-in transition-all hover:border-primary/60">
+            <div
+              className="w-12 h-12 rounded-md bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center text-primary-glow shrink-0 relative"
+              title={`${s.entities.length} elementos`}
+            >
+              <Layers size={22} />
+              <span className="absolute -bottom-1 -right-1 text-[9px] font-mono bg-background/80 border border-primary/40 rounded px-1 leading-tight text-primary-glow">{s.entities.length}</span>
             </div>
             <div className="flex-1 min-w-0">
               <input
@@ -1251,7 +1257,7 @@ function HitboxEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: 
               className="py-1.5 rounded border border-border text-muted-foreground font-display text-[10px] tracking-widest"
             >SHRINK 80%</button>
           </div>
-          <div className="text-[9px] font-mono text-muted-foreground">Offset is relative to entity origin. Red dashed box = collision area.</div>
+          <div className="text-[9px] font-mono text-muted-foreground">Arrastra el rectángulo rosa en el escenario para moverlo, o sus esquinas para redimensionarlo.</div>
         </>
       )}
     </div>
