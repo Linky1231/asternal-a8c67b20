@@ -592,11 +592,10 @@ function ScenesPanel({
         {project.scenes.map(s => (
           <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-2 glow-border animate-fade-in transition-all hover:border-primary/60">
             <div
-              className="w-12 h-12 rounded-md bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center text-primary-glow shrink-0 relative"
+              className="w-12 h-12 rounded-md bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center text-primary-glow shrink-0"
               title={`${s.entities.length} elementos`}
             >
               <Layers size={22} />
-              <span className="absolute -bottom-1 -right-1 text-[9px] font-mono bg-background/80 border border-primary/40 rounded px-1 leading-tight text-primary-glow">{s.entities.length}</span>
             </div>
             <div className="flex-1 min-w-0">
               <input
