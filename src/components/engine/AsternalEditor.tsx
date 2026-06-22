@@ -190,7 +190,7 @@ export function AsternalEditor() {
       {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
 
       {/* Main */}
-      <main className="relative flex-1 min-h-0">
+      <main key={tab} className="relative flex-1 min-h-0 animate-fade-in">
         {tab === "build" && (
           <SceneEditor
             scene={activeScene}
