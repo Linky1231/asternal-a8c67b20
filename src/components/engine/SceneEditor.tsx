@@ -428,6 +428,38 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     return null;
   };
 
+  const hitHbHandle = (sx: number, sy: number): "nw" | "ne" | "sw" | "se" | null => {
+    const sel = scene.entities.find(e => e.id === selectedId);
+    if (!sel || !sel.hitbox) return null;
+    const hb = sel.hitbox;
+    const hbX = pan.x + (sel.x + hb.x) * scale;
+    const hbY = pan.y + (sel.y + hb.y) * scale;
+    const hbW = hb.w * scale;
+    const hbH = hb.h * scale;
+    const HB_PX = 14;
+    const corners: ["nw" | "ne" | "sw" | "se", number, number][] = [
+      ["nw", hbX, hbY],
+      ["ne", hbX + hbW, hbY],
+      ["sw", hbX, hbY + hbH],
+      ["se", hbX + hbW, hbY + hbH],
+    ];
+    for (const [name, cx, cy] of corners) {
+      if (Math.abs(sx - cx) <= HB_PX && Math.abs(sy - cy) <= HB_PX) return name;
+    }
+    return null;
+  };
+
+  const hitHbBody = (sx: number, sy: number) => {
+    const sel = scene.entities.find(e => e.id === selectedId);
+    if (!sel || !sel.hitbox) return false;
+    const hb = sel.hitbox;
+    const hbX = pan.x + (sel.x + hb.x) * scale;
+    const hbY = pan.y + (sel.y + hb.y) * scale;
+    const hbW = hb.w * scale;
+    const hbH = hb.h * scale;
+    return sx >= hbX && sx <= hbX + hbW && sy >= hbY && sy <= hbY + hbH;
+  };
+
   const getLocal = (ev: React.PointerEvent) => {
     const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
     return { sx: ev.clientX - rect.left, sy: ev.clientY - rect.top };
