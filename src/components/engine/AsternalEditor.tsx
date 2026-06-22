@@ -1257,7 +1257,7 @@ function HitboxEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: 
               className="py-1.5 rounded border border-border text-muted-foreground font-display text-[10px] tracking-widest"
             >SHRINK 80%</button>
           </div>
-          <div className="text-[9px] font-mono text-muted-foreground">Offset is relative to entity origin. Red dashed box = collision area.</div>
+          <div className="text-[9px] font-mono text-muted-foreground">Arrastra el rectángulo rosa en el escenario para moverlo, o sus esquinas para redimensionarlo.</div>
         </>
       )}
     </div>
