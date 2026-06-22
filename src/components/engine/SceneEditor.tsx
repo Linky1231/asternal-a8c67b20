@@ -364,6 +364,33 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
           ctx.fillRect(hx, hy, HANDLE_PX, HANDLE_PX);
           ctx.strokeRect(hx + 0.5, hy + 0.5, HANDLE_PX - 1, HANDLE_PX - 1);
         }
+
+        // Hitbox handles (when selected entity has a hitbox)
+        if (sel.hitbox) {
+          const hb = sel.hitbox;
+          const hbX = pan.x + (sel.x + hb.x) * scale;
+          const hbY = pan.y + (sel.y + hb.y) * scale;
+          const hbW = hb.w * scale;
+          const hbH = hb.h * scale;
+          // Glow fill to indicate draggable body
+          ctx.fillStyle = "rgba(244,63,94,0.10)";
+          ctx.fillRect(hbX, hbY, hbW, hbH);
+          // Corner handles (smaller, pink)
+          const HB_PX = 12;
+          const corners: [HandleId, number, number][] = [
+            ["nw", hbX, hbY],
+            ["ne", hbX + hbW, hbY],
+            ["sw", hbX, hbY + hbH],
+            ["se", hbX + hbW, hbY + hbH],
+          ];
+          for (const [, cx, cy] of corners) {
+            ctx.fillStyle = "#fda4af";
+            ctx.strokeStyle = "#f43f5e";
+            ctx.lineWidth = 1.5;
+            ctx.fillRect(cx - HB_PX / 2, cy - HB_PX / 2, HB_PX, HB_PX);
+            ctx.strokeRect(cx - HB_PX / 2 + 0.5, cy - HB_PX / 2 + 0.5, HB_PX - 1, HB_PX - 1);
+          }
+        }
       } else {
         ctx.restore();
       }
