@@ -52,6 +52,9 @@ export function AsternalEditor() {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [showManager, setShowManager] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [library, setLibrary] = useState<LibraryItem[]>(() => loadLibrary());
+  const updateLibrary = (items: LibraryItem[]) => { setLibrary(items); saveLibrary(items); };
 
   useEffect(() => {
     const id = getCurrentProjectId();
