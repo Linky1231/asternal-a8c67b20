@@ -2,7 +2,7 @@
 import type { AnimationClip } from "./animations";
 import type { Script } from "./scripts";
 
-export type EntityKind = "player" | "platform" | "enemy" | "coin" | "goal";
+export type EntityKind = "player" | "platform" | "enemy" | "coin" | "goal" | "decor";
 
 // --- Sprite asset (created in the in-engine pixel editor) ---
 export interface SpriteLayer {
@@ -194,10 +194,11 @@ export const DEFAULT_SETTINGS: ProjectSettings = {
 
 export const KIND_PRESETS: Record<EntityKind, Omit<Entity, "id" | "x" | "y">> = {
   player: { kind: "player", w: 40, h: 56, vx: 0, vy: 0, color: "#38bdf8", solid: true, gravity: true, controllable: true, collectible: false, hazard: false, goal: false, visible: true, opacity: 1, texture: null },
-  platform: { kind: "platform", w: 160, h: 24, vx: 0, vy: 0, color: "#1e3a8a", solid: true, gravity: false, controllable: false, collectible: false, hazard: false, goal: false, visible: true, opacity: 1, texture: null },
+  platform: { kind: "platform", w: 40, h: 40, vx: 0, vy: 0, color: "#1e3a8a", solid: true, gravity: false, controllable: false, collectible: false, hazard: false, goal: false, visible: true, opacity: 1, texture: null },
   enemy: { kind: "enemy", w: 40, h: 40, vx: 60, vy: 0, color: "#f43f5e", solid: false, gravity: true, controllable: false, collectible: false, hazard: true, goal: false, visible: true, opacity: 1, texture: null },
   coin: { kind: "coin", w: 22, h: 22, vx: 0, vy: 0, color: "#fbbf24", solid: false, gravity: false, controllable: false, collectible: true, hazard: false, goal: false, visible: true, opacity: 1, texture: null },
   goal: { kind: "goal", w: 36, h: 64, vx: 0, vy: 0, color: "#7dd3fc", solid: false, gravity: false, controllable: false, collectible: false, hazard: false, goal: true, visible: true, opacity: 1, texture: null },
+  decor: { kind: "decor", w: 64, h: 64, vx: 0, vy: 0, color: "#a78bfa", solid: false, gravity: false, controllable: false, collectible: false, hazard: false, goal: false, visible: true, opacity: 1, texture: null, z: -1 },
 };
 
 export const uid = () => Math.random().toString(36).slice(2, 10);

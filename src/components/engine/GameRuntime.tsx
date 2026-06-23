@@ -383,12 +383,10 @@ export function GameRuntime({
     const ny = len > max ? (dy / len) * max : dy;
     joyKnobs.current.set(id, { dx: nx, dy: ny });
     const ax = nx / max;
-    const ay = ny / max;
+    void ny;
     joySrc.current.left = ax < -0.25;
     joySrc.current.right = ax > 0.25;
-    // joystick UP can also jump, but never RESETS a jump held by a button
-    if (ay < -0.6) joySrc.current.jump = true;
-    else if (ay > -0.3) joySrc.current.jump = false;
+    // Joystick is for movement only — jumping is bound to the JUMP button.
     recomputeInput();
   };
   const releaseJoystick = (id: string) => {

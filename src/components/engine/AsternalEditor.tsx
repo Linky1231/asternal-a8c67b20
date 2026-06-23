@@ -22,13 +22,24 @@ type Tab = "build" | "inspect" | "ui" | "scenes" | "assets" | "settings";
 
 const TOOL_LIST: { id: Tool; tKey: string; icon: string }[] = [
   { id: "select", tKey: "tool.select", icon: "⌖" },
-  { id: "platform", tKey: "tool.platform", icon: "▭" },
+  { id: "platform", tKey: "tool.platform", icon: "▣" },
+  { id: "decor", tKey: "tool.decor", icon: "❀" },
   { id: "coin", tKey: "tool.coin", icon: "◉" },
   { id: "enemy", tKey: "tool.enemy", icon: "▲" },
   { id: "goal", tKey: "tool.goal", icon: "▮" },
   { id: "player", tKey: "tool.player", icon: "☻" },
   { id: "erase", tKey: "tool.erase", icon: "✕" },
 ];
+
+// ---- Asset library (saved presets) ----
+type LibraryItem = { id: string; name: string; preset: Omit<Entity, "id" | "x" | "y"> };
+const LIBRARY_KEY = "asternal:library";
+function loadLibrary(): LibraryItem[] {
+  try { return JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]") as LibraryItem[]; } catch { return []; }
+}
+function saveLibrary(items: LibraryItem[]) {
+  try { localStorage.setItem(LIBRARY_KEY, JSON.stringify(items)); } catch { /* ignore */ }
+}
 
 export function AsternalEditor() {
   const t = useT();
@@ -41,6 +52,9 @@ export function AsternalEditor() {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [showManager, setShowManager] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [library, setLibrary] = useState<LibraryItem[]>(() => loadLibrary());
+  const updateLibrary = (items: LibraryItem[]) => { setLibrary(items); saveLibrary(items); };
 
   useEffect(() => {
     const id = getCurrentProjectId();
@@ -192,13 +206,37 @@ export function AsternalEditor() {
       {/* Main */}
       <main key={tab} className="relative flex-1 min-h-0 animate-fade-in">
         {tab === "build" && (
-          <SceneEditor
-            scene={activeScene}
-            tool={tool}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onChange={updateScene}
-          />
+          <>
+            <SceneEditor
+              scene={activeScene}
+              tool={tool}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onChange={updateScene}
+            />
+            {/* Floating action buttons */}
+            <div className="pointer-events-none absolute right-3 bottom-3 flex flex-col gap-2 z-20">
+              {selected && (
+                <button
+                  onClick={() => {
+                    if (!selected || selected.kind === "player") return;
+                    const copy: Entity = { ...selected, id: uid(), x: selected.x + 24, y: selected.y + 24 };
+                    updateScene({ ...activeScene, entities: [...activeScene.entities, copy] });
+                    setSelectedId(copy.id);
+                  }}
+                  className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow font-display text-lg active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+                  title="Duplicar asset (Ctrl+D)"
+                  aria-label="Duplicar"
+                >⧉</button>
+              )}
+              <button
+                onClick={() => setLibraryOpen(true)}
+                className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow font-display text-lg active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+                title={t("library.title")}
+                aria-label="Library"
+              >★</button>
+            </div>
+          </>
         )}
 
         {tab === "inspect" && (
@@ -325,6 +363,97 @@ export function AsternalEditor() {
           </button>
         ))}
       </nav>
+
+      {libraryOpen && (
+        <LibrarySheet
+          library={library}
+          selected={selected}
+          onClose={() => setLibraryOpen(false)}
+          onSave={(name) => {
+            if (!selected) return;
+            const { id: _id, x: _x, y: _y, ...preset } = selected;
+            void _id; void _x; void _y;
+            updateLibrary([...library, { id: uid(), name: name || selected.kind, preset }]);
+          }}
+          onRemove={(id) => updateLibrary(library.filter(i => i.id !== id))}
+          onPlace={(item) => {
+            const s = activeScene;
+            const ent: Entity = {
+              ...item.preset,
+              id: uid(),
+              x: Math.round(s.width / 2 - item.preset.w / 2),
+              y: Math.round(s.height / 2 - item.preset.h / 2),
+            };
+            updateScene({ ...s, entities: [...s.entities, ent] });
+            setSelectedId(ent.id);
+            setLibraryOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function LibrarySheet({
+  library, selected, onClose, onSave, onRemove, onPlace,
+}: {
+  library: LibraryItem[];
+  selected: Entity | null;
+  onClose: () => void;
+  onSave: (name: string) => void;
+  onRemove: (id: string) => void;
+  onPlace: (item: LibraryItem) => void;
+}) {
+  const t = useT();
+  const [name, setName] = useState("");
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+      <div
+        className="w-full max-w-xl panel rounded-t-2xl border border-border/60 p-4 space-y-3 max-h-[80vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-sm tracking-[0.25em] text-primary-glow glow-text">{t("library.title")}</h2>
+          <button onClick={onClose} className="text-muted-foreground text-sm">✕</button>
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={selected ? selected.kind : "—"}
+            disabled={!selected}
+            className="flex-1 bg-input/60 border border-border rounded-md px-3 py-2 text-xs font-mono disabled:opacity-50"
+          />
+          <button
+            disabled={!selected}
+            onClick={() => { onSave(name); setName(""); }}
+            className="px-3 py-2 rounded-md bg-primary/20 border border-primary/50 text-primary-glow font-display text-[10px] tracking-widest disabled:opacity-40"
+          >{t("library.save")}</button>
+        </div>
+        {library.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6">{t("library.empty")}</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {library.map(item => (
+              <div key={item.id} className="panel rounded-md p-2 flex flex-col items-center gap-1.5 border border-border/40 hover:border-primary/60 transition">
+                <button
+                  onClick={() => onPlace(item)}
+                  className="w-full aspect-square rounded grid place-items-center active:scale-95 transition"
+                  style={{ background: item.preset.color + "33", border: `1px solid ${item.preset.color}` }}
+                >
+                  {item.preset.texture ? (
+                    <img src={item.preset.texture} alt={item.name} className="max-w-full max-h-full object-contain" />
+                  ) : (
+                    <span className="text-xs font-display text-primary-glow">{item.preset.kind.slice(0,3).toUpperCase()}</span>
+                  )}
+                </button>
+                <span className="text-[10px] font-mono text-foreground truncate w-full text-center">{item.name}</span>
+                <button onClick={() => onRemove(item.id)} className="text-[9px] text-destructive">✕ borrar</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
