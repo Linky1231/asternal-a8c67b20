@@ -409,7 +409,7 @@ function LibrarySheet({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
-        className="w-full max-w-xl panel rounded-t-2xl border border-border/60 p-4 space-y-3 animate-slide-in-right max-h-[80vh] overflow-auto"
+        className="w-full max-w-xl panel rounded-t-2xl border border-border/60 p-4 space-y-3 max-h-[80vh] overflow-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
