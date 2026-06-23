@@ -22,13 +22,24 @@ type Tab = "build" | "inspect" | "ui" | "scenes" | "assets" | "settings";
 
 const TOOL_LIST: { id: Tool; tKey: string; icon: string }[] = [
   { id: "select", tKey: "tool.select", icon: "⌖" },
-  { id: "platform", tKey: "tool.platform", icon: "▭" },
+  { id: "platform", tKey: "tool.platform", icon: "▣" },
+  { id: "decor", tKey: "tool.decor", icon: "❀" },
   { id: "coin", tKey: "tool.coin", icon: "◉" },
   { id: "enemy", tKey: "tool.enemy", icon: "▲" },
   { id: "goal", tKey: "tool.goal", icon: "▮" },
   { id: "player", tKey: "tool.player", icon: "☻" },
   { id: "erase", tKey: "tool.erase", icon: "✕" },
 ];
+
+// ---- Asset library (saved presets) ----
+type LibraryItem = { id: string; name: string; preset: Omit<Entity, "id" | "x" | "y"> };
+const LIBRARY_KEY = "asternal:library";
+function loadLibrary(): LibraryItem[] {
+  try { return JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]") as LibraryItem[]; } catch { return []; }
+}
+function saveLibrary(items: LibraryItem[]) {
+  try { localStorage.setItem(LIBRARY_KEY, JSON.stringify(items)); } catch { /* ignore */ }
+}
 
 export function AsternalEditor() {
   const t = useT();
