@@ -206,13 +206,37 @@ export function AsternalEditor() {
       {/* Main */}
       <main key={tab} className="relative flex-1 min-h-0 animate-fade-in">
         {tab === "build" && (
-          <SceneEditor
-            scene={activeScene}
-            tool={tool}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onChange={updateScene}
-          />
+          <>
+            <SceneEditor
+              scene={activeScene}
+              tool={tool}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onChange={updateScene}
+            />
+            {/* Floating action buttons */}
+            <div className="pointer-events-none absolute right-3 bottom-3 flex flex-col gap-2 z-20">
+              {selected && (
+                <button
+                  onClick={() => {
+                    if (!selected || selected.kind === "player") return;
+                    const copy: Entity = { ...selected, id: uid(), x: selected.x + 24, y: selected.y + 24 };
+                    updateScene({ ...activeScene, entities: [...activeScene.entities, copy] });
+                    setSelectedId(copy.id);
+                  }}
+                  className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow font-display text-lg active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+                  title="Duplicar asset (Ctrl+D)"
+                  aria-label="Duplicar"
+                >⧉</button>
+              )}
+              <button
+                onClick={() => setLibraryOpen(true)}
+                className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow font-display text-lg active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+                title={t("library.title")}
+                aria-label="Library"
+              >★</button>
+            </div>
+          </>
         )}
 
         {tab === "inspect" && (
