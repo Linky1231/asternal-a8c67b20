@@ -841,18 +841,19 @@ export function drawUIElement(ctx: CanvasRenderingContext2D, el: UIElement, W: n
     ctx.restore();
     if (el.border) { ctx.lineWidth = 1; ctx.strokeStyle = el.border; path(); ctx.stroke(); }
   } else if (el.kind === "joystick") {
+    const rad = Math.min(r.w, r.h) / 2;
+    const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    // Single base ring — no double circle.
     ctx.fillStyle = el.bg ?? "rgba(2,6,23,0.4)";
-    ctx.beginPath(); ctx.arc(r.x + r.w / 2, r.y + r.h / 2, Math.min(r.w, r.h) / 2, 0, Math.PI * 2); ctx.fill();
-    if (el.border) { ctx.strokeStyle = el.border; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(r.x + r.w / 2, r.y + r.h / 2, Math.min(r.w, r.h) / 2 - 1, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = el.color ?? "#7dd3fc";
     ctx.globalAlpha = (el.opacity ?? 1) * 0.7;
     // animated knob preview so it looks alive in the editor
     const ang = (tick * 0.04);
-    const off = Math.min(r.w, r.h) / 6;
-    const kx = r.x + r.w / 2 + Math.cos(ang) * off * (state ? 0 : 1);
-    const ky = r.y + r.h / 2 + Math.sin(ang) * off * (state ? 0 : 1);
-    ctx.beginPath(); ctx.arc(kx, ky, Math.min(r.w, r.h) / 5, 0, Math.PI * 2); ctx.fill();
+    const off = rad / 3;
+    const kx = cx + Math.cos(ang) * off * (state ? 0 : 1);
+    const ky = cy + Math.sin(ang) * off * (state ? 0 : 1);
+    ctx.beginPath(); ctx.arc(kx, ky, rad / 2.2, 0, Math.PI * 2); ctx.fill();
   } else if (el.kind === "label") {
     let text = el.text ?? "";
     if (state && el.bind && el.bind !== "none") {
