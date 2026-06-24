@@ -724,7 +724,7 @@ function MultiInspector({ els, applyDelta, setSize, setVisible, alignAnchor, rem
   return (
     <div className="space-y-3 pt-2">
       <div className="rounded-lg border border-border/50 bg-background/40 p-2">
-        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1.5">SELECTED · {els.length}</div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1.5">SELECCIONADOS · {els.length}</div>
         <div className="flex flex-wrap gap-1">
           {els.map(e => (
             <span key={e.id} className="px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-[10px] font-mono text-primary-glow">
