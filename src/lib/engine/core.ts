@@ -341,14 +341,30 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     }
   }
 
-  // Player input
+  // Player input — smooth accel & friction for game-feel.
   const speedMul = state.speedT > 0 ? 1.6 : 1;
+  const TERMINAL = 1200;
   for (const e of scene.entities) {
     if (e.controllable) {
-      const target = (input.right ? 1 : 0) * BASE_SPEED * speedMul - (input.left ? 1 : 0) * BASE_SPEED * speedMul;
-      e.vx = target;
+      const wasGrounded = (e as Entity & { _grounded?: boolean })._grounded ?? false;
+      const target = ((input.right ? 1 : 0) - (input.left ? 1 : 0)) * BASE_SPEED * speedMul;
+      // Ground = snappy, air = floaty. Slippery overrides ground accel.
+      const floorEnt = (e as Entity & { _floor?: Entity })._floor;
+      const slippery = !!(floorEnt && floorEnt.slippery);
+      const groundAccel = slippery ? 6 : 22;
+      const airAccel = 10;
+      const accel = wasGrounded ? groundAccel : airAccel;
+      e.vx += (target - e.vx) * Math.min(1, accel * dt);
+      // friction when no input and grounded
+      if (wasGrounded && !input.left && !input.right && !slippery) {
+        e.vx *= Math.max(0, 1 - 18 * dt);
+        if (Math.abs(e.vx) < 4) e.vx = 0;
+      }
     }
-    if (e.gravity) e.vy += scene.gravity * dt;
+    if (e.gravity) {
+      e.vy += scene.gravity * dt;
+      if (e.vy > TERMINAL) e.vy = TERMINAL;
+    }
     // facing direction follows velocity
     if ((e.controllable || e.kind === "enemy") && Math.abs(e.vx) > 1) {
       e.facing = e.vx > 0 ? 1 : -1;
