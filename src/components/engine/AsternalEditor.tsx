@@ -13,7 +13,7 @@ import { UIEditor } from "./UIEditor";
 import { ProjectManager } from "./ProjectManager";
 
 import { ScriptEditor } from "./ScriptEditor";
-import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
+import { useT, setLang } from "@/lib/i18n";
 
 
 
@@ -57,6 +57,7 @@ export function AsternalEditor() {
   const updateLibrary = (items: LibraryItem[]) => { setLibrary(items); saveLibrary(items); };
 
   useEffect(() => {
+    setLang("es");
     const id = getCurrentProjectId();
     setProjectId(id);
     setProject(loadProjectById(id) ?? loadProject());
@@ -319,16 +320,16 @@ export function AsternalEditor() {
 
       {/* Tool strip — only on build */}
       {tab === "build" && (
-        <div className="px-2 pt-2 panel border-t">
-          <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
+        <div className="px-2 pt-3 panel border-t">
+          <div className="flex gap-1.5 overflow-x-auto pb-3 no-scrollbar">
             {TOOL_LIST.map(toolItem => (
               <button
                 key={toolItem.id}
                 onClick={() => setTool(toolItem.id)}
-                className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md min-w-[58px] border transition-all duration-200 active:scale-90 hover:-translate-y-0.5 ${
+                className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl min-w-[64px] border transition-colors duration-200 active:scale-[0.94] ${
                   tool === toolItem.id
-                    ? "bg-primary/20 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.68_0.21_250/0.5)] scale-105"
-                    : "border-border/40 text-muted-foreground hover:border-primary/50 hover:text-primary-glow"
+                    ? "bg-primary/20 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.68_0.21_250/0.45)]"
+                    : "bg-white/[0.03] border-white/[0.06] text-muted-foreground hover:border-primary/40 hover:text-primary-glow"
                 }`}
               >
                 <span className="text-lg leading-none">{toolItem.icon}</span>
@@ -798,21 +799,6 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
       <SectionTitle>PROJECT</SectionTitle>
       <Field label="Game name" value={project.name} onChange={v => onChange({ ...project, name: v })} />
 
-      <SectionTitle>LANGUAGE · IDIOMA</SectionTitle>
-      <div className="grid grid-cols-5 gap-1.5">
-        {LANGS.map(l => (
-          <button
-            key={l.id}
-            onClick={() => { setLang(l.id); set({ language: l.id }); }}
-            className={`py-2 rounded-md border text-[10px] font-display tracking-widest flex flex-col items-center gap-0.5 ${
-              getLang() === l.id ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"
-            }`}
-          >
-            <span className="text-lg leading-none">{l.flag}</span>
-            <span>{l.id.toUpperCase()}</span>
-          </button>
-        ))}
-      </div>
 
 
       <SectionTitle>RUNTIME</SectionTitle>

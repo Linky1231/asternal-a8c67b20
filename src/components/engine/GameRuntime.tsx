@@ -511,7 +511,7 @@ function TouchBtn({ label, onDown, onUp, big }: { label: string; onDown: () => v
   );
 }
 
-function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number, visualEffects = true) {
+export function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, time: number, visualEffects = true) {
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";

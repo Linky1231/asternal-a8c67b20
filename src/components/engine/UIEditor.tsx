@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Scene, UIElement, UIElementKind, UIAnchor, UIAction, UIBind } from "@/lib/engine/core";
 import { newUIElement, resolveUIRect, uid } from "@/lib/engine/core";
 import { drawTransparencyGrid, fileToDataURL, getRenderableImage } from "@/lib/engine/images";
+import { drawEntity } from "./GameRuntime";
 
 interface Props {
   scene: Scene;
@@ -156,11 +157,44 @@ export function UIEditor({ scene, onChange }: Props) {
           ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
         }
       }
-      // dim
-      ctx.fillStyle = "rgba(2,6,23,0.35)";
+      // GAME CAMERA SNAPSHOT — mirror PLAY's fixed-size camera so UI editing
+      // matches what the user actually sees in-game.
+      const VIEW_H = 700;
+      const gscale = H / VIEW_H;
+      const viewW = W / gscale;
+      const viewH = VIEW_H;
+      const player = scene.entities.find(e => e.controllable);
+      let camX = 0, camY = 0;
+      if (player) {
+        camX = player.x + player.w / 2 - viewW / 2;
+        camY = player.y + player.h / 2 - viewH / 2;
+        if (scene.width > viewW) camX = Math.max(0, Math.min(scene.width - viewW, camX));
+        else camX = (scene.width - viewW) / 2;
+        if (scene.height > viewH) camY = Math.max(0, Math.min(scene.height - viewH, camY));
+        else camY = (scene.height - viewH) / 2;
+      } else {
+        camX = (scene.width - viewW) / 2;
+        camY = (scene.height - viewH) / 2;
+      }
+      ctx.save();
+      ctx.scale(gscale, gscale);
+      ctx.translate(-camX, -camY);
+      const tSec = tickRef.current / 60;
+      const drawList = [...scene.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+      for (const e of drawList) {
+        if (e.visible === false) continue;
+        const a = e.opacity ?? 1;
+        if (a !== 1) ctx.globalAlpha = a;
+        try { drawEntity(ctx, e, tSec, true); } catch { /* ignore */ }
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+
+      // dim overlay so UI elements pop above the snapshot
+      ctx.fillStyle = "rgba(2,6,23,0.45)";
       ctx.fillRect(0, 0, W, H);
 
-      // safe area + anchor crosshair
+      // safe area
       ctx.strokeStyle = "rgba(125,211,252,0.18)";
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 6]);
@@ -262,7 +296,7 @@ export function UIEditor({ scene, onChange }: Props) {
     };
     raf = requestAnimationFrame(render);
     return () => cancelAnimationFrame(raf);
-  }, [scene.bg, scene.bgImage, ui, sel, selIds, size, virt]);
+  }, [scene, ui, sel, selIds, size, virt]);
 
   const updateEl = (id: string, patch: Partial<UIElement>) => {
     onChange({ ...scene, ui: ui.map(e => e.id === id ? { ...e, ...patch } : e) });
@@ -401,35 +435,36 @@ export function UIEditor({ scene, onChange }: Props) {
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-background">
-      {/* Toolbar — floating glass at top */}
-      <div className="absolute top-0 left-0 right-0 z-30 px-2 pt-2">
-        <div className="rounded-2xl border border-border/40 bg-card/70 backdrop-blur-xl shadow-[0_8px_24px_oklch(0_0_0/0.35)] px-1.5 py-1.5">
-          <div className="flex gap-1 overflow-x-auto no-scrollbar">
+      {/* Toolbar — Apple-like glass pill at top */}
+      <div className="absolute top-0 left-0 right-0 z-30 px-3 pt-3">
+        <div className="rounded-2xl border border-white/10 bg-card/60 backdrop-blur-2xl shadow-[0_12px_32px_oklch(0_0_0/0.45)] px-2 py-2"
+          style={{ WebkitBackdropFilter: "blur(28px)" }}>
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
             {KIND_LIST.map(k => (
               <button key={k.id} onClick={() => addEl(k.id)}
-                className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border/50 bg-background/40 text-muted-foreground active:scale-95 hover:border-primary/50 hover:text-primary-glow transition">
+                className="shrink-0 flex flex-col items-center justify-center gap-0.5 min-w-[60px] px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-muted-foreground active:scale-[0.94] hover:bg-white/[0.08] hover:text-primary-glow transition-all duration-200">
                 <span className="text-base leading-none">{k.icon}</span>
                 <span className="text-[9px] font-display tracking-wider">{k.label}</span>
               </button>
             ))}
             <button onClick={() => { setMultiMode(m => !m); if (multiMode) setSelIds([]); }}
-              className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border active:scale-95 transition ${multiMode ? "border-primary bg-primary/20 text-primary-glow" : "border-border/50 bg-background/40 text-muted-foreground"}`}>
+              className={`shrink-0 flex flex-col items-center justify-center gap-0.5 min-w-[60px] px-3 py-2 rounded-xl border transition-all duration-200 active:scale-[0.94] ${multiMode ? "bg-primary/20 border-primary/60 text-primary-glow" : "bg-white/[0.04] border-white/[0.06] text-muted-foreground hover:bg-white/[0.08]"}`}>
               <span className="text-base leading-none">{multiMode ? "☑" : "☐"}</span>
               <span className="text-[9px] font-display tracking-wider">MULTI</span>
             </button>
-            <button onClick={() => { if (confirm("Clear all UI?")) { onChange({ ...scene, ui: [] }); setSelIds([]); } }}
-              className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive active:scale-95">
+            <button onClick={() => { if (confirm("¿Limpiar toda la UI?")) { onChange({ ...scene, ui: [] }); setSelIds([]); } }}
+              className="shrink-0 flex flex-col items-center justify-center gap-0.5 min-w-[60px] px-3 py-2 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive active:scale-[0.94] hover:bg-destructive/15 transition-all duration-200">
               <span className="text-base leading-none">✕</span>
-              <span className="text-[9px] font-display tracking-wider">CLEAR</span>
+              <span className="text-[9px] font-display tracking-wider">LIMPIAR</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Preview canvas — fills entire surface */}
+      {/* Preview canvas — square edges, fills entire surface */}
       <div ref={wrapRef} className="absolute inset-0 overflow-hidden flex items-center justify-center"
-        style={{ paddingTop: 64, paddingBottom: sheetH + 8 }}>
-        <div className="relative rounded-xl border border-primary/30 shadow-[0_0_24px_oklch(0.68_0.21_250/0.3)] overflow-hidden bg-black"
+        style={{ paddingTop: 76, paddingBottom: sheetH + 8 }}>
+        <div className="relative border border-primary/30 shadow-[0_0_24px_oklch(0.68_0.21_250/0.3)] overflow-hidden bg-black"
           style={{ width: size.w, height: size.h }}>
           <canvas
             ref={canvasRef}
