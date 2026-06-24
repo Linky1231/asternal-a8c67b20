@@ -157,11 +157,44 @@ export function UIEditor({ scene, onChange }: Props) {
           ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
         }
       }
-      // dim
-      ctx.fillStyle = "rgba(2,6,23,0.35)";
+      // GAME CAMERA SNAPSHOT — mirror PLAY's fixed-size camera so UI editing
+      // matches what the user actually sees in-game.
+      const VIEW_H = 700;
+      const gscale = H / VIEW_H;
+      const viewW = W / gscale;
+      const viewH = VIEW_H;
+      const player = scene.entities.find(e => e.controllable);
+      let camX = 0, camY = 0;
+      if (player) {
+        camX = player.x + player.w / 2 - viewW / 2;
+        camY = player.y + player.h / 2 - viewH / 2;
+        if (scene.width > viewW) camX = Math.max(0, Math.min(scene.width - viewW, camX));
+        else camX = (scene.width - viewW) / 2;
+        if (scene.height > viewH) camY = Math.max(0, Math.min(scene.height - viewH, camY));
+        else camY = (scene.height - viewH) / 2;
+      } else {
+        camX = (scene.width - viewW) / 2;
+        camY = (scene.height - viewH) / 2;
+      }
+      ctx.save();
+      ctx.scale(gscale, gscale);
+      ctx.translate(-camX, -camY);
+      const tSec = tickRef.current / 60;
+      const drawList = [...scene.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+      for (const e of drawList) {
+        if (e.visible === false) continue;
+        const a = e.opacity ?? 1;
+        if (a !== 1) ctx.globalAlpha = a;
+        try { drawEntity(ctx, e, tSec, true); } catch { /* ignore */ }
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+
+      // dim overlay so UI elements pop above the snapshot
+      ctx.fillStyle = "rgba(2,6,23,0.45)";
       ctx.fillRect(0, 0, W, H);
 
-      // safe area + anchor crosshair
+      // safe area
       ctx.strokeStyle = "rgba(125,211,252,0.18)";
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 6]);
