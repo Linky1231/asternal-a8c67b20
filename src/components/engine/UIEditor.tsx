@@ -534,7 +534,7 @@ export function UIEditor({ scene, onChange }: Props) {
           )}
           {selectedEls.length === 0 && ui.length > 0 && (
             <span className="mt-0.5 font-display text-[10px] tracking-[0.2em] text-muted-foreground">
-              {ui.length} ELEMENT{ui.length > 1 ? "S" : ""} · {multiMode ? "TAP TO MULTI-SELECT" : "TAP TO EDIT"}
+              {ui.length} ELEMENTO{ui.length > 1 ? "S" : ""} · {multiMode ? "TOCA PARA MULTI-SELECCIÓN" : "TOCA PARA EDITAR"}
             </span>
           )}
           {selectedEls.length === 0 && ui.length === 0 && (
