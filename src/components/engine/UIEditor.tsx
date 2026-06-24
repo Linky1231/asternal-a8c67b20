@@ -483,7 +483,7 @@ export function UIEditor({ scene, onChange }: Props) {
             onPointerCancel={onPointerUp}
           />
         </div>
-        <div className="absolute bottom-2 left-3 panel rounded-md px-1.5 py-0.5 text-[9px] font-mono text-primary-glow pointer-events-none">
+        <div className="absolute top-[96px] left-3 panel rounded-md px-1.5 py-0.5 text-[9px] font-mono text-primary-glow pointer-events-none">
           UI·{ui.length}·{virt.w}×{virt.h}
         </div>
       </div>
