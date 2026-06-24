@@ -13,7 +13,7 @@ import { UIEditor } from "./UIEditor";
 import { ProjectManager } from "./ProjectManager";
 
 import { ScriptEditor } from "./ScriptEditor";
-import { useT, setLang, getLang, LANGS } from "@/lib/i18n";
+import { useT, setLang } from "@/lib/i18n";
 
 
 
