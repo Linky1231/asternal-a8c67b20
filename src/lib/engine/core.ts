@@ -471,10 +471,11 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     if (!anyHit) break;
   }
 
-  // Persist grounded flag for next-frame predictive ledge checks
+  // Persist grounded flag + floor entity for next-frame predictive checks
   for (const e of scene.entities) {
     if (e.kind === "platform") continue;
     (e as Entity & { _grounded?: boolean })._grounded = grounded.has(e.id);
+    (e as Entity & { _floor?: Entity | undefined })._floor = groundedOn.get(e.id);
   }
 
 
