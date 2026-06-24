@@ -265,6 +265,8 @@ export interface RuntimeState {
   time: number;
   jumpPrev: boolean;
   djumpAvailable: boolean;
+  coyoteT: number;
+  jumpBufferT: number;
   invulnT: number;
   speedT: number;
   switches: Record<string, boolean>;
