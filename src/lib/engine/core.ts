@@ -512,29 +512,39 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     }
   }
 
-  // Player jump + interactions
+  // Player jump + interactions — coyote time, jump buffer, variable-height jump.
+  const COYOTE = 0.10;        // 100 ms grace after leaving ground
+  const JUMP_BUFFER = 0.12;   // 120 ms pre-input buffer before landing
+  const JUMP_CUT = 0.45;      // vy multiplier when jump released early
   for (const e of scene.entities) {
     if (!e.controllable) continue;
     const onGround = grounded.has(e.id);
-    if (onGround) state.djumpAvailable = true;
-
-    // slippery: keep momentum on slippery ground (ignore zero-input snap)
-    const floor = groundedOn.get(e.id);
-    if (floor?.slippery && !input.left && !input.right) {
-      // don't actually do anything—input was zero already, vx set to 0 above
+    if (onGround) {
+      state.djumpAvailable = true;
+      state.coyoteT = COYOTE;
+    } else {
+      state.coyoteT = Math.max(0, state.coyoteT - dt);
     }
 
     const jumpEdge = input.jump && !state.jumpPrev;
-    if (input.jump && onGround) { e.vy = -JUMP; }
-    else if (jumpEdge && !onGround && state.djumpAvailable) {
-      // double jump (powerup)
-      // available only if djump pickup was collected before? we set djumpAvailable on ground; track separately
-      // We use a stricter flag: only when invulnT acts as marker? Use a dedicated state.canDjump
-      // (Simplification: powerup always grants single mid-air jump)
+    if (jumpEdge) state.jumpBufferT = JUMP_BUFFER;
+    else state.jumpBufferT = Math.max(0, state.jumpBufferT - dt);
+
+    // Initial jump: buffered press meets ground (or coyote window).
+    if (state.jumpBufferT > 0 && state.coyoteT > 0) {
+      e.vy = -JUMP;
+      state.jumpBufferT = 0;
+      state.coyoteT = 0;
+    } else if (jumpEdge && !onGround && state.djumpAvailable) {
       if ((state as RuntimeState & { canDjump?: boolean }).canDjump) {
         e.vy = -JUMP;
         (state as RuntimeState & { canDjump?: boolean }).canDjump = false;
       }
+    }
+
+    // Variable jump height — release cuts upward velocity.
+    if (!input.jump && e.vy < 0) {
+      e.vy *= JUMP_CUT;
     }
 
     // world bounds
