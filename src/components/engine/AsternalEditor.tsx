@@ -57,6 +57,7 @@ export function AsternalEditor() {
   const updateLibrary = (items: LibraryItem[]) => { setLibrary(items); saveLibrary(items); };
 
   useEffect(() => {
+    setLang("es");
     const id = getCurrentProjectId();
     setProjectId(id);
     setProject(loadProjectById(id) ?? loadProject());
