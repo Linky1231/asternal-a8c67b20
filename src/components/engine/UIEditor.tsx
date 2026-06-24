@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Scene, UIElement, UIElementKind, UIAnchor, UIAction, UIBind } from "@/lib/engine/core";
 import { newUIElement, resolveUIRect, uid } from "@/lib/engine/core";
 import { drawTransparencyGrid, fileToDataURL, getRenderableImage } from "@/lib/engine/images";
+import { drawEntity } from "./GameRuntime";
 
 interface Props {
   scene: Scene;
