@@ -282,6 +282,8 @@ export function newRuntimeState(scene?: Scene): RuntimeState {
     time: 0,
     jumpPrev: false,
     djumpAvailable: false,
+    coyoteT: 0,
+    jumpBufferT: 0,
     invulnT: 0, speedT: 0,
     switches: {},
     checkpoint: null,
