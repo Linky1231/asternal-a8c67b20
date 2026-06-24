@@ -528,7 +528,7 @@ export function UIEditor({ scene, onChange }: Props) {
           )}
           {selectedEls.length > 1 && (
             <div className="mt-1.5 flex items-center justify-between w-full px-3">
-              <span className="font-display text-[11px] tracking-[0.22em] text-primary-glow truncate">{selectedEls.length} SELECTED · MULTI EDIT</span>
+              <span className="font-display text-[11px] tracking-[0.22em] text-primary-glow truncate">{selectedEls.length} SELECCIONADOS · EDICIÓN MÚLTIPLE</span>
               <button onClick={() => setSelIds([])} className="text-[10px] font-display tracking-widest text-muted-foreground px-2 py-0.5 rounded border border-border">✕</button>
             </div>
           )}
