@@ -483,7 +483,7 @@ export function UIEditor({ scene, onChange }: Props) {
             onPointerCancel={onPointerUp}
           />
         </div>
-        <div className="absolute top-[68px] left-3 panel rounded-md px-1.5 py-0.5 text-[9px] font-mono text-primary-glow pointer-events-none">
+        <div className="absolute top-[96px] left-3 panel rounded-md px-1.5 py-0.5 text-[9px] font-mono text-primary-glow pointer-events-none">
           UI·{ui.length}·{virt.w}×{virt.h}
         </div>
       </div>
@@ -528,18 +528,18 @@ export function UIEditor({ scene, onChange }: Props) {
           )}
           {selectedEls.length > 1 && (
             <div className="mt-1.5 flex items-center justify-between w-full px-3">
-              <span className="font-display text-[11px] tracking-[0.22em] text-primary-glow truncate">{selectedEls.length} SELECTED · MULTI EDIT</span>
+              <span className="font-display text-[11px] tracking-[0.22em] text-primary-glow truncate">{selectedEls.length} SELECCIONADOS · EDICIÓN MÚLTIPLE</span>
               <button onClick={() => setSelIds([])} className="text-[10px] font-display tracking-widest text-muted-foreground px-2 py-0.5 rounded border border-border">✕</button>
             </div>
           )}
           {selectedEls.length === 0 && ui.length > 0 && (
             <span className="mt-0.5 font-display text-[10px] tracking-[0.2em] text-muted-foreground">
-              {ui.length} ELEMENT{ui.length > 1 ? "S" : ""} · {multiMode ? "TAP TO MULTI-SELECT" : "TAP TO EDIT"}
+              {ui.length} ELEMENTO{ui.length > 1 ? "S" : ""} · {multiMode ? "TOCA PARA MULTI-SELECCIÓN" : "TOCA PARA EDITAR"}
             </span>
           )}
           {selectedEls.length === 0 && ui.length === 0 && (
             <span className="mt-0.5 font-display text-[10px] tracking-[0.2em] text-muted-foreground">
-              ADD A COMPONENT ABOVE
+              AÑADE UN COMPONENTE ARRIBA
             </span>
           )}
         </div>
@@ -724,7 +724,7 @@ function MultiInspector({ els, applyDelta, setSize, setVisible, alignAnchor, rem
   return (
     <div className="space-y-3 pt-2">
       <div className="rounded-lg border border-border/50 bg-background/40 p-2">
-        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1.5">SELECTED · {els.length}</div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1.5">SELECCIONADOS · {els.length}</div>
         <div className="flex flex-wrap gap-1">
           {els.map(e => (
             <span key={e.id} className="px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-[10px] font-mono text-primary-glow">

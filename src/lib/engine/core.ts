@@ -265,6 +265,8 @@ export interface RuntimeState {
   time: number;
   jumpPrev: boolean;
   djumpAvailable: boolean;
+  coyoteT: number;
+  jumpBufferT: number;
   invulnT: number;
   speedT: number;
   switches: Record<string, boolean>;
@@ -280,6 +282,8 @@ export function newRuntimeState(scene?: Scene): RuntimeState {
     time: 0,
     jumpPrev: false,
     djumpAvailable: false,
+    coyoteT: 0,
+    jumpBufferT: 0,
     invulnT: 0, speedT: 0,
     switches: {},
     checkpoint: null,
@@ -337,14 +341,30 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     }
   }
 
-  // Player input
+  // Player input — smooth accel & friction for game-feel.
   const speedMul = state.speedT > 0 ? 1.6 : 1;
+  const TERMINAL = 1200;
   for (const e of scene.entities) {
     if (e.controllable) {
-      const target = (input.right ? 1 : 0) * BASE_SPEED * speedMul - (input.left ? 1 : 0) * BASE_SPEED * speedMul;
-      e.vx = target;
+      const wasGrounded = (e as Entity & { _grounded?: boolean })._grounded ?? false;
+      const target = ((input.right ? 1 : 0) - (input.left ? 1 : 0)) * BASE_SPEED * speedMul;
+      // Ground = snappy, air = floaty. Slippery overrides ground accel.
+      const floorEnt = (e as Entity & { _floor?: Entity })._floor;
+      const slippery = !!(floorEnt && floorEnt.slippery);
+      const groundAccel = slippery ? 6 : 22;
+      const airAccel = 10;
+      const accel = wasGrounded ? groundAccel : airAccel;
+      e.vx += (target - e.vx) * Math.min(1, accel * dt);
+      // friction when no input and grounded
+      if (wasGrounded && !input.left && !input.right && !slippery) {
+        e.vx *= Math.max(0, 1 - 18 * dt);
+        if (Math.abs(e.vx) < 4) e.vx = 0;
+      }
     }
-    if (e.gravity) e.vy += scene.gravity * dt;
+    if (e.gravity) {
+      e.vy += scene.gravity * dt;
+      if (e.vy > TERMINAL) e.vy = TERMINAL;
+    }
     // facing direction follows velocity
     if ((e.controllable || e.kind === "enemy") && Math.abs(e.vx) > 1) {
       e.facing = e.vx > 0 ? 1 : -1;
@@ -451,10 +471,11 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     if (!anyHit) break;
   }
 
-  // Persist grounded flag for next-frame predictive ledge checks
+  // Persist grounded flag + floor entity for next-frame predictive checks
   for (const e of scene.entities) {
     if (e.kind === "platform") continue;
     (e as Entity & { _grounded?: boolean })._grounded = grounded.has(e.id);
+    (e as Entity & { _floor?: Entity | undefined })._floor = groundedOn.get(e.id);
   }
 
 
@@ -491,29 +512,39 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     }
   }
 
-  // Player jump + interactions
+  // Player jump + interactions — coyote time, jump buffer, variable-height jump.
+  const COYOTE = 0.10;        // 100 ms grace after leaving ground
+  const JUMP_BUFFER = 0.12;   // 120 ms pre-input buffer before landing
+  const JUMP_CUT = 0.45;      // vy multiplier when jump released early
   for (const e of scene.entities) {
     if (!e.controllable) continue;
     const onGround = grounded.has(e.id);
-    if (onGround) state.djumpAvailable = true;
-
-    // slippery: keep momentum on slippery ground (ignore zero-input snap)
-    const floor = groundedOn.get(e.id);
-    if (floor?.slippery && !input.left && !input.right) {
-      // don't actually do anything—input was zero already, vx set to 0 above
+    if (onGround) {
+      state.djumpAvailable = true;
+      state.coyoteT = COYOTE;
+    } else {
+      state.coyoteT = Math.max(0, state.coyoteT - dt);
     }
 
     const jumpEdge = input.jump && !state.jumpPrev;
-    if (input.jump && onGround) { e.vy = -JUMP; }
-    else if (jumpEdge && !onGround && state.djumpAvailable) {
-      // double jump (powerup)
-      // available only if djump pickup was collected before? we set djumpAvailable on ground; track separately
-      // We use a stricter flag: only when invulnT acts as marker? Use a dedicated state.canDjump
-      // (Simplification: powerup always grants single mid-air jump)
+    if (jumpEdge) state.jumpBufferT = JUMP_BUFFER;
+    else state.jumpBufferT = Math.max(0, state.jumpBufferT - dt);
+
+    // Initial jump: buffered press meets ground (or coyote window).
+    if (state.jumpBufferT > 0 && state.coyoteT > 0) {
+      e.vy = -JUMP;
+      state.jumpBufferT = 0;
+      state.coyoteT = 0;
+    } else if (jumpEdge && !onGround && state.djumpAvailable) {
       if ((state as RuntimeState & { canDjump?: boolean }).canDjump) {
         e.vy = -JUMP;
         (state as RuntimeState & { canDjump?: boolean }).canDjump = false;
       }
+    }
+
+    // Variable jump height — release cuts upward velocity.
+    if (!input.jump && e.vy < 0) {
+      e.vy *= JUMP_CUT;
     }
 
     // world bounds
