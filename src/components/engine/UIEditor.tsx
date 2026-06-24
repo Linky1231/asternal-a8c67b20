@@ -539,7 +539,7 @@ export function UIEditor({ scene, onChange }: Props) {
           )}
           {selectedEls.length === 0 && ui.length === 0 && (
             <span className="mt-0.5 font-display text-[10px] tracking-[0.2em] text-muted-foreground">
-              ADD A COMPONENT ABOVE
+              AÑADE UN COMPONENTE ARRIBA
             </span>
           )}
         </div>
