@@ -742,23 +742,23 @@ function MultiInspector({ els, applyDelta, setSize, setVisible, alignAnchor, rem
       </div>
 
       <div>
-        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">MOVE BY (Δ)</div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">MOVER (Δ)</div>
         <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-end">
           <NumInput label="ΔX" value={dx} onChange={setDx} />
           <NumInput label="ΔY" value={dy} onChange={setDy} />
           <button onClick={() => { applyDelta(dx, dy); setDx(0); setDy(0); }}
-            className="h-9 px-3 rounded border border-primary/50 bg-primary/15 text-primary-glow text-[10px] font-display tracking-widest">APPLY</button>
+            className="h-9 px-3 rounded-xl border border-primary/50 bg-primary/20 text-primary-glow text-[10px] font-display tracking-widest active:scale-[0.96] transition">APLICAR</button>
         </div>
         <div className="grid grid-cols-4 gap-1 mt-1.5">
           {([["←",-8,0],["→",8,0],["↑",0,-8],["↓",0,8]] as const).map(([s, x, y]) => (
             <button key={s} onClick={() => applyDelta(x, y)}
-              className="py-1.5 rounded border border-border text-muted-foreground text-sm">{s}</button>
+              className="py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-muted-foreground text-sm active:scale-[0.94] transition">{s}</button>
           ))}
         </div>
       </div>
 
       <div>
-        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">SET SIZE</div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">DEFINIR TAMAÑO</div>
         <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-end">
           <div>
             <div className="text-[10px] font-display tracking-widest text-muted-foreground">W</div>
@@ -771,16 +771,16 @@ function MultiInspector({ els, applyDelta, setSize, setVisible, alignAnchor, rem
               className="w-full mt-1 px-2 py-1.5 rounded bg-input/60 border border-border text-xs font-mono focus:outline-none focus:border-primary" />
           </div>
           <button onClick={() => { setSize(bw ? Number(bw) : null, bh ? Number(bh) : null); setBw(""); setBh(""); }}
-            className="h-9 px-3 rounded border border-primary/50 bg-primary/15 text-primary-glow text-[10px] font-display tracking-widest">APPLY</button>
+            className="h-9 px-3 rounded-xl border border-primary/50 bg-primary/20 text-primary-glow text-[10px] font-display tracking-widest active:scale-[0.96] transition">APLICAR</button>
         </div>
       </div>
 
       <div>
-        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">ANCHOR ALL TO</div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">ANCLAR TODO A</div>
         <div className="grid grid-cols-9 gap-1">
           {ANCHORS.map(a => (
             <button key={a} onClick={() => alignAnchor(a)}
-              className="h-8 rounded text-[10px] font-mono border border-border text-muted-foreground hover:border-primary/50 hover:text-primary-glow">
+              className="h-8 rounded-lg text-[10px] font-mono border border-white/10 bg-white/[0.03] text-muted-foreground hover:border-primary/50 hover:text-primary-glow active:scale-[0.94] transition">
               {a}
             </button>
           ))}
@@ -789,17 +789,18 @@ function MultiInspector({ els, applyDelta, setSize, setVisible, alignAnchor, rem
 
       <div className="grid grid-cols-3 gap-1.5">
         <button onClick={() => setVisible(!allVisible)}
-          className="py-2 rounded border border-border text-muted-foreground font-display text-[10px] tracking-wide">
-          {allVisible ? "HIDE ALL" : "SHOW ALL"}
+          className="py-2 rounded-xl border border-white/10 bg-white/[0.04] text-muted-foreground font-display text-[10px] tracking-wide active:scale-[0.96] transition">
+          {allVisible ? "OCULTAR" : "MOSTRAR"}
         </button>
         <button onClick={cloneAll}
-          className="py-2 rounded border border-primary/50 bg-primary/10 text-primary-glow font-display text-[10px] tracking-wide">⧉ CLONE</button>
+          className="py-2 rounded-xl border border-primary/50 bg-primary/15 text-primary-glow font-display text-[10px] tracking-wide active:scale-[0.96] transition">⧉ CLONAR</button>
         <button onClick={removeAll}
-          className="py-2 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-wide">✕ DELETE</button>
+          className="py-2 rounded-xl border border-destructive/50 bg-destructive/20 text-destructive font-display text-[10px] tracking-wide active:scale-[0.96] transition">✕ BORRAR</button>
       </div>
     </div>
   );
 }
+
 
 function LabeledInput({ label, value, onChange, autoFocus }: { label: string; value: string; onChange: (v: string) => void; autoFocus?: boolean }) {
   // Use a locally-managed value so iOS Safari doesn't bounce the caret on every
