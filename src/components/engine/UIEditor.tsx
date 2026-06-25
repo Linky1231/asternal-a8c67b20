@@ -596,15 +596,15 @@ function ElementInspector({ el, update, remove, clone }: {
   const fileRef = useRef<HTMLInputElement>(null);
   return (
     <div className="space-y-2.5 pt-2">
-      <LabeledInput label="NAME" value={el.name} onChange={v => update({ name: v })} />
+      <LabeledInput label="NOMBRE" value={el.name} onChange={v => update({ name: v })} />
 
 
       <div>
-        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">ANCHOR</div>
+        <div className="text-[10px] font-display tracking-widest text-muted-foreground mb-1">ANCLAJE</div>
         <div className="grid grid-cols-9 gap-1">
           {ANCHORS.map(a => (
             <button key={a} onClick={() => update({ anchor: a })}
-              className={`h-8 rounded text-[10px] font-mono border ${el.anchor === a ? "bg-primary/30 border-primary text-primary-glow" : "border-border text-muted-foreground"}`}>
+              className={`h-8 rounded-lg text-[10px] font-mono border transition-all active:scale-[0.94] ${el.anchor === a ? "bg-primary/30 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.72_0.17_250/0.5)]" : "border-white/10 bg-white/[0.03] text-muted-foreground hover:bg-white/[0.06]"}`}>
               {a}
             </button>
           ))}
@@ -620,31 +620,31 @@ function ElementInspector({ el, update, remove, clone }: {
 
 
       {(el.kind === "button" || el.kind === "label" || el.kind === "panel") && (
-        <LabeledInput label="TEXT" value={el.text ?? ""} onChange={v => update({ text: v })} />
+        <LabeledInput label="TEXTO" value={el.text ?? ""} onChange={v => update({ text: v })} />
       )}
 
       {(el.kind === "button" || el.kind === "label") && (
         <div className="grid grid-cols-2 gap-2">
-          <NumInput label="FONT SIZE" value={el.fontSize ?? 14} onChange={v => update({ fontSize: v })} />
-          <ColorInput label="TEXT COLOR" value={el.color ?? "#ffffff"} onChange={v => update({ color: v })} />
+          <NumInput label="TAMAÑO FUENTE" value={el.fontSize ?? 14} onChange={v => update({ fontSize: v })} />
+          <ColorInput label="COLOR TEXTO" value={el.color ?? "#ffffff"} onChange={v => update({ color: v })} />
         </div>
       )}
 
       {el.kind !== "label" && (
         <div className="grid grid-cols-2 gap-2">
-          <ColorInput label="BACKGROUND" value={el.bg ?? "#0ea5e9"} onChange={v => update({ bg: v })} />
-          <ColorInput label="BORDER" value={el.border ?? "#7dd3fc"} onChange={v => update({ border: v })} />
+          <ColorInput label="FONDO" value={el.bg ?? "#0ea5e9"} onChange={v => update({ bg: v })} />
+          <ColorInput label="BORDE" value={el.border ?? "#7dd3fc"} onChange={v => update({ border: v })} />
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-2">
-        <NumInput label="RADIUS" value={el.radius ?? 0} onChange={v => update({ radius: v })} />
-        <NumInput label="OPACITY %" value={Math.round((el.opacity ?? 1) * 100)} onChange={v => update({ opacity: Math.max(0, Math.min(1, v / 100)) })} />
+        <NumInput label="RADIO" value={el.radius ?? 0} onChange={v => update({ radius: v })} />
+        <NumInput label="OPACIDAD %" value={Math.round((el.opacity ?? 1) * 100)} onChange={v => update({ opacity: Math.max(0, Math.min(1, v / 100)) })} />
       </div>
 
       {el.kind === "image" && (
         <div className="space-y-1.5">
-          <div className="text-[10px] font-display tracking-widest text-muted-foreground">IMAGE</div>
+          <div className="text-[10px] font-display tracking-widest text-muted-foreground">IMAGEN</div>
           <div className="flex items-center gap-2">
             {el.image && (
               <img
@@ -654,8 +654,8 @@ function ElementInspector({ el, update, remove, clone }: {
                 style={{ backgroundColor: "#e5e7eb", backgroundImage: "linear-gradient(45deg,#9ca3af 25%,transparent 25%),linear-gradient(-45deg,#9ca3af 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#9ca3af 75%),linear-gradient(-45deg,transparent 75%,#9ca3af 75%)", backgroundSize: "12px 12px", backgroundPosition: "0 0,0 6px,6px -6px,-6px 0", imageRendering: "auto" }}
               />
             )}
-            <button onClick={() => fileRef.current?.click()} className="flex-1 py-2 rounded border border-primary/50 bg-primary/10 text-primary-glow text-[10px] font-display tracking-widest">PICK IMAGE</button>
-            {el.image && <button onClick={() => update({ image: null })} className="py-2 px-3 rounded border border-border text-muted-foreground text-[10px] font-display">CLEAR</button>}
+            <button onClick={() => fileRef.current?.click()} className="flex-1 py-2 rounded-xl border border-primary/50 bg-primary/15 text-primary-glow text-[10px] font-display tracking-widest active:scale-[0.96] transition">ELEGIR IMAGEN</button>
+            {el.image && <button onClick={() => update({ image: null })} className="py-2 px-3 rounded-xl border border-white/10 bg-white/[0.04] text-muted-foreground text-[10px] font-display active:scale-[0.96] transition">QUITAR</button>}
           </div>
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
             onChange={async e => { const f = e.target.files?.[0]; if (!f) return; const url = await fileToDataURL(f); update({ image: url }); e.target.value = ""; }} />
@@ -664,48 +664,55 @@ function ElementInspector({ el, update, remove, clone }: {
 
       {el.kind === "button" && (
         <>
-          <div className="text-[10px] font-display tracking-widest text-muted-foreground">ACTION</div>
+          <div className="text-[10px] font-display tracking-widest text-muted-foreground">ACCIÓN</div>
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
-            {(["none","left","right","jump","restart","exit","event"] as UIAction[]).map(a => (
-              <button key={a} onClick={() => update({ action: a })}
-                className={`py-1.5 rounded text-[10px] font-display tracking-widest border ${(el.action ?? "none") === a ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"}`}>
-                {a.toUpperCase()}
-              </button>
-            ))}
+            {(["none","left","right","jump","restart","exit","event"] as UIAction[]).map(a => {
+              const labels: Record<UIAction, string> = { none: "NINGUNA", left: "IZQ.", right: "DER.", jump: "SALTAR", restart: "REINICIAR", exit: "SALIR", event: "EVENTO" };
+              return (
+                <button key={a} onClick={() => update({ action: a })}
+                  className={`py-1.5 rounded-lg text-[10px] font-display tracking-widest border transition active:scale-[0.94] ${(el.action ?? "none") === a ? "bg-primary/25 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.72_0.17_250/0.45)]" : "border-white/10 bg-white/[0.03] text-muted-foreground hover:bg-white/[0.06]"}`}>
+                  {labels[a]}
+                </button>
+              );
+            })}
           </div>
           {el.action === "event" && (
-            <LabeledInput label="EVENT NAME" value={el.eventName ?? ""} onChange={v => update({ eventName: v })} />
+            <LabeledInput label="NOMBRE DEL EVENTO" value={el.eventName ?? ""} onChange={v => update({ eventName: v })} />
           )}
         </>
       )}
 
       {(el.kind === "label" || el.kind === "bar") && (
         <>
-          <div className="text-[10px] font-display tracking-widest text-muted-foreground">DATA BINDING</div>
+          <div className="text-[10px] font-display tracking-widest text-muted-foreground">VINCULAR DATO</div>
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
-            {(["none","score","lives","time"] as UIBind[]).map(b => (
-              <button key={b} onClick={() => update({ bind: b })}
-                className={`py-1.5 rounded text-[10px] font-display tracking-widest border ${(el.bind ?? "none") === b ? "bg-primary/20 border-primary text-primary-glow" : "border-border text-muted-foreground"}`}>
-                {b.toUpperCase()}
-              </button>
-            ))}
+            {(["none","score","lives","time"] as UIBind[]).map(b => {
+              const labels: Record<UIBind, string> = { none: "NINGUNO", score: "PUNTOS", lives: "VIDAS", time: "TIEMPO" };
+              return (
+                <button key={b} onClick={() => update({ bind: b })}
+                  className={`py-1.5 rounded-lg text-[10px] font-display tracking-widest border transition active:scale-[0.94] ${(el.bind ?? "none") === b ? "bg-primary/25 border-primary text-primary-glow shadow-[0_0_12px_oklch(0.72_0.17_250/0.45)]" : "border-white/10 bg-white/[0.03] text-muted-foreground hover:bg-white/[0.06]"}`}>
+                  {labels[b]}
+                </button>
+              );
+            })}
           </div>
           {el.kind === "bar" && (
-            <NumInput label="MAX VALUE" value={el.max ?? 100} onChange={v => update({ max: v })} />
+            <NumInput label="VALOR MÁX." value={el.max ?? 100} onChange={v => update({ max: v })} />
           )}
         </>
       )}
 
       <div className="grid grid-cols-2 gap-1.5 pt-2 sm:grid-cols-3">
-        <button onClick={clone} className="min-w-0 py-2 px-1 rounded border border-primary/50 bg-primary/10 text-primary-glow font-display text-[10px] tracking-wide truncate">⧉ CLONE</button>
-        <button onClick={() => update({ visible: !(el.visible ?? true) })} className="min-w-0 py-2 px-1 rounded border border-border text-muted-foreground font-display text-[10px] tracking-wide truncate">
-          {el.visible === false ? "SHOW" : "HIDE"}
+        <button onClick={clone} className="min-w-0 py-2 px-1 rounded-xl border border-primary/50 bg-primary/15 text-primary-glow font-display text-[10px] tracking-wide truncate active:scale-[0.96] transition">⧉ CLONAR</button>
+        <button onClick={() => update({ visible: !(el.visible ?? true) })} className="min-w-0 py-2 px-1 rounded-xl border border-white/10 bg-white/[0.04] text-muted-foreground font-display text-[10px] tracking-wide truncate active:scale-[0.96] transition">
+          {el.visible === false ? "MOSTRAR" : "OCULTAR"}
         </button>
-        <button onClick={remove} className="col-span-2 min-w-0 py-2 px-1 rounded border border-destructive/50 bg-destructive/15 text-destructive font-display text-[10px] tracking-wide truncate sm:col-span-1">✕ DELETE</button>
+        <button onClick={remove} className="col-span-2 min-w-0 py-2 px-1 rounded-xl border border-destructive/50 bg-destructive/20 text-destructive font-display text-[10px] tracking-wide truncate sm:col-span-1 active:scale-[0.96] transition">✕ BORRAR</button>
       </div>
     </div>
   );
 }
+
 
 function MultiInspector({ els, applyDelta, setSize, setVisible, alignAnchor, removeAll, cloneAll }: {
   els: UIElement[];
