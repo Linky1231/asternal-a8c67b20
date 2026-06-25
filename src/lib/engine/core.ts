@@ -542,8 +542,10 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       }
     }
 
-    // Variable jump height — release cuts upward velocity.
-    if (!input.jump && e.vy < 0) {
+    // Variable jump height — only cut ONCE on the frame the button is released.
+    // (Cutting every frame while button is up kills the jump arc — feels like
+    // hitting a ceiling on short taps.)
+    if (state.jumpPrev && !input.jump && e.vy < 0) {
       e.vy *= JUMP_CUT;
     }
 

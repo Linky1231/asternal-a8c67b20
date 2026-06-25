@@ -585,8 +585,8 @@ function InspectorPanel({
       <div className="grid grid-cols-2 gap-2">
         <Slider label="X" value={ent.x} min={0} max={scene.width} step={10} onChange={v => update({ x: v })} />
         <Slider label="Y" value={ent.y} min={0} max={scene.height} step={10} onChange={v => update({ y: v })} />
-        <Slider label="Width" value={ent.w} min={8} max={400} step={4} onChange={v => update({ w: v })} />
-        <Slider label="Height" value={ent.h} min={8} max={400} step={4} onChange={v => update({ h: v })} />
+        <Slider label="Ancho" value={ent.w} min={8} max={400} step={4} onChange={v => update({ w: v })} />
+        <Slider label="Alto" value={ent.h} min={8} max={400} step={4} onChange={v => update({ h: v })} />
       </div>
       <div>
         <label className="text-[10px] font-display tracking-widest text-muted-foreground">{t("inspector.color")}</label>
@@ -717,7 +717,7 @@ function ScenesPanel({
 }) {
   return (
     <div className="h-full overflow-auto p-4 space-y-3">
-      <SectionTitle>SCENES</SectionTitle>
+      <SectionTitle>ESCENAS</SectionTitle>
       <div className="space-y-2">
         {project.scenes.map(s => (
           <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-2 glow-border animate-fade-in transition-all hover:border-primary/60">
@@ -737,30 +737,31 @@ function ScenesPanel({
             </div>
             <button
               onClick={() => onOpen(s.id)}
-              className="text-[10px] font-display px-2 py-1.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow"
-            >OPEN</button>
+              className="text-[10px] font-display px-2 py-1.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow active:scale-[0.96] transition"
+            >ABRIR</button>
             <button
               onClick={() => {
                 const copy: Scene = JSON.parse(JSON.stringify(s));
                 copy.id = uid();
-                copy.name = s.name + " copy";
+                copy.name = s.name + " copia";
                 copy.entities = copy.entities.map(e => ({ ...e, id: uid() }));
                 onChange({ ...project, scenes: [...project.scenes, copy], activeSceneId: copy.id });
               }}
-              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground"
+              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground active:scale-[0.96] transition"
+              title="Duplicar"
             >⧉</button>
             <button
               onClick={() => {
-                if (!confirm(`Clear all entities in "${s.name}"?`)) return;
+                if (!confirm(`¿Vaciar todas las entidades de "${s.name}"?`)) return;
                 onChange({ ...project, scenes: project.scenes.map(x => x.id === s.id ? { ...x, entities: [] } : x) });
               }}
-              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground"
-              title="Clear entities"
+              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground active:scale-[0.96] transition"
+              title="Vaciar entidades"
             >⌫</button>
             {project.scenes.length > 1 && (
               <button
                 onClick={() => {
-                  if (!confirm(`Delete "${s.name}"?`)) return;
+                  if (!confirm(`¿Borrar "${s.name}"?`)) return;
                   const remaining = project.scenes.filter(x => x.id !== s.id);
                   onChange({
                     ...project,
@@ -776,17 +777,18 @@ function ScenesPanel({
       </div>
       <button
         onClick={() => {
-          const s = newScene(`Scene ${project.scenes.length + 1}`);
+          const s = newScene(`Escena ${project.scenes.length + 1}`);
           s.id = uid();
           onChange({ ...project, scenes: [...project.scenes, s], activeSceneId: s.id });
         }}
-        className="w-full py-3 rounded-lg border-2 border-dashed border-primary/40 text-primary-glow font-display tracking-widest text-sm"
+        className="w-full py-3 rounded-xl border-2 border-dashed border-primary/40 text-primary-glow font-display tracking-widest text-sm hover:bg-primary/5 active:scale-[0.98] transition"
       >
-        + NEW SCENE
+        + NUEVA ESCENA
       </button>
     </div>
   );
 }
+
 
 function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: Project) => void }) {
   useT();
@@ -796,58 +798,58 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
 
   return (
     <div className="h-full overflow-auto p-4 space-y-4">
-      <SectionTitle>PROJECT</SectionTitle>
-      <Field label="Game name" value={project.name} onChange={v => onChange({ ...project, name: v })} />
+      <SectionTitle>PROYECTO</SectionTitle>
+      <Field label="Nombre del juego" value={project.name} onChange={v => onChange({ ...project, name: v })} />
 
 
 
-      <SectionTitle>RUNTIME</SectionTitle>
+      <SectionTitle>EJECUCIÓN</SectionTitle>
       <div>
-        <label className="text-[10px] font-display tracking-widest text-muted-foreground">FPS CAP</label>
+        <label className="text-[10px] font-display tracking-widest text-muted-foreground">TOPE DE FPS</label>
         <div className="flex gap-2 mt-1">
           {[30, 60].map(f => (
             <button key={f}
               onClick={() => set({ fpsCap: f as 30 | 60 })}
-              className={`flex-1 py-2 rounded-md font-display border ${
+              className={`flex-1 py-2 rounded-xl font-display border transition active:scale-[0.96] ${
                 project.settings.fpsCap === f
-                  ? "bg-primary/20 border-primary text-primary-glow"
-                  : "border-border text-muted-foreground"
+                  ? "bg-primary/25 border-primary text-primary-glow shadow-[0_0_14px_oklch(0.72_0.17_250/0.4)]"
+                  : "border-white/10 bg-white/[0.04] text-muted-foreground hover:bg-white/[0.07]"
               }`}
             >{f}</button>
           ))}
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <Toggle label="Show HUD" on={project.settings.showHUD} onChange={v => set({ showHUD: v })} />
-        <Toggle label="Show FPS" on={project.settings.showFPS ?? true} onChange={v => set({ showFPS: v })} />
-        <Toggle label="Touch ctrls" on={project.settings.touchControls ?? true} onChange={v => set({ touchControls: v })} />
-        <Toggle label="Auto-pause" on={project.settings.autoPause ?? true} onChange={v => set({ autoPause: v })} />
-        <Toggle label="Show hitbox" on={project.settings.showHitboxes ?? false} onChange={v => set({ showHitboxes: v })} />
+        <Toggle label="Mostrar HUD" on={project.settings.showHUD} onChange={v => set({ showHUD: v })} />
+        <Toggle label="Mostrar FPS" on={project.settings.showFPS ?? true} onChange={v => set({ showFPS: v })} />
+        <Toggle label="Controles táctiles" on={project.settings.touchControls ?? true} onChange={v => set({ touchControls: v })} />
+        <Toggle label="Auto-pausa" on={project.settings.autoPause ?? true} onChange={v => set({ autoPause: v })} />
+        <Toggle label="Mostrar hitbox" on={project.settings.showHitboxes ?? false} onChange={v => set({ showHitboxes: v })} />
       </div>
 
 
       <SectionTitle>AUDIO</SectionTitle>
       <div className="grid grid-cols-2 gap-2">
-        <Toggle label="Mute" on={project.settings.muted ?? false} onChange={v => set({ muted: v })} />
+        <Toggle label="Silenciar" on={project.settings.muted ?? false} onChange={v => set({ muted: v })} />
         <Toggle
-          label="Music"
+          label="Música"
           on={(project.settings.music ?? false) && !!project.settings.musicUrl}
           onChange={v => set({ music: v })}
         />
       </div>
-      <Slider label="Volume" value={Math.round((project.settings.volume ?? 0.8) * 100)} min={0} max={100} step={5}
+      <Slider label="Volumen" value={Math.round((project.settings.volume ?? 0.8) * 100)} min={0} max={100} step={5}
         onChange={v => set({ volume: v / 100 })} />
       <div className="space-y-1.5">
-        <label className="text-[10px] font-display tracking-widest text-muted-foreground">MUSIC FILE</label>
+        <label className="text-[10px] font-display tracking-widest text-muted-foreground">ARCHIVO DE MÚSICA</label>
         {project.settings.musicUrl ? (
           <div className="flex items-center gap-2 panel rounded-md px-3 py-2">
             <span className="flex-1 text-xs font-mono text-primary-glow truncate">
-              ♪ {project.settings.musicName || "track"}
+              ♪ {project.settings.musicName || "pista"}
             </span>
             <button
               onClick={() => set({ musicUrl: null, musicName: null, music: false })}
-              className="text-[10px] font-display tracking-widest text-muted-foreground hover:text-primary-glow px-2 py-1 rounded border border-border"
-            >REMOVE</button>
+              className="text-[10px] font-display tracking-widest text-muted-foreground hover:text-primary-glow px-2 py-1 rounded-lg border border-white/10 bg-white/[0.04] active:scale-[0.96] transition"
+            >QUITAR</button>
           </div>
         ) : (
           <label className="block">
@@ -867,8 +869,8 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
                 e.target.value = "";
               }}
             />
-            <span className="block text-center py-2.5 rounded-md bg-primary/15 border border-primary/50 text-primary-glow font-display text-xs tracking-widest cursor-pointer">
-              ⤒ UPLOAD MUSIC
+            <span className="block text-center py-2.5 rounded-xl bg-primary/15 border border-primary/50 text-primary-glow font-display text-xs tracking-widest cursor-pointer active:scale-[0.98] transition">
+              ⤒ SUBIR MÚSICA
             </span>
           </label>
         )}
@@ -876,38 +878,39 @@ function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: 
 
 
 
-      <SectionTitle>DATA</SectionTitle>
+      <SectionTitle>DATOS</SectionTitle>
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => exportProject(project)}
-          className="py-2.5 rounded-md bg-primary/15 border border-primary/50 text-primary-glow font-display text-xs tracking-widest"
-        >⤓ EXPORT JSON</button>
+          className="py-2.5 rounded-xl bg-primary/15 border border-primary/50 text-primary-glow font-display text-xs tracking-widest active:scale-[0.97] transition"
+        >⤓ EXPORTAR JSON</button>
         <button
           onClick={() => importProject().then(p => p && onChange(p)).catch(e => alert(String(e)))}
-          className="py-2.5 rounded-md bg-accent/15 border border-accent/50 text-primary-glow font-display text-xs tracking-widest"
-        >⤒ IMPORT JSON</button>
+          className="py-2.5 rounded-xl bg-accent/15 border border-accent/50 text-primary-glow font-display text-xs tracking-widest active:scale-[0.97] transition"
+        >⤒ IMPORTAR JSON</button>
       </div>
       <button
         onClick={() => {
-          if (confirm("Restore default settings? Scenes and assets will be kept.")) {
+          if (confirm("¿Restaurar ajustes por defecto? Las escenas y assets se conservan.")) {
             onChange({ ...project, settings: { ...DEFAULT_SETTINGS } });
           }
         }}
-        className="w-full py-2.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest glow-border"
-      >↺ RESET TO DEFAULT SETTINGS</button>
+        className="w-full py-2.5 rounded-xl bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest glow-border active:scale-[0.98] transition"
+      >↺ RESTAURAR AJUSTES</button>
       <button
         onClick={() => {
-          if (confirm("Reset entire project? All scenes will be lost.")) {
+          if (confirm("¿Reiniciar todo el proyecto? Se perderán todas las escenas.")) {
             localStorage.removeItem("asternal:project");
             location.reload();
           }
         }}
-        className="w-full py-2.5 rounded-md bg-destructive/20 border border-destructive/50 text-destructive font-display text-xs tracking-widest"
-      >RESET PROJECT</button>
+        className="w-full py-2.5 rounded-xl bg-destructive/20 border border-destructive/50 text-destructive font-display text-xs tracking-widest active:scale-[0.98] transition"
+      >REINICIAR PROYECTO</button>
 
       <div className="pt-6 text-center text-[10px] font-mono text-muted-foreground">
-        ASTERNAL ENGINE · BUILT FOR MOBILE
+        ASTERNAL ENGINE · HECHO PARA MÓVIL
       </div>
+
     </div>
   );
 }
@@ -1213,7 +1216,7 @@ function AssetsPanel({
                 <button
                   onClick={() => onAssignTexture(sp.frames[0]?.composite ?? "")}
                   className="text-[10px] py-1.5 rounded bg-primary/15 border border-primary/40 text-primary-glow font-display tracking-widest"
-                >TEXTURE</button>
+                >TEXTURA</button>
                 <button
                   onClick={() => onAssignAnimation(sp)}
                   disabled={sp.frames.length < 1}
@@ -1299,7 +1302,7 @@ function importProject(): Promise<Project | null> {
         const text = await f.text();
         const parsed = JSON.parse(text) as Project;
         if (!parsed.scenes || !Array.isArray(parsed.scenes)) {
-          return reject(new Error("Invalid project file"));
+          return reject(new Error("Archivo de proyecto no válido"));
         }
         if (!confirm("Replace current project with imported file?")) return resolve(null);
         resolve(parsed);
@@ -1316,18 +1319,18 @@ function HelpModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-md p-4" onClick={onClose}>
       <div className="panel rounded-xl border border-primary/40 glow-border max-w-md w-full p-5 space-y-3" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-sm text-primary-glow glow-text tracking-[0.25em]">QUICK HELP</h2>
+          <h2 className="font-display text-sm text-primary-glow glow-text tracking-[0.25em]">AYUDA RÁPIDA</h2>
           <button onClick={onClose} className="text-muted-foreground text-xl leading-none">✕</button>
         </div>
         <ul className="space-y-2 text-xs font-mono text-muted-foreground">
-          <li><span className="text-primary-glow">BUILD</span> · tap to place selected tool, two-finger pinch to zoom, swipe to pan.</li>
-          <li><span className="text-primary-glow">SELECT</span> · tap an entity, then open INSPECT to edit.</li>
-          <li><span className="text-primary-glow">ASSETS</span> · import multiple frames to make an animation.</li>
-          <li><span className="text-primary-glow">SCRIPTS</span> · add event blocks (onStart, onCollide) to bring entities to life.</li>
-          <li><span className="text-primary-glow">SCENES</span> · rename inline, duplicate with ⧉, scale ×N from inspector.</li>
-          <li><span className="text-primary-glow">DATA</span> · export/import your project as JSON. Auto-saves on every change.</li>
+          <li><span className="text-primary-glow">CONSTRUIR</span> · toca para colocar la herramienta, pellizca para zoom, desliza para mover.</li>
+          <li><span className="text-primary-glow">SELECCIONAR</span> · toca una entidad y abre INSPECCIÓN para editarla.</li>
+          <li><span className="text-primary-glow">ASSETS</span> · importa varios fotogramas para crear una animación.</li>
+          <li><span className="text-primary-glow">SCRIPTS</span> · añade bloques de eventos (onStart, onCollide) para dar vida a las entidades.</li>
+          <li><span className="text-primary-glow">ESCENAS</span> · renombra en línea, duplica con ⧉, escala ×N desde el inspector.</li>
+          <li><span className="text-primary-glow">DATOS</span> · exporta/importa el proyecto como JSON. Guarda automáticamente.</li>
         </ul>
-        <button onClick={onClose} className="w-full mt-2 py-2.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest">GOT IT</button>
+        <button onClick={onClose} className="w-full mt-2 py-2.5 rounded-xl bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest active:scale-[0.98] transition">ENTENDIDO</button>
       </div>
     </div>
   );
@@ -1343,7 +1346,7 @@ function HitboxEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: 
       <div className="flex items-center justify-between">
         <span className="font-display text-[11px] tracking-widest text-primary-glow">▣ HITBOX</span>
         <Toggle
-          label={enabled ? "On" : "Off"}
+          label={enabled ? "Activado" : "Desactivado"}
           on={enabled}
           onChange={(v) => onUpdate({ hitbox: v ? { x: 0, y: 0, w: entity.w, h: entity.h } : null })}
         />
@@ -1360,7 +1363,7 @@ function HitboxEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: 
             <button
               onClick={() => set({ x: 0, y: 0, w: entity.w, h: entity.h })}
               className="py-1.5 rounded border border-border text-muted-foreground font-display text-[10px] tracking-widest"
-            >FILL BOUNDS</button>
+            >RELLENAR</button>
             <button
               onClick={() => set({
                 x: Math.round(entity.w * 0.15),
@@ -1400,9 +1403,9 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
               <button onClick={() => onUpdate({ moving: { ...ent.moving!, axis: "y" } })}
                 className={`py-1 rounded text-[10px] font-display tracking-widest border ${ent.moving.axis === "y" ? "bg-primary/20 border-primary" : "border-border"}`}>Y</button>
             </div>
-            <Slider label="Range" value={ent.moving.range} min={20} max={800} step={10}
+            <Slider label="Rango" value={ent.moving.range} min={20} max={800} step={10}
               onChange={v => onUpdate({ moving: { ...ent.moving!, range: v } })} />
-            <Slider label="Speed" value={ent.moving.speed} min={10} max={400} step={10}
+            <Slider label="Velocidad" value={ent.moving.speed} min={10} max={400} step={10}
               onChange={v => onUpdate({ moving: { ...ent.moving!, speed: v } })} />
           </>
         )}
@@ -1419,9 +1422,9 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
         </div>
         {ent.crumble && (
           <>
-            <Slider label="Delay s" value={Math.round(ent.crumble.delay * 10) / 10} min={0.1} max={3} step={0.1}
+            <Slider label="Retardo s" value={Math.round(ent.crumble.delay * 10) / 10} min={0.1} max={3} step={0.1}
               onChange={v => onUpdate({ crumble: { ...ent.crumble!, delay: v } })} />
-            <Slider label="Respawn s" value={ent.crumble.respawn} min={0} max={10} step={0.5}
+            <Slider label="Reaparecer s" value={ent.crumble.respawn} min={0} max={10} step={0.5}
               onChange={v => onUpdate({ crumble: { ...ent.crumble!, respawn: v } })} />
           </>
         )}
@@ -1437,7 +1440,7 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
           >{ent.spring ? "OFF" : "ON"}</button>
         </div>
         {ent.spring && (
-          <Slider label="Force" value={ent.spring.force} min={200} max={1600} step={20}
+          <Slider label="Fuerza" value={ent.spring.force} min={200} max={1600} step={20}
             onChange={v => onUpdate({ spring: { force: v } })} />
         )}
       </div>
@@ -1453,7 +1456,7 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
             >{ent.patrol ? "OFF" : "ON"}</button>
           </div>
           {ent.patrol && (
-            <Slider label="Range" value={ent.patrol.range} min={20} max={600} step={10}
+            <Slider label="Rango" value={ent.patrol.range} min={20} max={600} step={10}
               onChange={v => onUpdate({ patrol: { range: v } })} />
           )}
         </div>
@@ -1462,7 +1465,7 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
       {/* Coin/pickup options */}
       {ent.collectible && (
         <div className="panel rounded-md p-2 space-y-1.5">
-          <Slider label="Value" value={ent.value ?? 10} min={1} max={100} step={1}
+          <Slider label="Valor" value={ent.value ?? 10} min={1} max={100} step={1}
             onChange={v => onUpdate({ value: v })} />
           <div className="text-[10px] font-display tracking-widest text-muted-foreground">POWER-UP</div>
           <div className="grid grid-cols-4 gap-1">
@@ -1670,7 +1673,7 @@ function ParticleEditor({ entity, onUpdate, onClose }: { entity: Entity; onUpdat
           <button
             onClick={() => onUpdate({ emitter: null })}
             className="py-2 rounded-md border border-destructive/50 text-destructive font-display text-[10px] tracking-widest"
-          >REMOVE</button>
+          >QUITAR</button>
           <button
             onClick={onClose}
             className="py-2 rounded-md bg-primary text-primary-foreground font-display text-[10px] tracking-widest"
@@ -1737,12 +1740,12 @@ function LayersPanel({
           >
             <button
               onClick={() => bumpZ(e.id, 1)}
-              title="Forward"
+              title="Adelante"
               className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
             >▲</button>
             <button
               onClick={() => bumpZ(e.id, -1)}
-              title="Backward"
+              title="Atrás"
               className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
             >▼</button>
             <span
@@ -1758,28 +1761,28 @@ function LayersPanel({
             </button>
             <button
               onClick={() => patch(e.id, { visible: !visible })}
-              title={visible ? "Hide" : "Show"}
+              title={visible ? "Ocultar" : "Mostrar"}
               className={`w-6 h-6 grid place-items-center rounded text-xs ${visible ? "text-primary-glow" : "text-muted-foreground/50"}`}
             >{visible ? "◉" : "◌"}</button>
             <button
               onClick={() => patch(e.id, { locked: !locked })}
-              title={locked ? "Unlock" : "Lock"}
+              title={locked ? "Desbloquear" : "Bloquear"}
               className={`w-6 h-6 grid place-items-center rounded text-xs ${locked ? "text-destructive" : "text-muted-foreground/60"}`}
             >{locked ? "🔒" : "🔓"}</button>
             <button
               onClick={() => toTop(e.id)}
-              title="Move to top"
+              title="Mover al frente"
               className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
             >⇈</button>
             <button
               onClick={() => toBottom(e.id)}
-              title="Move to bottom"
+              title="Mover al fondo"
               className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
             >⇊</button>
             {e.kind !== "player" && (
               <button
                 onClick={() => remove(e.id)}
-                title="Delete"
+                title="Borrar"
                 className="w-6 h-6 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive"
               >✕</button>
             )}
