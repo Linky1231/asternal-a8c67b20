@@ -1319,18 +1319,18 @@ function HelpModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-md p-4" onClick={onClose}>
       <div className="panel rounded-xl border border-primary/40 glow-border max-w-md w-full p-5 space-y-3" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-sm text-primary-glow glow-text tracking-[0.25em]">QUICK HELP</h2>
+          <h2 className="font-display text-sm text-primary-glow glow-text tracking-[0.25em]">AYUDA RÁPIDA</h2>
           <button onClick={onClose} className="text-muted-foreground text-xl leading-none">✕</button>
         </div>
         <ul className="space-y-2 text-xs font-mono text-muted-foreground">
-          <li><span className="text-primary-glow">BUILD</span> · tap to place selected tool, two-finger pinch to zoom, swipe to pan.</li>
-          <li><span className="text-primary-glow">SELECT</span> · tap an entity, then open INSPECT to edit.</li>
-          <li><span className="text-primary-glow">ASSETS</span> · import multiple frames to make an animation.</li>
-          <li><span className="text-primary-glow">SCRIPTS</span> · add event blocks (onStart, onCollide) to bring entities to life.</li>
-          <li><span className="text-primary-glow">SCENES</span> · rename inline, duplicate with ⧉, scale ×N from inspector.</li>
-          <li><span className="text-primary-glow">DATA</span> · export/import your project as JSON. Auto-saves on every change.</li>
+          <li><span className="text-primary-glow">CONSTRUIR</span> · toca para colocar la herramienta, pellizca para zoom, desliza para mover.</li>
+          <li><span className="text-primary-glow">SELECCIONAR</span> · toca una entidad y abre INSPECCIÓN para editarla.</li>
+          <li><span className="text-primary-glow">ASSETS</span> · importa varios fotogramas para crear una animación.</li>
+          <li><span className="text-primary-glow">SCRIPTS</span> · añade bloques de eventos (onStart, onCollide) para dar vida a las entidades.</li>
+          <li><span className="text-primary-glow">ESCENAS</span> · renombra en línea, duplica con ⧉, escala ×N desde el inspector.</li>
+          <li><span className="text-primary-glow">DATOS</span> · exporta/importa el proyecto como JSON. Guarda automáticamente.</li>
         </ul>
-        <button onClick={onClose} className="w-full mt-2 py-2.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest">GOT IT</button>
+        <button onClick={onClose} className="w-full mt-2 py-2.5 rounded-xl bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest active:scale-[0.98] transition">ENTENDIDO</button>
       </div>
     </div>
   );
