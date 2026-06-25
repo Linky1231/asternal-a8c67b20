@@ -717,7 +717,7 @@ function ScenesPanel({
 }) {
   return (
     <div className="h-full overflow-auto p-4 space-y-3">
-      <SectionTitle>SCENES</SectionTitle>
+      <SectionTitle>ESCENAS</SectionTitle>
       <div className="space-y-2">
         {project.scenes.map(s => (
           <div key={s.id} className="panel rounded-lg p-3 flex items-center gap-2 glow-border animate-fade-in transition-all hover:border-primary/60">
@@ -737,30 +737,31 @@ function ScenesPanel({
             </div>
             <button
               onClick={() => onOpen(s.id)}
-              className="text-[10px] font-display px-2 py-1.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow"
-            >OPEN</button>
+              className="text-[10px] font-display px-2 py-1.5 rounded-md bg-primary/20 border border-primary/50 text-primary-glow active:scale-[0.96] transition"
+            >ABRIR</button>
             <button
               onClick={() => {
                 const copy: Scene = JSON.parse(JSON.stringify(s));
                 copy.id = uid();
-                copy.name = s.name + " copy";
+                copy.name = s.name + " copia";
                 copy.entities = copy.entities.map(e => ({ ...e, id: uid() }));
                 onChange({ ...project, scenes: [...project.scenes, copy], activeSceneId: copy.id });
               }}
-              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground"
+              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground active:scale-[0.96] transition"
+              title="Duplicar"
             >⧉</button>
             <button
               onClick={() => {
-                if (!confirm(`Clear all entities in "${s.name}"?`)) return;
+                if (!confirm(`¿Vaciar todas las entidades de "${s.name}"?`)) return;
                 onChange({ ...project, scenes: project.scenes.map(x => x.id === s.id ? { ...x, entities: [] } : x) });
               }}
-              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground"
-              title="Clear entities"
+              className="text-[10px] font-display px-2 py-1.5 rounded-md border border-border text-muted-foreground active:scale-[0.96] transition"
+              title="Vaciar entidades"
             >⌫</button>
             {project.scenes.length > 1 && (
               <button
                 onClick={() => {
-                  if (!confirm(`Delete "${s.name}"?`)) return;
+                  if (!confirm(`¿Borrar "${s.name}"?`)) return;
                   const remaining = project.scenes.filter(x => x.id !== s.id);
                   onChange({
                     ...project,
@@ -776,17 +777,18 @@ function ScenesPanel({
       </div>
       <button
         onClick={() => {
-          const s = newScene(`Scene ${project.scenes.length + 1}`);
+          const s = newScene(`Escena ${project.scenes.length + 1}`);
           s.id = uid();
           onChange({ ...project, scenes: [...project.scenes, s], activeSceneId: s.id });
         }}
-        className="w-full py-3 rounded-lg border-2 border-dashed border-primary/40 text-primary-glow font-display tracking-widest text-sm"
+        className="w-full py-3 rounded-xl border-2 border-dashed border-primary/40 text-primary-glow font-display tracking-widest text-sm hover:bg-primary/5 active:scale-[0.98] transition"
       >
-        + NEW SCENE
+        + NUEVA ESCENA
       </button>
     </div>
   );
 }
+
 
 function SettingsPanel({ project, onChange }: { project: Project; onChange: (p: Project) => void }) {
   useT();
