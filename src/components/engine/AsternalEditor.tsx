@@ -585,8 +585,8 @@ function InspectorPanel({
       <div className="grid grid-cols-2 gap-2">
         <Slider label="X" value={ent.x} min={0} max={scene.width} step={10} onChange={v => update({ x: v })} />
         <Slider label="Y" value={ent.y} min={0} max={scene.height} step={10} onChange={v => update({ y: v })} />
-        <Slider label="Width" value={ent.w} min={8} max={400} step={4} onChange={v => update({ w: v })} />
-        <Slider label="Height" value={ent.h} min={8} max={400} step={4} onChange={v => update({ h: v })} />
+        <Slider label="Ancho" value={ent.w} min={8} max={400} step={4} onChange={v => update({ w: v })} />
+        <Slider label="Alto" value={ent.h} min={8} max={400} step={4} onChange={v => update({ h: v })} />
       </div>
       <div>
         <label className="text-[10px] font-display tracking-widest text-muted-foreground">{t("inspector.color")}</label>
@@ -1216,7 +1216,7 @@ function AssetsPanel({
                 <button
                   onClick={() => onAssignTexture(sp.frames[0]?.composite ?? "")}
                   className="text-[10px] py-1.5 rounded bg-primary/15 border border-primary/40 text-primary-glow font-display tracking-widest"
-                >TEXTURE</button>
+                >TEXTURA</button>
                 <button
                   onClick={() => onAssignAnimation(sp)}
                   disabled={sp.frames.length < 1}
@@ -1302,7 +1302,7 @@ function importProject(): Promise<Project | null> {
         const text = await f.text();
         const parsed = JSON.parse(text) as Project;
         if (!parsed.scenes || !Array.isArray(parsed.scenes)) {
-          return reject(new Error("Invalid project file"));
+          return reject(new Error("Archivo de proyecto no válido"));
         }
         if (!confirm("Replace current project with imported file?")) return resolve(null);
         resolve(parsed);
@@ -1346,7 +1346,7 @@ function HitboxEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: 
       <div className="flex items-center justify-between">
         <span className="font-display text-[11px] tracking-widest text-primary-glow">▣ HITBOX</span>
         <Toggle
-          label={enabled ? "On" : "Off"}
+          label={enabled ? "Activado" : "Desactivado"}
           on={enabled}
           onChange={(v) => onUpdate({ hitbox: v ? { x: 0, y: 0, w: entity.w, h: entity.h } : null })}
         />
@@ -1363,7 +1363,7 @@ function HitboxEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: 
             <button
               onClick={() => set({ x: 0, y: 0, w: entity.w, h: entity.h })}
               className="py-1.5 rounded border border-border text-muted-foreground font-display text-[10px] tracking-widest"
-            >FILL BOUNDS</button>
+            >RELLENAR</button>
             <button
               onClick={() => set({
                 x: Math.round(entity.w * 0.15),
@@ -1403,9 +1403,9 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
               <button onClick={() => onUpdate({ moving: { ...ent.moving!, axis: "y" } })}
                 className={`py-1 rounded text-[10px] font-display tracking-widest border ${ent.moving.axis === "y" ? "bg-primary/20 border-primary" : "border-border"}`}>Y</button>
             </div>
-            <Slider label="Range" value={ent.moving.range} min={20} max={800} step={10}
+            <Slider label="Rango" value={ent.moving.range} min={20} max={800} step={10}
               onChange={v => onUpdate({ moving: { ...ent.moving!, range: v } })} />
-            <Slider label="Speed" value={ent.moving.speed} min={10} max={400} step={10}
+            <Slider label="Velocidad" value={ent.moving.speed} min={10} max={400} step={10}
               onChange={v => onUpdate({ moving: { ...ent.moving!, speed: v } })} />
           </>
         )}
@@ -1422,9 +1422,9 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
         </div>
         {ent.crumble && (
           <>
-            <Slider label="Delay s" value={Math.round(ent.crumble.delay * 10) / 10} min={0.1} max={3} step={0.1}
+            <Slider label="Retardo s" value={Math.round(ent.crumble.delay * 10) / 10} min={0.1} max={3} step={0.1}
               onChange={v => onUpdate({ crumble: { ...ent.crumble!, delay: v } })} />
-            <Slider label="Respawn s" value={ent.crumble.respawn} min={0} max={10} step={0.5}
+            <Slider label="Reaparecer s" value={ent.crumble.respawn} min={0} max={10} step={0.5}
               onChange={v => onUpdate({ crumble: { ...ent.crumble!, respawn: v } })} />
           </>
         )}
@@ -1440,7 +1440,7 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
           >{ent.spring ? "OFF" : "ON"}</button>
         </div>
         {ent.spring && (
-          <Slider label="Force" value={ent.spring.force} min={200} max={1600} step={20}
+          <Slider label="Fuerza" value={ent.spring.force} min={200} max={1600} step={20}
             onChange={v => onUpdate({ spring: { force: v } })} />
         )}
       </div>
@@ -1456,7 +1456,7 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
             >{ent.patrol ? "OFF" : "ON"}</button>
           </div>
           {ent.patrol && (
-            <Slider label="Range" value={ent.patrol.range} min={20} max={600} step={10}
+            <Slider label="Rango" value={ent.patrol.range} min={20} max={600} step={10}
               onChange={v => onUpdate({ patrol: { range: v } })} />
           )}
         </div>
@@ -1465,7 +1465,7 @@ function BehaviorsPanel({ ent, onUpdate }: { ent: Entity; onUpdate: (patch: Part
       {/* Coin/pickup options */}
       {ent.collectible && (
         <div className="panel rounded-md p-2 space-y-1.5">
-          <Slider label="Value" value={ent.value ?? 10} min={1} max={100} step={1}
+          <Slider label="Valor" value={ent.value ?? 10} min={1} max={100} step={1}
             onChange={v => onUpdate({ value: v })} />
           <div className="text-[10px] font-display tracking-widest text-muted-foreground">POWER-UP</div>
           <div className="grid grid-cols-4 gap-1">
@@ -1673,7 +1673,7 @@ function ParticleEditor({ entity, onUpdate, onClose }: { entity: Entity; onUpdat
           <button
             onClick={() => onUpdate({ emitter: null })}
             className="py-2 rounded-md border border-destructive/50 text-destructive font-display text-[10px] tracking-widest"
-          >REMOVE</button>
+          >QUITAR</button>
           <button
             onClick={onClose}
             className="py-2 rounded-md bg-primary text-primary-foreground font-display text-[10px] tracking-widest"
@@ -1740,12 +1740,12 @@ function LayersPanel({
           >
             <button
               onClick={() => bumpZ(e.id, 1)}
-              title="Forward"
+              title="Adelante"
               className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
             >▲</button>
             <button
               onClick={() => bumpZ(e.id, -1)}
-              title="Backward"
+              title="Atrás"
               className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
             >▼</button>
             <span
@@ -1761,28 +1761,28 @@ function LayersPanel({
             </button>
             <button
               onClick={() => patch(e.id, { visible: !visible })}
-              title={visible ? "Hide" : "Show"}
+              title={visible ? "Ocultar" : "Mostrar"}
               className={`w-6 h-6 grid place-items-center rounded text-xs ${visible ? "text-primary-glow" : "text-muted-foreground/50"}`}
             >{visible ? "◉" : "◌"}</button>
             <button
               onClick={() => patch(e.id, { locked: !locked })}
-              title={locked ? "Unlock" : "Lock"}
+              title={locked ? "Desbloquear" : "Bloquear"}
               className={`w-6 h-6 grid place-items-center rounded text-xs ${locked ? "text-destructive" : "text-muted-foreground/60"}`}
             >{locked ? "🔒" : "🔓"}</button>
             <button
               onClick={() => toTop(e.id)}
-              title="Move to top"
+              title="Mover al frente"
               className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
             >⇈</button>
             <button
               onClick={() => toBottom(e.id)}
-              title="Move to bottom"
+              title="Mover al fondo"
               className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
             >⇊</button>
             {e.kind !== "player" && (
               <button
                 onClick={() => remove(e.id)}
-                title="Delete"
+                title="Borrar"
                 className="w-6 h-6 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive"
               >✕</button>
             )}
