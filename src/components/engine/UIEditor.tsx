@@ -437,29 +437,29 @@ export function UIEditor({ scene, onChange }: Props) {
     <div className="relative h-full w-full overflow-hidden bg-background">
       {/* Toolbar — Apple-like glass pill at top */}
       <div className="absolute top-0 left-0 right-0 z-30 px-3 pt-3">
-        <div className="rounded-2xl border border-white/10 bg-card/60 backdrop-blur-2xl shadow-[0_12px_32px_oklch(0_0_0/0.45)] px-2 py-2"
-          style={{ WebkitBackdropFilter: "blur(28px)" }}>
+        <div className="glass rounded-2xl px-2 py-2">
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
             {KIND_LIST.map(k => (
               <button key={k.id} onClick={() => addEl(k.id)}
-                className="shrink-0 flex flex-col items-center justify-center gap-0.5 min-w-[60px] px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-muted-foreground active:scale-[0.94] hover:bg-white/[0.08] hover:text-primary-glow transition-all duration-200">
+                className="glass-btn shrink-0 flex flex-col items-center justify-center gap-0.5 min-w-[62px] px-3 py-2 rounded-xl text-foreground/85 active:scale-[0.92] hover:text-primary-glow">
                 <span className="text-base leading-none">{k.icon}</span>
                 <span className="text-[9px] font-display tracking-wider">{k.label}</span>
               </button>
             ))}
             <button onClick={() => { setMultiMode(m => !m); if (multiMode) setSelIds([]); }}
-              className={`shrink-0 flex flex-col items-center justify-center gap-0.5 min-w-[60px] px-3 py-2 rounded-xl border transition-all duration-200 active:scale-[0.94] ${multiMode ? "bg-primary/20 border-primary/60 text-primary-glow" : "bg-white/[0.04] border-white/[0.06] text-muted-foreground hover:bg-white/[0.08]"}`}>
+              className={`glass-btn shrink-0 flex flex-col items-center justify-center gap-0.5 min-w-[62px] px-3 py-2 rounded-xl active:scale-[0.92] ${multiMode ? "text-primary-glow ring-1 ring-primary/60" : "text-foreground/85"}`}>
               <span className="text-base leading-none">{multiMode ? "☑" : "☐"}</span>
               <span className="text-[9px] font-display tracking-wider">MULTI</span>
             </button>
             <button onClick={() => { if (confirm("¿Limpiar toda la UI?")) { onChange({ ...scene, ui: [] }); setSelIds([]); } }}
-              className="shrink-0 flex flex-col items-center justify-center gap-0.5 min-w-[60px] px-3 py-2 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive active:scale-[0.94] hover:bg-destructive/15 transition-all duration-200">
+              className="glass-btn shrink-0 flex flex-col items-center justify-center gap-0.5 min-w-[62px] px-3 py-2 rounded-xl text-destructive active:scale-[0.92]">
               <span className="text-base leading-none">✕</span>
               <span className="text-[9px] font-display tracking-wider">LIMPIAR</span>
             </button>
           </div>
         </div>
       </div>
+
 
       {/* Preview canvas — square edges, fills entire surface */}
       <div ref={wrapRef} className="absolute inset-0 overflow-hidden flex items-center justify-center"
