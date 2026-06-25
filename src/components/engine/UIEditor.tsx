@@ -10,13 +10,14 @@ interface Props {
 }
 
 const KIND_LIST: { id: UIElementKind; icon: string; label: string }[] = [
-  { id: "button", icon: "◉", label: "BUTTON" },
-  { id: "label", icon: "T", label: "LABEL" },
-  { id: "image", icon: "▣", label: "IMAGE" },
+  { id: "button", icon: "◉", label: "BOTÓN" },
+  { id: "label", icon: "T", label: "TEXTO" },
+  { id: "image", icon: "▣", label: "IMAGEN" },
   { id: "panel", icon: "▭", label: "PANEL" },
-  { id: "bar", icon: "▬", label: "BAR" },
+  { id: "bar", icon: "▬", label: "BARRA" },
   { id: "joystick", icon: "◎", label: "STICK" },
 ];
+
 
 const ANCHORS: UIAnchor[] = ["tl","tc","tr","cl","c","cr","bl","bc","br"];
 
