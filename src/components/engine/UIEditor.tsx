@@ -89,10 +89,9 @@ export function UIEditor({ scene, onChange }: Props) {
   }, [snap]);
 
   useEffect(() => {
-    // Safari doesn't support behavior: "instant" reliably — set scrollTop directly.
+    // Don't auto-open/close the property sheet on selection changes —
+    // the user decides when to expand it via the drag handle.
     if (inspectorRef.current) inspectorRef.current.scrollTop = 0;
-    if (selId) setSnap(s => (s === "peek" ? "half" : s));
-    else setSnap("peek");
   }, [selId]);
 
   // sheet drag (vertical) — snap to peek/half/full
