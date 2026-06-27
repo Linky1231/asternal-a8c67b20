@@ -911,6 +911,91 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
             <input type="checkbox" checked={pressureOn} onChange={(e) => setPressureOn(e.target.checked)} className="sr-only" />
           </label>
         </div>
+
+        {/* Layers card */}
+        <div
+          className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} p-3 rounded-2xl flex flex-col gap-2 pop-in`}
+          style={{
+            background: "oklch(0.22 0.04 262 / 0.5)",
+            backdropFilter: "blur(20px) saturate(180%)",
+            border: "1px solid oklch(1 0 0 / 0.06)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold tracking-wider text-foreground/80">CAPAS · {layers.length}</span>
+            <div className="flex gap-1">
+              <button
+                onClick={addLayer}
+                className="text-[10px] font-semibold px-2.5 py-1 rounded-lg text-primary-foreground active:scale-95 transition"
+                style={{ background: "linear-gradient(180deg, oklch(0.78 0.17 250), oklch(0.66 0.18 252))" }}
+              >+ Nueva</button>
+              <button
+                onClick={flatten}
+                className="text-[10px] font-medium px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-foreground/80"
+              >Aplanar</button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5 max-h-[260px] overflow-auto pr-1">
+            {[...layers].slice().reverse().map((l) => {
+              const isActive = l.id === activeLayerId;
+              return (
+                <div
+                  key={l.id}
+                  className={`group rounded-xl p-1.5 flex items-center gap-1.5 transition-all cursor-pointer ${isActive ? "bg-primary/15 border border-primary/40" : "bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06]"}`}
+                  onClick={() => { setActiveLayerId(l.id); activeLayerIdRef.current = l.id; }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-md shrink-0"
+                    style={{
+                      backgroundColor: "#1a1f2e",
+                      backgroundImage: `url(${(() => { try { return l.canvas.toDataURL("image/png"); } catch { return ""; }})()})`,
+                      backgroundSize: "contain",
+                      backgroundPosition: "center",
+                      backgroundRepeat: "no-repeat",
+                      boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.08)",
+                      opacity: l.visible ? 1 : 0.35,
+                    }}
+                  />
+                  <input
+                    value={l.name}
+                    onChange={(e) => updateLayer(l.id, { name: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 min-w-0 bg-transparent text-[12px] font-medium focus:outline-none focus:bg-white/5 rounded px-1 py-0.5"
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); updateLayer(l.id, { visible: !l.visible }); }}
+                    title={l.visible ? "Ocultar" : "Mostrar"}
+                    className={`w-7 h-7 grid place-items-center rounded-md transition ${l.visible ? "text-primary-glow" : "text-muted-foreground"}`}
+                  >{l.visible ? "👁" : "—"}</button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); updateLayer(l.id, { locked: !l.locked }); }}
+                    title={l.locked ? "Desbloquear" : "Bloquear"}
+                    className={`w-7 h-7 grid place-items-center rounded-md transition text-sm ${l.locked ? "text-destructive" : "text-muted-foreground"}`}
+                  >{l.locked ? "🔒" : "🔓"}</button>
+                  <div className="flex flex-col">
+                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, 1); }} title="Subir" className="w-6 h-3.5 grid place-items-center text-[9px] text-muted-foreground hover:text-primary-glow">▲</button>
+                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, -1); }} title="Bajar" className="w-6 h-3.5 grid place-items-center text-[9px] text-muted-foreground hover:text-primary-glow">▼</button>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); duplicateLayer(l.id); }} title="Duplicar" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow text-sm">⧉</button>
+                  <button onClick={(e) => { e.stopPropagation(); mergeDown(l.id); }} title="Combinar con la inferior" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow text-sm">⊕</button>
+                  <button onClick={(e) => { e.stopPropagation(); deleteLayer(l.id); }} title="Borrar" className="w-7 h-7 grid place-items-center rounded-md text-destructive/70 hover:text-destructive text-xs">✕</button>
+                </div>
+              );
+            })}
+          </div>
+          {activeLayer() && (
+            <div className="flex items-center gap-2 text-[11px] text-foreground/70 pt-1">
+              <span className="w-14 shrink-0">Opacidad</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={Math.round((activeLayer()?.opacity ?? 1) * 100)}
+                onChange={(e) => updateLayer(activeLayerIdRef.current, { opacity: Number(e.target.value) / 100 })}
+                className="flex-1 accent-[oklch(0.72_0.17_250)]"
+              />
+              <span className="font-mono text-primary-glow w-8 text-right tabular-nums">{Math.round((activeLayer()?.opacity ?? 1) * 100)}%</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
