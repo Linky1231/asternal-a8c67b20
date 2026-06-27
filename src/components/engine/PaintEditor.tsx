@@ -71,6 +71,8 @@ const PALETTES: { name: string; colors: string[] }[] = [
 const FONTS = ["Rajdhani", "Orbitron", "JetBrains Mono", "Georgia", "Arial"];
 
 export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
+  const ff = useFormFactor();
+  const isWide = ff === "tablet" || ff === "desktop";
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#38bdf8");
   const [width, setWidth] = useState(6);
@@ -89,26 +91,62 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   const bufferRef = useRef<HTMLCanvasElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const undoStack = useRef<string[]>([]);
-  const redoStack = useRef<string[]>([]);
+  // ---------- Layers ----------
+  const makeLayerCanvas = (): HTMLCanvasElement => {
+    const c = document.createElement("canvas");
+    c.width = size; c.height = size;
+    const ctx = c.getContext("2d")!;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    return c;
+  };
+  const [layers, setLayers] = useState<PaintLayer[]>([]);
+  const [activeLayerId, setActiveLayerId] = useState<string>("");
+  const layersRef = useRef<PaintLayer[]>([]);
+  const activeLayerIdRef = useRef("");
+  useEffect(() => { layersRef.current = layers; }, [layers]);
+  useEffect(() => { activeLayerIdRef.current = activeLayerId; }, [activeLayerId]);
+  const activeLayer = () => layersRef.current.find(l => l.id === activeLayerIdRef.current) ?? null;
+
+  const undoStack = useRef<{ layerId: string; dataUrl: string }[]>([]);
+  const redoStack = useRef<{ layerId: string; dataUrl: string }[]>([]);
   const activePointerId = useRef<number | null>(null);
   const activePointers = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const buf = document.createElement("canvas");
     buf.width = size; buf.height = size;
-    const ctx = buf.getContext("2d")!;
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
+    const bctx = buf.getContext("2d")!;
+    bctx.imageSmoothingEnabled = true;
+    bctx.imageSmoothingQuality = "high";
     bufferRef.current = buf;
+    // initial layer
+    const initId = uid();
+    const firstLayer: PaintLayer = { id: initId, name: "Capa 1", visible: true, locked: false, opacity: 1, canvas: makeLayerCanvas() };
+    layersRef.current = [firstLayer];
+    activeLayerIdRef.current = initId;
+    setLayers([firstLayer]);
+    setActiveLayerId(initId);
+    recomposite();
     blit();
-    pushSnapshot();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size]);
 
-  const pushSnapshot = () => {
+  const recomposite = () => {
     const buf = bufferRef.current; if (!buf) return;
-    undoStack.current.push(buf.toDataURL("image/png"));
+    const c = buf.getContext("2d")!;
+    c.clearRect(0, 0, size, size);
+    for (const l of layersRef.current) {
+      if (!l.visible) continue;
+      c.globalAlpha = Math.max(0, Math.min(1, l.opacity));
+      c.drawImage(l.canvas, 0, 0);
+    }
+    c.globalAlpha = 1;
+  };
+
+  const pushSnapshot = () => {
+    const layer = activeLayer(); if (!layer) return;
+    undoStack.current.push({ layerId: layer.id, dataUrl: layer.canvas.toDataURL("image/png") });
     if (undoStack.current.length > 32) undoStack.current.shift();
     redoStack.current = [];
     setPreviewVersion(v => v + 1);
