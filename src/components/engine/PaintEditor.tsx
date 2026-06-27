@@ -498,6 +498,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   };
 
   const save = () => {
+    recomposite();
     const buf = bufferRef.current; if (!buf) return;
     const dataUrl = buf.toDataURL("image/png");
     const asset: SpriteAsset = {
@@ -510,6 +511,96 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
       frames: [{ id: uid(), layers: [], composite: dataUrl }],
     };
     onSave(asset);
+  };
+
+  // ---------- Layer operations (panel) ----------
+  const addLayer = () => {
+    const newL: PaintLayer = { id: uid(), name: `Capa ${layersRef.current.length + 1}`, visible: true, locked: false, opacity: 1, canvas: makeLayerCanvas() };
+    const next = [...layersRef.current, newL];
+    layersRef.current = next;
+    setLayers(next);
+    setActiveLayerId(newL.id);
+    activeLayerIdRef.current = newL.id;
+    recomposite(); blit();
+  };
+  const duplicateLayer = (id: string) => {
+    const idx = layersRef.current.findIndex(l => l.id === id);
+    if (idx < 0) return;
+    const src = layersRef.current[idx];
+    const c = makeLayerCanvas();
+    c.getContext("2d")!.drawImage(src.canvas, 0, 0);
+    const copy: PaintLayer = { ...src, id: uid(), name: src.name + " copia", canvas: c };
+    const next = [...layersRef.current];
+    next.splice(idx + 1, 0, copy);
+    layersRef.current = next;
+    setLayers(next);
+    setActiveLayerId(copy.id);
+    activeLayerIdRef.current = copy.id;
+    recomposite(); blit();
+  };
+  const deleteLayer = (id: string) => {
+    if (layersRef.current.length <= 1) return;
+    if (!confirm("¿Borrar esta capa?")) return;
+    const next = layersRef.current.filter(l => l.id !== id);
+    layersRef.current = next;
+    setLayers(next);
+    if (activeLayerIdRef.current === id) {
+      const fallback = next[next.length - 1].id;
+      setActiveLayerId(fallback);
+      activeLayerIdRef.current = fallback;
+    }
+    recomposite(); blit();
+  };
+  const moveLayer = (id: string, dir: -1 | 1) => {
+    const idx = layersRef.current.findIndex(l => l.id === id);
+    if (idx < 0) return;
+    const j = idx + dir;
+    if (j < 0 || j >= layersRef.current.length) return;
+    const next = [...layersRef.current];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    layersRef.current = next;
+    setLayers(next);
+    recomposite(); blit();
+  };
+  const mergeDown = (id: string) => {
+    const idx = layersRef.current.findIndex(l => l.id === id);
+    if (idx <= 0) return; // nothing below
+    const top = layersRef.current[idx];
+    const below = layersRef.current[idx - 1];
+    const c = below.canvas.getContext("2d")!;
+    c.save();
+    c.globalAlpha = Math.max(0, Math.min(1, top.opacity));
+    c.drawImage(top.canvas, 0, 0);
+    c.restore();
+    const next = layersRef.current.filter(l => l.id !== id);
+    layersRef.current = next;
+    setLayers(next);
+    if (activeLayerIdRef.current === id) {
+      setActiveLayerId(below.id);
+      activeLayerIdRef.current = below.id;
+    }
+    recomposite(); blit();
+  };
+  const flatten = () => {
+    if (!confirm("¿Aplanar todas las capas en una sola?")) return;
+    recomposite();
+    const buf = bufferRef.current!;
+    const merged = makeLayerCanvas();
+    merged.getContext("2d")!.drawImage(buf, 0, 0);
+    const single: PaintLayer = { id: uid(), name: "Aplanada", visible: true, locked: false, opacity: 1, canvas: merged };
+    layersRef.current = [single];
+    setLayers([single]);
+    setActiveLayerId(single.id);
+    activeLayerIdRef.current = single.id;
+    undoStack.current = [];
+    redoStack.current = [];
+    recomposite(); blit();
+  };
+  const updateLayer = (id: string, p: Partial<PaintLayer>) => {
+    const next = layersRef.current.map(l => l.id === id ? { ...l, ...p } : l);
+    layersRef.current = next;
+    setLayers(next);
+    recomposite(); blit();
   };
 
   // Stable thumbnail data url
