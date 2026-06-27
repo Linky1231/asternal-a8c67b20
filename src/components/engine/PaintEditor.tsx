@@ -453,29 +453,42 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   };
 
   const undo = () => {
-    const buf = bufferRef.current; if (!buf) return;
     const prev = undoStack.current.pop();
     if (!prev) return;
-    redoStack.current.push(buf.toDataURL("image/png"));
+    const layer = layersRef.current.find(l => l.id === prev.layerId);
+    if (!layer) { setPreviewVersion(v => v + 1); return; }
+    redoStack.current.push({ layerId: layer.id, dataUrl: layer.canvas.toDataURL("image/png") });
     const img = new Image();
-    img.onload = () => { const c = bctx(); c.clearRect(0, 0, size, size); c.drawImage(img, 0, 0); blit(); setPreviewVersion(v => v + 1); };
-    img.src = prev;
+    img.onload = () => {
+      const c = layer.canvas.getContext("2d")!;
+      c.clearRect(0, 0, size, size);
+      c.drawImage(img, 0, 0);
+      recomposite(); blit(); setPreviewVersion(v => v + 1);
+    };
+    img.src = prev.dataUrl;
   };
   const redo = () => {
-    const buf = bufferRef.current; if (!buf) return;
     const next = redoStack.current.pop();
     if (!next) return;
-    undoStack.current.push(buf.toDataURL("image/png"));
+    const layer = layersRef.current.find(l => l.id === next.layerId);
+    if (!layer) { setPreviewVersion(v => v + 1); return; }
+    undoStack.current.push({ layerId: layer.id, dataUrl: layer.canvas.toDataURL("image/png") });
     const img = new Image();
-    img.onload = () => { const c = bctx(); c.clearRect(0, 0, size, size); c.drawImage(img, 0, 0); blit(); setPreviewVersion(v => v + 1); };
-    img.src = next;
+    img.onload = () => {
+      const c = layer.canvas.getContext("2d")!;
+      c.clearRect(0, 0, size, size);
+      c.drawImage(img, 0, 0);
+      recomposite(); blit(); setPreviewVersion(v => v + 1);
+    };
+    img.src = next.dataUrl;
   };
   const clearAll = () => {
-    if (!confirm("Clear the canvas?")) return;
+    if (!isLayerEditable()) return;
+    if (!confirm("¿Limpiar la capa activa?")) return;
     pushSnapshot();
     const c = bctx();
     c.clearRect(0, 0, size, size);
-    blit();
+    recomposite(); blit();
     setPreviewVersion(v => v + 1);
   };
 
