@@ -57,11 +57,19 @@ export function AsternalEditor() {
   const [library, setLibrary] = useState<LibraryItem[]>(() => loadLibrary());
   const updateLibrary = (items: LibraryItem[]) => { setLibrary(items); saveLibrary(items); };
 
+  const formFactor = useFormFactor();
+  const isTablet = formFactor === "tablet" || formFactor === "desktop";
+
   useEffect(() => {
     setLang("es");
     const id = getCurrentProjectId();
     setProjectId(id);
-    setProject(loadProjectById(id) ?? loadProject());
+    const loaded = loadProjectById(id) ?? loadProject();
+    if (loaded) {
+      // migrate: ensure every scene has at least one layer
+      loaded.scenes = loaded.scenes.map(s => ensureSceneLayers(s));
+    }
+    setProject(loaded);
   }, []);
 
   const openProject = (id: string) => {
