@@ -592,6 +592,21 @@ function InspectorPanel({
         <Toggle label={t("inspector.flipX")} on={!!ent.flipX} onChange={v => update({ flipX: v })} />
       </div>
 
+      {(scene.layers && scene.layers.length > 0) && (
+        <div>
+          <label className="text-[10px] font-display tracking-widest text-muted-foreground">{t("inspector.layer")}</label>
+          <select
+            value={ent.layerId ?? DEFAULT_LAYER_ID}
+            onChange={e => update({ layerId: e.target.value })}
+            className="w-full mt-1 bg-input/60 border border-border rounded-md px-2 py-2 text-xs font-mono"
+          >
+            {[...(scene.layers ?? [])].sort((a, b) => b.z - a.z).map(l => (
+              <option key={l.id} value={l.id}>{l.name} · z={l.z}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Toggle label={t("inspector.solid")} on={ent.solid} onChange={v => update({ solid: v })} />
         <Toggle label={t("inspector.gravity")} on={ent.gravity} onChange={v => update({ gravity: v })} />
