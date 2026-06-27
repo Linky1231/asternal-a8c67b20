@@ -1821,7 +1821,7 @@ function SceneLayersPanel({
   return (
     <div className="panel rounded-md p-2 space-y-2 view-fade">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-display tracking-widest text-primary-glow">{t("scene.layers")} \u00b7 {layers.length}</span>
+        <span className="text-[10px] font-display tracking-widest text-primary-glow">{t("scene.layers")} · {layers.length}</span>
         <button
           onClick={addLayer}
           className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary-glow active:scale-95 transition"
@@ -1844,7 +1844,7 @@ function SceneLayersPanel({
                 onClick={() => update(l.id, { visible: !l.visible })}
                 title={l.visible ? "Ocultar" : "Mostrar"}
                 className={`w-8 h-7 grid place-items-center rounded transition ${l.visible ? "text-primary-glow bg-primary/15" : "text-muted-foreground bg-muted/30"}`}
-              >{l.visible ? "\u25c9" : "\u25cb"}</button>
+              >{l.visible ? "◉" : "○"}</button>
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] font-mono text-muted-foreground w-3">Z</span>
                 <input
@@ -1857,20 +1857,20 @@ function SceneLayersPanel({
                   onClick={() => update(l.id, { locked: !l.locked })}
                   title={l.locked ? "Desbloquear" : "Bloquear"}
                   className={`w-8 h-7 grid place-items-center rounded transition text-sm ${l.locked ? "text-destructive bg-destructive/15" : "text-muted-foreground bg-muted/30"}`}
-                >{l.locked ? "\u{1F512}" : "\u{1F513}"}</button>
+                >{l.locked ? "🔒" : "🔓"}</button>
               </div>
               <div className="flex items-center gap-0.5">
-                <button onClick={() => move(l.id, 1)} title="Subir" className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">\u2191</button>
-                <button onClick={() => move(l.id, -1)} title="Bajar" className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">\u2193</button>
-                <button onClick={() => mergeDown(l.id)} title={t("layers.merge")} className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">\u2295</button>
-                <button onClick={() => remove(l.id)} title="Borrar" className="w-6 h-7 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive">\u2715</button>
+                <button onClick={() => move(l.id, 1)} title="Subir" className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">↑</button>
+                <button onClick={() => move(l.id, -1)} title="Bajar" className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">↓</button>
+                <button onClick={() => mergeDown(l.id)} title={t("layers.merge")} className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">⊕</button>
+                <button onClick={() => remove(l.id)} title="Borrar" className="w-6 h-7 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive">✕</button>
               </div>
             </div>
           </div>
         );
       })}
       <div className="text-[9px] font-mono text-muted-foreground text-center pt-1">
-        Z m\u00e1s alto = dibujado encima
+        Z más alto = dibujado encima
       </div>
     </div>
   );
