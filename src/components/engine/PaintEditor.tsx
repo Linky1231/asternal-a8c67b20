@@ -319,7 +319,8 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   };
 
   const pickColorAt = (x: number, y: number) => {
-    const c = bctx();
+    const buf = bufferRef.current; if (!buf) return;
+    const c = buf.getContext("2d")!;
     const d = c.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
     if (d[3] === 0) return;
     const hex = "#" + [d[0], d[1], d[2]].map(n => n.toString(16).padStart(2, "0")).join("");
