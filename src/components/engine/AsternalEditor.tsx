@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Settings, Layers } from "lucide-react";
-import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox } from "@/lib/engine/core";
-import { newScene, uid, DEFAULT_SETTINGS } from "@/lib/engine/core";
+import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox, SceneLayer } from "@/lib/engine/core";
+import { newScene, uid, DEFAULT_SETTINGS, ensureSceneLayers, DEFAULT_LAYER_ID } from "@/lib/engine/core";
 import { loadProject, loadProjectById, saveProject, saveProjectById, getCurrentProjectId, setCurrentProjectId } from "@/lib/engine/storage";
+import { useFormFactor } from "@/hooks/use-mobile";
 import { fileToDataURL } from "@/lib/engine/images";
 import { SceneEditor } from "./SceneEditor";
 import { GameRuntime } from "./GameRuntime";
