@@ -244,7 +244,7 @@ export const KIND_PRESETS: Record<EntityKind, Omit<Entity, "id" | "x" | "y">> = 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
 export function newScene(name = "Scene 1"): Scene {
-  return {
+  return ensureSceneLayers({
     id: uid(),
     name,
     bg: "#0b1e3f",
@@ -261,7 +261,7 @@ export function newScene(name = "Scene 1"): Scene {
       { ...KIND_PRESETS.goal, id: uid(), x: 1080, y: 536 },
       { ...KIND_PRESETS.player, id: uid(), x: 80, y: 540 },
     ],
-  };
+  });
 }
 
 export function newProject(): Project {
