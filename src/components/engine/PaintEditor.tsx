@@ -441,6 +441,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
 
   const commitText = () => {
     if (!textInput || !textInput.value.trim()) { setTextInput(null); return; }
+    if (!isLayerEditable()) { setTextInput(null); return; }
     pushSnapshot();
     const c = bctx();
     c.save();
@@ -451,7 +452,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     lines.forEach((ln, i) => c.fillText(ln, textInput.x, textInput.y + i * textInput.fontSize * 1.1));
     c.restore();
     setTextInput(null);
-    blit();
+    recomposite(); blit();
     setPreviewVersion(v => v + 1);
   };
 
