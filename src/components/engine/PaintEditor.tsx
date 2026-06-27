@@ -329,18 +329,18 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   const cancelStroke = () => {
     if (!drag.current.active) return;
     drag.current.active = false;
-    // revert last snapshot (undo the in-progress stroke)
-    const buf = bufferRef.current; if (!buf) return;
     const prev = undoStack.current[undoStack.current.length - 1];
     if (!prev) return;
+    const layer = layersRef.current.find(l => l.id === prev.layerId);
+    if (!layer) return;
     const img = new Image();
     img.onload = () => {
-      const c = bctx();
+      const c = layer.canvas.getContext("2d")!;
       c.clearRect(0, 0, size, size);
       c.drawImage(img, 0, 0);
-      blit();
+      recomposite(); blit();
     };
-    img.src = prev;
+    img.src = prev.dataUrl;
   };
 
   const onDown = (e: React.PointerEvent) => {
