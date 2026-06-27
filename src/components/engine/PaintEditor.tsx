@@ -360,10 +360,12 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     const p = getPos(e);
     if (tool === "picker") { pickColorAt(p.x, p.y); dragRect.current = null; return; }
     if (tool === "text") {
+      if (!isLayerEditable()) { dragRect.current = null; return; }
       setTextInput({ open: true, x: p.x, y: p.y, value: "", fontSize: Math.max(16, width * 4), font: "Rajdhani" });
       dragRect.current = null;
       return;
     }
+    if (!isLayerEditable()) { dragRect.current = null; return; }
     pushSnapshot();
     drag.current = { active: true, tool, last: p, start: p, smooth: p };
     if (tool === "brush" || tool === "eraser") {
@@ -374,7 +376,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
       stampDotDisplay(p.x, p.y, erase, w);
     } else if (tool === "fill") {
       floodFill(p.x, p.y, color);
-      blit();
+      recomposite(); blit();
     }
   };
 
