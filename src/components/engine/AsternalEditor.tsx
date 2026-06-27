@@ -408,6 +408,8 @@ export function AsternalEditor() {
           </button>
         ))}
       </nav>
+      )}
+
 
       {libraryOpen && (
         <LibrarySheet
