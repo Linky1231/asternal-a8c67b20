@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Entity, RuntimeInput, RuntimeState, Scene, UIElement } from "@/lib/engine/core";
-import { stepScene, newRuntimeState, resolveUIRect } from "@/lib/engine/core";
+import { stepScene, newRuntimeState, resolveUIRect, sortedForRender, isOnHiddenLayer } from "@/lib/engine/core";
 import { getRenderableImage } from "@/lib/engine/images";
 import { currentFrameRenderable } from "@/lib/engine/animations";
 import { createScriptRunner } from "@/lib/engine/scripts";
@@ -45,7 +45,7 @@ export function GameRuntime({
     const ctx = canvas.getContext("2d")!;
     const initial: Scene = JSON.parse(JSON.stringify(scene));
     let work: Scene = JSON.parse(JSON.stringify(initial));
-    let drawList = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+    let drawList = sortedForRender(work).filter(e => !isOnHiddenLayer(work, e));
     const state: RuntimeState = newRuntimeState(initial);
     let scripts = createScriptRunner();
     const shake = { intensity: 0, time: 0 };
@@ -56,7 +56,7 @@ export function GameRuntime({
       },
       restart: () => {
         work = JSON.parse(JSON.stringify(initial));
-        drawList = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+        drawList = sortedForRender(work).filter(e => !isOnHiddenLayer(work, e));
         Object.assign(state, newRuntimeState(initial));
         scripts = createScriptRunner();
       },
@@ -279,7 +279,7 @@ export function GameRuntime({
             stepScene(work, inputRef.current, state, targetDt);
             scripts.step(work, state, inputRef.current, hooks, targetDt);
             if (drawList.length !== work.entities.length) {
-              drawList = [...work.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+              drawList = sortedForRender(work).filter(e => !isOnHiddenLayer(work, e));
             }
           }
           if (shake.time > 0) shake.time = Math.max(0, shake.time - targetDt);
