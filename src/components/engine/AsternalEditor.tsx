@@ -434,6 +434,7 @@ export function AsternalEditor() {
         />
       )}
     </div>
+    </div>
   );
 }
 
