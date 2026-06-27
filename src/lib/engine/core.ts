@@ -175,8 +175,8 @@ export function sortedForRender(scene: Scene): Entity[] {
   const layerZ = new Map<string, number>();
   for (const l of scene.layers ?? []) layerZ.set(l.id, l.z);
   return [...scene.entities].sort((a, b) => {
-    const az = (a.layerId && layerZ.get(a.layerId)) ?? 0;
-    const bz = (b.layerId && layerZ.get(b.layerId)) ?? 0;
+    const az: number = (a.layerId ? layerZ.get(a.layerId) : undefined) ?? 0;
+    const bz: number = (b.layerId ? layerZ.get(b.layerId) : undefined) ?? 0;
     if (az !== bz) return az - bz;
     return (a.z ?? 0) - (b.z ?? 0);
   });
