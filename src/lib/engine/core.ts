@@ -93,6 +93,7 @@ export interface Entity {
   emitter?: ParticleEmitter | null;
   // depth / rendering
   z?: number;                // higher = drawn on top
+  layerId?: string;          // optional scene layer assignment
   facing?: 1 | -1;           // last horizontal direction
   flipX?: boolean;           // force horizontal flip
   textureFit?: "stretch" | "contain" | "cover";
@@ -102,6 +103,15 @@ export interface Entity {
 }
 
 export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
+
+export interface SceneLayer {
+  id: string;
+  name: string;
+  z: number;        // depth ordering — lower draws first (behind)
+  visible: boolean;
+  locked: boolean;
+  opacity?: number; // 0..1
+}
 
 // ---- UI Overlay ----
 export type UIElementKind = "button" | "label" | "image" | "panel" | "bar" | "joystick";
@@ -144,9 +154,39 @@ export interface Scene {
   height: number;
   entities: Entity[];
   timeLimit?: number;            // seconds; 0 = no limit
-  parallax?: ParallaxLayer[];
+  parallax?: ParallaxLayer[];    // deprecated — ignored at runtime, kept for older saves
+  layers?: SceneLayer[];         // Z-ordered scene layers
   startLives?: number;
   ui?: UIElement[];
+}
+
+export const DEFAULT_LAYER_ID = "default";
+
+/** Ensure a scene has at least one layer; mutate-free. */
+export function ensureSceneLayers(scene: Scene): Scene {
+  if (scene.layers && scene.layers.length > 0) return scene;
+  const def: SceneLayer = { id: DEFAULT_LAYER_ID, name: "Principal", z: 0, visible: true, locked: false, opacity: 1 };
+  const entities = scene.entities.map(e => e.layerId ? e : { ...e, layerId: DEFAULT_LAYER_ID });
+  return { ...scene, layers: [def], entities };
+}
+
+/** Sort entities for rendering: by layer Z, then entity z, then y. */
+export function sortedForRender(scene: Scene): Entity[] {
+  const layerZ = new Map<string, number>();
+  for (const l of scene.layers ?? []) layerZ.set(l.id, l.z);
+  return [...scene.entities].sort((a, b) => {
+    const az = (a.layerId && layerZ.get(a.layerId)) ?? 0;
+    const bz = (b.layerId && layerZ.get(b.layerId)) ?? 0;
+    if (az !== bz) return az - bz;
+    return (a.z ?? 0) - (b.z ?? 0);
+  });
+}
+
+/** Whether an entity is on a hidden layer (renderer should skip it). */
+export function isOnHiddenLayer(scene: Scene, e: Entity): boolean {
+  if (!e.layerId || !scene.layers) return false;
+  const l = scene.layers.find(x => x.id === e.layerId);
+  return !!l && l.visible === false;
 }
 
 export interface ProjectSettings {
