@@ -171,8 +171,41 @@ export function AsternalEditor() {
   }
 
 
+  const TABS: [Tab, string, ReactNode][] = [
+    ["build", t("tab.build"), "▦"],
+    ["inspect", t("tab.inspect"), "◈"],
+    ["ui", t("tab.ui"), "▢"],
+    ["assets", t("tab.assets"), "◆"],
+    ["scenes", t("tab.scenes"), "▤"],
+    ["settings", t("tab.settings"), <Settings size={20} key="settings-icon" />],
+  ];
+
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden">
+    <div className={`flex h-screen w-screen overflow-hidden ${isTablet ? "flex-row" : "flex-col"}`}>
+      {/* Left rail (tablet/desktop) */}
+      {isTablet && (
+        <nav className="w-[88px] panel border-r flex flex-col items-stretch py-3 gap-1 px-2 shrink-0">
+          <div className="grid place-items-center pb-2 mb-1 border-b border-border/40">
+            <Logo />
+          </div>
+          {TABS.map(([id, label, icon]) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`relative flex flex-col items-center gap-1 py-3 rounded-xl transition-all duration-300 active:scale-[0.93] ${
+                tab === id
+                  ? "text-primary-glow bg-primary/15 border border-primary/40 shadow-[0_4px_18px_-6px_oklch(0.72_0.17_250/0.6)]"
+                  : "text-muted-foreground border border-transparent hover:bg-white/[0.04] hover:text-primary-glow/80"
+              }`}
+            >
+              <span className="text-xl leading-none">{icon}</span>
+              <span className="text-[9px] font-display tracking-wider">{label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
+
+    <div className="flex h-full flex-1 flex-col overflow-hidden min-w-0">
       {/* Top bar */}
       <header className="flex items-center justify-between px-3 py-2 panel border-b">
         <div className="flex items-center gap-2">
