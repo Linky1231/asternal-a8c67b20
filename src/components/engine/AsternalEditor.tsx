@@ -1768,3 +1768,110 @@ function LayersPanel({
     </div>
   );
 }
+
+function SceneLayersPanel({
+  scene,
+  onChangeScene,
+}: {
+  scene: Scene;
+  onChangeScene: (s: Scene) => void;
+}) {
+  const t = useT();
+  const layers = scene.layers ?? [];
+  const setLayers = (next: SceneLayer[]) => onChangeScene({ ...scene, layers: next });
+  const update = (id: string, p: Partial<SceneLayer>) =>
+    setLayers(layers.map(l => l.id === id ? { ...l, ...p } : l));
+  const addLayer = () => {
+    const maxZ = layers.reduce((m, l) => Math.max(m, l.z), 0);
+    const id = uid();
+    setLayers([...layers, { id, name: `Capa ${layers.length + 1}`, z: maxZ + 1, visible: true, locked: false, opacity: 1 }]);
+  };
+  const remove = (id: string) => {
+    if (layers.length <= 1) return;
+    if (!confirm(`Borrar capa? Las entidades pasarán a la capa principal.`)) return;
+    const fallback = layers.find(l => l.id !== id)?.id ?? DEFAULT_LAYER_ID;
+    onChangeScene({
+      ...scene,
+      layers: layers.filter(l => l.id !== id),
+      entities: scene.entities.map(e => e.layerId === id ? { ...e, layerId: fallback } : e),
+    });
+  };
+  const move = (id: string, dir: -1 | 1) => {
+    const idx = layers.findIndex(l => l.id === id);
+    if (idx < 0) return;
+    const j = idx + dir;
+    if (j < 0 || j >= layers.length) return;
+    const next = [...layers];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    // re-sequence z to match new order
+    next.forEach((l, i) => { l.z = i; });
+    setLayers(next);
+  };
+  const mergeDown = (id: string) => {
+    const idx = layers.findIndex(l => l.id === id);
+    if (idx <= 0) return;
+    const target = layers[idx - 1];
+    if (!confirm(`Combinar "${layers[idx].name}" con "${target.name}"?`)) return;
+    onChangeScene({
+      ...scene,
+      layers: layers.filter(l => l.id !== id),
+      entities: scene.entities.map(e => e.layerId === id ? { ...e, layerId: target.id } : e),
+    });
+  };
+  return (
+    <div className="panel rounded-md p-2 space-y-2 view-fade">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-display tracking-widest text-primary-glow">{t("scene.layers")} \u00b7 {layers.length}</span>
+        <button
+          onClick={addLayer}
+          className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary-glow active:scale-95 transition"
+        >{t("layers.add")}</button>
+      </div>
+      {[...layers].sort((a, b) => b.z - a.z).map((l) => {
+        const count = scene.entities.filter(e => (e.layerId ?? DEFAULT_LAYER_ID) === l.id).length;
+        return (
+          <div key={l.id} className="rounded-md border border-border/50 bg-white/[0.02] p-2 space-y-1.5 transition-all hover:border-primary/40">
+            <div className="flex items-center gap-1.5">
+              <input
+                value={l.name}
+                onChange={e => update(l.id, { name: e.target.value })}
+                className="flex-1 min-w-0 bg-input/50 border border-border/40 rounded px-2 py-1 text-xs font-mono"
+              />
+              <span className="text-[9px] font-mono text-muted-foreground tabular-nums w-10 text-right">{count} obj</span>
+            </div>
+            <div className="grid grid-cols-[auto_1fr_auto] gap-1.5 items-center">
+              <button
+                onClick={() => update(l.id, { visible: !l.visible })}
+                title={l.visible ? "Ocultar" : "Mostrar"}
+                className={`w-8 h-7 grid place-items-center rounded transition ${l.visible ? "text-primary-glow bg-primary/15" : "text-muted-foreground bg-muted/30"}`}
+              >{l.visible ? "\u25c9" : "\u25cb"}</button>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-mono text-muted-foreground w-3">Z</span>
+                <input
+                  type="number"
+                  value={l.z}
+                  onChange={e => update(l.id, { z: Number(e.target.value) || 0 })}
+                  className="w-14 bg-input/50 border border-border/40 rounded px-1.5 py-1 text-[11px] font-mono tabular-nums"
+                />
+                <button
+                  onClick={() => update(l.id, { locked: !l.locked })}
+                  title={l.locked ? "Desbloquear" : "Bloquear"}
+                  className={`w-8 h-7 grid place-items-center rounded transition text-sm ${l.locked ? "text-destructive bg-destructive/15" : "text-muted-foreground bg-muted/30"}`}
+                >{l.locked ? "\u{1F512}" : "\u{1F513}"}</button>
+              </div>
+              <div className="flex items-center gap-0.5">
+                <button onClick={() => move(l.id, 1)} title="Subir" className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">\u2191</button>
+                <button onClick={() => move(l.id, -1)} title="Bajar" className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">\u2193</button>
+                <button onClick={() => mergeDown(l.id)} title={t("layers.merge")} className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">\u2295</button>
+                <button onClick={() => remove(l.id)} title="Borrar" className="w-6 h-7 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive">\u2715</button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      <div className="text-[9px] font-mono text-muted-foreground text-center pt-1">
+        Z m\u00e1s alto = dibujado encima
+      </div>
+    </div>
+  );
+}
