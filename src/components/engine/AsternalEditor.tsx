@@ -535,43 +535,10 @@ function InspectorPanel({
         <Slider label={t("scene.startLives")} value={scene.startLives ?? 1} min={1} max={9} step={1}
           onChange={v => onChangeScene({ ...scene, startLives: v })} />
 
-        <div className="panel rounded-md p-2 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-display tracking-widest text-muted-foreground">{t("scene.parallax")} · {scene.parallax?.length ?? 0}</span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => onChangeScene({
-                  ...scene,
-                  parallax: [...(scene.parallax ?? []), { color: "#1e293b", speed: 0.3, y: scene.height * 0.6, height: 80 }],
-                })}
-                className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
-              >{t("common.add")}</button>
-              <button
-                onClick={() => onChangeScene({ ...scene, parallax: [] })}
-                className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-border"
-              >{t("common.clear")}</button>
-            </div>
-          </div>
-          {(scene.parallax ?? []).map((pl, i) => (
-            <div key={i} className="grid grid-cols-[1fr_auto] gap-1 items-center">
-              <input type="color" value={pl.color}
-                onChange={e => {
-                  const arr = [...(scene.parallax ?? [])];
-                  arr[i] = { ...pl, color: e.target.value };
-                  onChangeScene({ ...scene, parallax: arr });
-                }}
-                className="w-full h-7 rounded border border-border" />
-              <span className="text-[10px] font-mono text-muted-foreground">×{pl.speed}</span>
-            </div>
-          ))}
-        </div>
-
-
-
-
+        <SceneLayersPanel scene={scene} onChangeScene={onChangeScene} />
 
         <div className="pt-4">
-          <SectionTitle>LAYERS · {scene.entities.length}</SectionTitle>
+          <SectionTitle>ENTIDADES · {scene.entities.length}</SectionTitle>
           <LayersPanel scene={scene} onChangeScene={onChangeScene} selectedId={null} onSelect={onSelect} />
         </div>
       </div>
