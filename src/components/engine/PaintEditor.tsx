@@ -222,7 +222,15 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     smooth: { x: number; y: number };
   }>({ active: false, tool: "brush", last: { x: 0, y: 0 }, start: { x: 0, y: 0 }, smooth: { x: 0, y: 0 } });
 
-  const bctx = () => bufferRef.current!.getContext("2d")!;
+  const bctx = (): CanvasRenderingContext2D => {
+    const layer = activeLayer();
+    if (!layer) return bufferRef.current!.getContext("2d")!;
+    return layer.canvas.getContext("2d")!;
+  };
+  const isLayerEditable = () => {
+    const l = activeLayer();
+    return !!l && l.visible && !l.locked;
+  };
 
   const strokeSegment = (x0: number, y0: number, x1: number, y1: number, erase: boolean, w?: number) => {
     const c = bctx();
