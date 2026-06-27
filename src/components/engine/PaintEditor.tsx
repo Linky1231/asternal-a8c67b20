@@ -673,9 +673,8 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
         </div>
       </div>
 
-      <div className={`flex-1 min-h-0 overflow-auto px-4 py-4 ${isWide ? "grid gap-4 grid-cols-[minmax(0,1fr)_320px]" : "flex flex-col gap-4"}`}>
-        {/* Left: Canvas surface */}
-        <div className={`${isWide ? "flex flex-col items-center justify-center" : ""}`}>
+      <div className="flex-1 min-h-0 flex flex-col overflow-auto px-4 py-4 gap-4">
+        {/* Canvas surface */}
         <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} aspect-square relative`}>
           <div
             className="absolute inset-0 rounded-2xl p-[10px]"
