@@ -159,17 +159,7 @@ export function GameRuntime({
       }
 
 
-      // Parallax bands
-      if (work.parallax?.length) {
-        for (const pl of work.parallax) {
-          ctx.fillStyle = pl.color;
-          const off = (-state.cameraX * (pl.speed ?? 0.3)) % W;
-          const y = (pl.y ?? H * 0.6);
-          ctx.fillRect(off, y, W, pl.height ?? 60);
-          ctx.fillRect(off + W, y, W, pl.height ?? 60);
-          ctx.fillRect(off - W, y, W, pl.height ?? 60);
-        }
-      }
+      // (parallax bands removed — scene now uses real Z-ordered layers)
 
       ctx.strokeStyle = "rgba(56,189,248,0.10)";
       ctx.lineWidth = 1;

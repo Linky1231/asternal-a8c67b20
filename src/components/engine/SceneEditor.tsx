@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Entity, EntityKind, Scene } from "@/lib/engine/core";
-import { KIND_PRESETS, uid } from "@/lib/engine/core";
+import { KIND_PRESETS, uid, sortedForRender, isOnHiddenLayer } from "@/lib/engine/core";
 import { getRenderableImage } from "@/lib/engine/images";
 import { currentFrameRenderable } from "@/lib/engine/animations";
 
@@ -207,7 +207,7 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
     let mounted = true;
 
     const hasAnimated = scene.entities.some(e => (e.animations ?? []).some(c => c.frames.length > 1 && c.fps > 0));
-    const sortedEnts = [...scene.entities].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+    const sortedEnts = sortedForRender(scene).filter(e => !isOnHiddenLayer(scene, e));
     const setupSize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
       const w = canvas.clientWidth, h = canvas.clientHeight;

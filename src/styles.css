@@ -217,3 +217,35 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
+/* Transitions between editor sections */
+@keyframes tab-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);     filter: blur(0);   }
+}
+@keyframes panel-slide-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+@keyframes panel-slide-left {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+@utility view-fade {
+  animation: tab-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity, filter;
+}
+@utility view-slide-right {
+  animation: panel-slide-right 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility view-slide-left {
+  animation: panel-slide-left 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility pop-in {
+  animation: pop-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+
