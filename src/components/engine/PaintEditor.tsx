@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { SpriteAsset } from "@/lib/engine/core";
 import { uid } from "@/lib/engine/core";
+import { useFormFactor } from "@/hooks/use-mobile";
 
 type Tool = "brush" | "eraser" | "fill" | "line" | "rect" | "circle" | "picker" | "text";
 
@@ -8,6 +9,15 @@ interface Props {
   onSave: (sprite: SpriteAsset) => void;
   onClose: () => void;
   size?: number;
+}
+
+interface PaintLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+  locked: boolean;
+  opacity: number; // 0..1
+  canvas: HTMLCanvasElement;
 }
 
 const PALETTES: { name: string; colors: string[] }[] = [
@@ -61,6 +71,8 @@ const PALETTES: { name: string; colors: string[] }[] = [
 const FONTS = ["Rajdhani", "Orbitron", "JetBrains Mono", "Georgia", "Arial"];
 
 export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
+  const ff = useFormFactor();
+  const isWide = ff === "tablet" || ff === "desktop";
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#38bdf8");
   const [width, setWidth] = useState(6);
@@ -79,26 +91,62 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   const bufferRef = useRef<HTMLCanvasElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const undoStack = useRef<string[]>([]);
-  const redoStack = useRef<string[]>([]);
+  // ---------- Layers ----------
+  const makeLayerCanvas = (): HTMLCanvasElement => {
+    const c = document.createElement("canvas");
+    c.width = size; c.height = size;
+    const ctx = c.getContext("2d")!;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    return c;
+  };
+  const [layers, setLayers] = useState<PaintLayer[]>([]);
+  const [activeLayerId, setActiveLayerId] = useState<string>("");
+  const layersRef = useRef<PaintLayer[]>([]);
+  const activeLayerIdRef = useRef("");
+  useEffect(() => { layersRef.current = layers; }, [layers]);
+  useEffect(() => { activeLayerIdRef.current = activeLayerId; }, [activeLayerId]);
+  const activeLayer = () => layersRef.current.find(l => l.id === activeLayerIdRef.current) ?? null;
+
+  const undoStack = useRef<{ layerId: string; dataUrl: string }[]>([]);
+  const redoStack = useRef<{ layerId: string; dataUrl: string }[]>([]);
   const activePointerId = useRef<number | null>(null);
   const activePointers = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const buf = document.createElement("canvas");
     buf.width = size; buf.height = size;
-    const ctx = buf.getContext("2d")!;
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
+    const bctx = buf.getContext("2d")!;
+    bctx.imageSmoothingEnabled = true;
+    bctx.imageSmoothingQuality = "high";
     bufferRef.current = buf;
+    // initial layer
+    const initId = uid();
+    const firstLayer: PaintLayer = { id: initId, name: "Capa 1", visible: true, locked: false, opacity: 1, canvas: makeLayerCanvas() };
+    layersRef.current = [firstLayer];
+    activeLayerIdRef.current = initId;
+    setLayers([firstLayer]);
+    setActiveLayerId(initId);
+    recomposite();
     blit();
-    pushSnapshot();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size]);
 
-  const pushSnapshot = () => {
+  const recomposite = () => {
     const buf = bufferRef.current; if (!buf) return;
-    undoStack.current.push(buf.toDataURL("image/png"));
+    const c = buf.getContext("2d")!;
+    c.clearRect(0, 0, size, size);
+    for (const l of layersRef.current) {
+      if (!l.visible) continue;
+      c.globalAlpha = Math.max(0, Math.min(1, l.opacity));
+      c.drawImage(l.canvas, 0, 0);
+    }
+    c.globalAlpha = 1;
+  };
+
+  const pushSnapshot = () => {
+    const layer = activeLayer(); if (!layer) return;
+    undoStack.current.push({ layerId: layer.id, dataUrl: layer.canvas.toDataURL("image/png") });
     if (undoStack.current.length > 32) undoStack.current.shift();
     redoStack.current = [];
     setPreviewVersion(v => v + 1);
@@ -174,7 +222,15 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     smooth: { x: number; y: number };
   }>({ active: false, tool: "brush", last: { x: 0, y: 0 }, start: { x: 0, y: 0 }, smooth: { x: 0, y: 0 } });
 
-  const bctx = () => bufferRef.current!.getContext("2d")!;
+  const bctx = (): CanvasRenderingContext2D => {
+    const layer = activeLayer();
+    if (!layer) return bufferRef.current!.getContext("2d")!;
+    return layer.canvas.getContext("2d")!;
+  };
+  const isLayerEditable = () => {
+    const l = activeLayer();
+    return !!l && l.visible && !l.locked;
+  };
 
   const strokeSegment = (x0: number, y0: number, x1: number, y1: number, erase: boolean, w?: number) => {
     const c = bctx();
@@ -263,7 +319,8 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   };
 
   const pickColorAt = (x: number, y: number) => {
-    const c = bctx();
+    const buf = bufferRef.current; if (!buf) return;
+    const c = buf.getContext("2d")!;
     const d = c.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
     if (d[3] === 0) return;
     const hex = "#" + [d[0], d[1], d[2]].map(n => n.toString(16).padStart(2, "0")).join("");
@@ -273,18 +330,18 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   const cancelStroke = () => {
     if (!drag.current.active) return;
     drag.current.active = false;
-    // revert last snapshot (undo the in-progress stroke)
-    const buf = bufferRef.current; if (!buf) return;
     const prev = undoStack.current[undoStack.current.length - 1];
     if (!prev) return;
+    const layer = layersRef.current.find(l => l.id === prev.layerId);
+    if (!layer) return;
     const img = new Image();
     img.onload = () => {
-      const c = bctx();
+      const c = layer.canvas.getContext("2d")!;
       c.clearRect(0, 0, size, size);
       c.drawImage(img, 0, 0);
-      blit();
+      recomposite(); blit();
     };
-    img.src = prev;
+    img.src = prev.dataUrl;
   };
 
   const onDown = (e: React.PointerEvent) => {
@@ -304,10 +361,12 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     const p = getPos(e);
     if (tool === "picker") { pickColorAt(p.x, p.y); dragRect.current = null; return; }
     if (tool === "text") {
+      if (!isLayerEditable()) { dragRect.current = null; return; }
       setTextInput({ open: true, x: p.x, y: p.y, value: "", fontSize: Math.max(16, width * 4), font: "Rajdhani" });
       dragRect.current = null;
       return;
     }
+    if (!isLayerEditable()) { dragRect.current = null; return; }
     pushSnapshot();
     drag.current = { active: true, tool, last: p, start: p, smooth: p };
     if (tool === "brush" || tool === "eraser") {
@@ -318,7 +377,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
       stampDotDisplay(p.x, p.y, erase, w);
     } else if (tool === "fill") {
       floodFill(p.x, p.y, color);
-      blit();
+      recomposite(); blit();
     }
   };
 
@@ -369,9 +428,10 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
       const erase = t === "eraser";
       strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, erase);
       strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, p.x, p.y, erase, width);
+      recomposite();
     } else if (t === "line" || t === "rect" || t === "circle") {
       commitShape(t, drag.current.start.x, drag.current.start.y, p.x, p.y);
-      blit();
+      recomposite(); blit();
     }
     drag.current.active = false;
     activePointerId.current = null;
@@ -382,6 +442,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
 
   const commitText = () => {
     if (!textInput || !textInput.value.trim()) { setTextInput(null); return; }
+    if (!isLayerEditable()) { setTextInput(null); return; }
     pushSnapshot();
     const c = bctx();
     c.save();
@@ -392,38 +453,52 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     lines.forEach((ln, i) => c.fillText(ln, textInput.x, textInput.y + i * textInput.fontSize * 1.1));
     c.restore();
     setTextInput(null);
-    blit();
+    recomposite(); blit();
     setPreviewVersion(v => v + 1);
   };
 
   const undo = () => {
-    const buf = bufferRef.current; if (!buf) return;
     const prev = undoStack.current.pop();
     if (!prev) return;
-    redoStack.current.push(buf.toDataURL("image/png"));
+    const layer = layersRef.current.find(l => l.id === prev.layerId);
+    if (!layer) { setPreviewVersion(v => v + 1); return; }
+    redoStack.current.push({ layerId: layer.id, dataUrl: layer.canvas.toDataURL("image/png") });
     const img = new Image();
-    img.onload = () => { const c = bctx(); c.clearRect(0, 0, size, size); c.drawImage(img, 0, 0); blit(); setPreviewVersion(v => v + 1); };
-    img.src = prev;
+    img.onload = () => {
+      const c = layer.canvas.getContext("2d")!;
+      c.clearRect(0, 0, size, size);
+      c.drawImage(img, 0, 0);
+      recomposite(); blit(); setPreviewVersion(v => v + 1);
+    };
+    img.src = prev.dataUrl;
   };
   const redo = () => {
-    const buf = bufferRef.current; if (!buf) return;
     const next = redoStack.current.pop();
     if (!next) return;
-    undoStack.current.push(buf.toDataURL("image/png"));
+    const layer = layersRef.current.find(l => l.id === next.layerId);
+    if (!layer) { setPreviewVersion(v => v + 1); return; }
+    undoStack.current.push({ layerId: layer.id, dataUrl: layer.canvas.toDataURL("image/png") });
     const img = new Image();
-    img.onload = () => { const c = bctx(); c.clearRect(0, 0, size, size); c.drawImage(img, 0, 0); blit(); setPreviewVersion(v => v + 1); };
-    img.src = next;
+    img.onload = () => {
+      const c = layer.canvas.getContext("2d")!;
+      c.clearRect(0, 0, size, size);
+      c.drawImage(img, 0, 0);
+      recomposite(); blit(); setPreviewVersion(v => v + 1);
+    };
+    img.src = next.dataUrl;
   };
   const clearAll = () => {
-    if (!confirm("Clear the canvas?")) return;
+    if (!isLayerEditable()) return;
+    if (!confirm("¿Limpiar la capa activa?")) return;
     pushSnapshot();
     const c = bctx();
     c.clearRect(0, 0, size, size);
-    blit();
+    recomposite(); blit();
     setPreviewVersion(v => v + 1);
   };
 
   const save = () => {
+    recomposite();
     const buf = bufferRef.current; if (!buf) return;
     const dataUrl = buf.toDataURL("image/png");
     const asset: SpriteAsset = {
@@ -436,6 +511,96 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
       frames: [{ id: uid(), layers: [], composite: dataUrl }],
     };
     onSave(asset);
+  };
+
+  // ---------- Layer operations (panel) ----------
+  const addLayer = () => {
+    const newL: PaintLayer = { id: uid(), name: `Capa ${layersRef.current.length + 1}`, visible: true, locked: false, opacity: 1, canvas: makeLayerCanvas() };
+    const next = [...layersRef.current, newL];
+    layersRef.current = next;
+    setLayers(next);
+    setActiveLayerId(newL.id);
+    activeLayerIdRef.current = newL.id;
+    recomposite(); blit();
+  };
+  const duplicateLayer = (id: string) => {
+    const idx = layersRef.current.findIndex(l => l.id === id);
+    if (idx < 0) return;
+    const src = layersRef.current[idx];
+    const c = makeLayerCanvas();
+    c.getContext("2d")!.drawImage(src.canvas, 0, 0);
+    const copy: PaintLayer = { ...src, id: uid(), name: src.name + " copia", canvas: c };
+    const next = [...layersRef.current];
+    next.splice(idx + 1, 0, copy);
+    layersRef.current = next;
+    setLayers(next);
+    setActiveLayerId(copy.id);
+    activeLayerIdRef.current = copy.id;
+    recomposite(); blit();
+  };
+  const deleteLayer = (id: string) => {
+    if (layersRef.current.length <= 1) return;
+    if (!confirm("¿Borrar esta capa?")) return;
+    const next = layersRef.current.filter(l => l.id !== id);
+    layersRef.current = next;
+    setLayers(next);
+    if (activeLayerIdRef.current === id) {
+      const fallback = next[next.length - 1].id;
+      setActiveLayerId(fallback);
+      activeLayerIdRef.current = fallback;
+    }
+    recomposite(); blit();
+  };
+  const moveLayer = (id: string, dir: -1 | 1) => {
+    const idx = layersRef.current.findIndex(l => l.id === id);
+    if (idx < 0) return;
+    const j = idx + dir;
+    if (j < 0 || j >= layersRef.current.length) return;
+    const next = [...layersRef.current];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    layersRef.current = next;
+    setLayers(next);
+    recomposite(); blit();
+  };
+  const mergeDown = (id: string) => {
+    const idx = layersRef.current.findIndex(l => l.id === id);
+    if (idx <= 0) return; // nothing below
+    const top = layersRef.current[idx];
+    const below = layersRef.current[idx - 1];
+    const c = below.canvas.getContext("2d")!;
+    c.save();
+    c.globalAlpha = Math.max(0, Math.min(1, top.opacity));
+    c.drawImage(top.canvas, 0, 0);
+    c.restore();
+    const next = layersRef.current.filter(l => l.id !== id);
+    layersRef.current = next;
+    setLayers(next);
+    if (activeLayerIdRef.current === id) {
+      setActiveLayerId(below.id);
+      activeLayerIdRef.current = below.id;
+    }
+    recomposite(); blit();
+  };
+  const flatten = () => {
+    if (!confirm("¿Aplanar todas las capas en una sola?")) return;
+    recomposite();
+    const buf = bufferRef.current!;
+    const merged = makeLayerCanvas();
+    merged.getContext("2d")!.drawImage(buf, 0, 0);
+    const single: PaintLayer = { id: uid(), name: "Aplanada", visible: true, locked: false, opacity: 1, canvas: merged };
+    layersRef.current = [single];
+    setLayers([single]);
+    setActiveLayerId(single.id);
+    activeLayerIdRef.current = single.id;
+    undoStack.current = [];
+    redoStack.current = [];
+    recomposite(); blit();
+  };
+  const updateLayer = (id: string, p: Partial<PaintLayer>) => {
+    const next = layersRef.current.map(l => l.id === id ? { ...l, ...p } : l);
+    layersRef.current = next;
+    setLayers(next);
+    recomposite(); blit();
   };
 
   // Stable thumbnail data url
@@ -510,7 +675,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
 
       <div className="flex-1 min-h-0 flex flex-col overflow-auto px-4 py-4 gap-4">
         {/* Canvas surface */}
-        <div className="mx-auto w-full max-w-[460px] aspect-square relative">
+        <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} aspect-square relative`}>
           <div
             className="absolute inset-0 rounded-2xl p-[10px]"
             style={{
@@ -586,7 +751,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
         </div>
 
         {/* Tool dock — Apple segmented */}
-        <div className="mx-auto w-full max-w-[460px]">
+        <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"}`}>
           <div
             className="flex gap-1 p-1 rounded-2xl"
             style={{
@@ -614,7 +779,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
         </div>
 
         {/* History row */}
-        <div className="mx-auto w-full max-w-[460px] flex gap-1.5">
+        <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} flex gap-1.5`}>
           <button onClick={undo} title="Undo" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition text-lg">↶</button>
           <button onClick={redo} title="Redo" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition text-lg">↷</button>
           <button onClick={clearAll} title="Clear" className="flex-1 h-10 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition text-[12px] font-medium">Clear</button>
@@ -622,7 +787,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
 
         {/* Color + size card */}
         <div
-          className="mx-auto w-full max-w-[460px] p-3 rounded-2xl flex flex-col gap-3"
+          className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} p-3 rounded-2xl flex flex-col gap-3`}
           style={{
             background: "oklch(0.22 0.04 262 / 0.5)",
             backdropFilter: "blur(20px) saturate(180%)",
@@ -745,6 +910,91 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
             </span>
             <input type="checkbox" checked={pressureOn} onChange={(e) => setPressureOn(e.target.checked)} className="sr-only" />
           </label>
+        </div>
+
+        {/* Layers card */}
+        <div
+          className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} p-3 rounded-2xl flex flex-col gap-2 pop-in`}
+          style={{
+            background: "oklch(0.22 0.04 262 / 0.5)",
+            backdropFilter: "blur(20px) saturate(180%)",
+            border: "1px solid oklch(1 0 0 / 0.06)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold tracking-wider text-foreground/80">CAPAS · {layers.length}</span>
+            <div className="flex gap-1">
+              <button
+                onClick={addLayer}
+                className="text-[10px] font-semibold px-2.5 py-1 rounded-lg text-primary-foreground active:scale-95 transition"
+                style={{ background: "linear-gradient(180deg, oklch(0.78 0.17 250), oklch(0.66 0.18 252))" }}
+              >+ Nueva</button>
+              <button
+                onClick={flatten}
+                className="text-[10px] font-medium px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-foreground/80"
+              >Aplanar</button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5 max-h-[260px] overflow-auto pr-1">
+            {[...layers].slice().reverse().map((l) => {
+              const isActive = l.id === activeLayerId;
+              return (
+                <div
+                  key={l.id}
+                  className={`group rounded-xl p-1.5 flex items-center gap-1.5 transition-all cursor-pointer ${isActive ? "bg-primary/15 border border-primary/40" : "bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06]"}`}
+                  onClick={() => { setActiveLayerId(l.id); activeLayerIdRef.current = l.id; }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-md shrink-0"
+                    style={{
+                      backgroundColor: "#1a1f2e",
+                      backgroundImage: `url(${(() => { try { return l.canvas.toDataURL("image/png"); } catch { return ""; }})()})`,
+                      backgroundSize: "contain",
+                      backgroundPosition: "center",
+                      backgroundRepeat: "no-repeat",
+                      boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.08)",
+                      opacity: l.visible ? 1 : 0.35,
+                    }}
+                  />
+                  <input
+                    value={l.name}
+                    onChange={(e) => updateLayer(l.id, { name: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 min-w-0 bg-transparent text-[12px] font-medium focus:outline-none focus:bg-white/5 rounded px-1 py-0.5"
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); updateLayer(l.id, { visible: !l.visible }); }}
+                    title={l.visible ? "Ocultar" : "Mostrar"}
+                    className={`w-7 h-7 grid place-items-center rounded-md transition ${l.visible ? "text-primary-glow" : "text-muted-foreground"}`}
+                  >{l.visible ? "👁" : "—"}</button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); updateLayer(l.id, { locked: !l.locked }); }}
+                    title={l.locked ? "Desbloquear" : "Bloquear"}
+                    className={`w-7 h-7 grid place-items-center rounded-md transition text-sm ${l.locked ? "text-destructive" : "text-muted-foreground"}`}
+                  >{l.locked ? "🔒" : "🔓"}</button>
+                  <div className="flex flex-col">
+                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, 1); }} title="Subir" className="w-6 h-3.5 grid place-items-center text-[9px] text-muted-foreground hover:text-primary-glow">▲</button>
+                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, -1); }} title="Bajar" className="w-6 h-3.5 grid place-items-center text-[9px] text-muted-foreground hover:text-primary-glow">▼</button>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); duplicateLayer(l.id); }} title="Duplicar" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow text-sm">⧉</button>
+                  <button onClick={(e) => { e.stopPropagation(); mergeDown(l.id); }} title="Combinar con la inferior" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow text-sm">⊕</button>
+                  <button onClick={(e) => { e.stopPropagation(); deleteLayer(l.id); }} title="Borrar" className="w-7 h-7 grid place-items-center rounded-md text-destructive/70 hover:text-destructive text-xs">✕</button>
+                </div>
+              );
+            })}
+          </div>
+          {activeLayer() && (
+            <div className="flex items-center gap-2 text-[11px] text-foreground/70 pt-1">
+              <span className="w-14 shrink-0">Opacidad</span>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={Math.round((activeLayer()?.opacity ?? 1) * 100)}
+                onChange={(e) => updateLayer(activeLayerIdRef.current, { opacity: Number(e.target.value) / 100 })}
+                className="flex-1 accent-[oklch(0.72_0.17_250)]"
+              />
+              <span className="font-mono text-primary-glow w-8 text-right tabular-nums">{Math.round((activeLayer()?.opacity ?? 1) * 100)}%</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
