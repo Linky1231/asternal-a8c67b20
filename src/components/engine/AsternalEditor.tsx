@@ -247,7 +247,7 @@ export function AsternalEditor() {
       {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
 
       {/* Main */}
-      <main key={tab} className="relative flex-1 min-h-0 animate-fade-in">
+      <main key={tab} className="relative flex-1 min-h-0 view-fade">
         {tab === "build" && (
           <>
             <SceneEditor
@@ -382,8 +382,10 @@ export function AsternalEditor() {
         </div>
       )}
 
-      {/* Bottom tabs */}
+      {/* Bottom tabs (mobile only) */}
+      {!isTablet && (
       <nav className="grid grid-cols-6 panel border-t pb-[env(safe-area-inset-bottom)]">
+
         {([
           ["build", t("tab.build"), "▦"],
           ["inspect", t("tab.inspect"), "◈"],
