@@ -751,7 +751,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
         </div>
 
         {/* Tool dock — Apple segmented */}
-        <div className="mx-auto w-full max-w-[460px]">
+        <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"}`}>
           <div
             className="flex gap-1 p-1 rounded-2xl"
             style={{
@@ -779,7 +779,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
         </div>
 
         {/* History row */}
-        <div className="mx-auto w-full max-w-[460px] flex gap-1.5">
+        <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} flex gap-1.5`}>
           <button onClick={undo} title="Undo" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition text-lg">↶</button>
           <button onClick={redo} title="Redo" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition text-lg">↷</button>
           <button onClick={clearAll} title="Clear" className="flex-1 h-10 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition text-[12px] font-medium">Clear</button>
@@ -787,7 +787,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
 
         {/* Color + size card */}
         <div
-          className="mx-auto w-full max-w-[460px] p-3 rounded-2xl flex flex-col gap-3"
+          className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} p-3 rounded-2xl flex flex-col gap-3`}
           style={{
             background: "oklch(0.22 0.04 262 / 0.5)",
             backdropFilter: "blur(20px) saturate(180%)",
