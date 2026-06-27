@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { SpriteAsset } from "@/lib/engine/core";
 import { uid } from "@/lib/engine/core";
+import { useFormFactor } from "@/hooks/use-mobile";
 
 type Tool = "brush" | "eraser" | "fill" | "line" | "rect" | "circle" | "picker" | "text";
 
@@ -8,6 +9,15 @@ interface Props {
   onSave: (sprite: SpriteAsset) => void;
   onClose: () => void;
   size?: number;
+}
+
+interface PaintLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+  locked: boolean;
+  opacity: number; // 0..1
+  canvas: HTMLCanvasElement;
 }
 
 const PALETTES: { name: string; colors: string[] }[] = [
