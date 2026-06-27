@@ -427,9 +427,10 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
       const erase = t === "eraser";
       strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, erase);
       strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, p.x, p.y, erase, width);
+      recomposite();
     } else if (t === "line" || t === "rect" || t === "circle") {
       commitShape(t, drag.current.start.x, drag.current.start.y, p.x, p.y);
-      blit();
+      recomposite(); blit();
     }
     drag.current.active = false;
     activePointerId.current = null;
