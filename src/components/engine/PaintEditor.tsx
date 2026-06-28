@@ -418,15 +418,33 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
           x1 = (drag.current.last.x + pt.x) / 2;
           y1 = (drag.current.last.y + pt.y) / 2;
         }
-        // Draw to the buffer (truth) AND to the display directly (instant feedback)
         strokeSegment(drag.current.last.x, drag.current.last.y, x1, y1, erase, w);
-        strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, x1, y1, erase, w);
+        if (!erase) {
+          // Brush: paint instant preview directly on display canvas.
+          strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, x1, y1, erase, w);
+        }
         drag.current.last = { x: x1, y: y1 };
       }
-      // No full blit() here — display already has the new segment painted on top.
+      if (erase) { recomposite(); blit(); }
     } else if (drag.current.tool === "line" || drag.current.tool === "rect" || drag.current.tool === "circle") {
       const t = drag.current.tool;
       blit(ctx => drawPreviewShape(ctx, t, drag.current.start.x, drag.current.start.y, p.x, p.y));
+    } else if (drag.current.tool === "move") {
+      const layer = activeLayer();
+      const snap = drag.current.moveSnap;
+      if (layer && snap) {
+        const dx = Math.round(p.x - drag.current.start.x);
+        const dy = Math.round(p.y - drag.current.start.y);
+        const lc = layer.canvas.getContext("2d")!;
+        // restore original then translate-draw
+        lc.clearRect(0, 0, size, size);
+        // put original into a temp canvas to draw with offset
+        const tmp = document.createElement("canvas");
+        tmp.width = size; tmp.height = size;
+        tmp.getContext("2d")!.putImageData(snap, 0, 0);
+        lc.drawImage(tmp, dx, dy);
+        recomposite(); blit();
+      }
     }
   };
 
