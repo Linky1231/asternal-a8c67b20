@@ -647,15 +647,16 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   // touch previewVersion so re-renders recompute thumb
   void previewVersion;
 
-  const TOOLS: { id: Tool; label: string; title: string }[] = [
-    { id: "brush", label: "✎", title: "Brush" },
-    { id: "eraser", label: "⌫", title: "Eraser" },
-    { id: "fill", label: "▣", title: "Fill" },
-    { id: "line", label: "／", title: "Line" },
-    { id: "rect", label: "▭", title: "Rectangle" },
-    { id: "circle", label: "◯", title: "Circle" },
-    { id: "picker", label: "◎", title: "Color picker" },
-    { id: "text", label: "T", title: "Text" },
+  const TOOLS: { id: Tool; icon: ReactNode; title: string }[] = [
+    { id: "brush", icon: <Pencil size={18} strokeWidth={2} />, title: "Pincel" },
+    { id: "eraser", icon: <Eraser size={18} strokeWidth={2} />, title: "Borrador" },
+    { id: "fill", icon: <PaintBucket size={18} strokeWidth={2} />, title: "Relleno" },
+    { id: "line", icon: <Slash size={18} strokeWidth={2} />, title: "Línea" },
+    { id: "rect", icon: <Square size={18} strokeWidth={2} />, title: "Rectángulo" },
+    { id: "circle", icon: <Circle size={18} strokeWidth={2} />, title: "Círculo" },
+    { id: "picker", icon: <Pipette size={18} strokeWidth={2} />, title: "Cuentagotas" },
+    { id: "text", icon: <Type size={18} strokeWidth={2} />, title: "Texto" },
+    { id: "move", icon: <Move size={18} strokeWidth={2} />, title: "Seleccionar y mover capa" },
   ];
 
   return (
