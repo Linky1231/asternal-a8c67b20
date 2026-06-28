@@ -809,16 +809,16 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
                   background: "linear-gradient(180deg, oklch(0.78 0.17 250), oklch(0.64 0.18 252))",
                   boxShadow: "inset 0 1px 0 oklch(1 0 0 / 0.25), 0 2px 8px -2px oklch(0.66 0.18 252 / 0.5)",
                 } : undefined}
-              >{t.label}</button>
+              >{t.icon}</button>
             ))}
           </div>
         </div>
 
         {/* History row */}
         <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} flex gap-1.5`}>
-          <button onClick={undo} title="Undo" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition text-lg">↶</button>
-          <button onClick={redo} title="Redo" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition text-lg">↷</button>
-          <button onClick={clearAll} title="Clear" className="flex-1 h-10 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition text-[12px] font-medium">Clear</button>
+          <button onClick={undo} title="Deshacer" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition flex items-center justify-center active:scale-95"><Undo2 size={16} /></button>
+          <button onClick={redo} title="Rehacer" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition flex items-center justify-center active:scale-95"><Redo2 size={16} /></button>
+          <button onClick={clearAll} title="Limpiar capa" className="flex-1 h-10 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition flex items-center justify-center gap-1.5 text-[12px] font-medium active:scale-95"><Trash2 size={14} /> Limpiar</button>
         </div>
 
         {/* Color + size card */}
