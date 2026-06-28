@@ -225,7 +225,8 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     last: { x: number; y: number };
     start: { x: number; y: number };
     smooth: { x: number; y: number };
-  }>({ active: false, tool: "brush", last: { x: 0, y: 0 }, start: { x: 0, y: 0 }, smooth: { x: 0, y: 0 } });
+    moveSnap?: ImageData | null;
+  }>({ active: false, tool: "brush", last: { x: 0, y: 0 }, start: { x: 0, y: 0 }, smooth: { x: 0, y: 0 }, moveSnap: null });
 
   const bctx = (): CanvasRenderingContext2D => {
     const layer = activeLayer();
