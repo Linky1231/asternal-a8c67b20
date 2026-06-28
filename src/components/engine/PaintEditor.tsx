@@ -958,16 +958,16 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
           }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold tracking-wider text-foreground/80">CAPAS · {layers.length}</span>
+            <span className="text-[11px] font-semibold tracking-wider text-foreground/80 inline-flex items-center gap-1.5"><Layers size={12} /> CAPAS · {layers.length}</span>
             <div className="flex gap-1">
               <button
                 onClick={addLayer}
-                className="text-[10px] font-semibold px-2.5 py-1 rounded-lg text-primary-foreground active:scale-95 transition"
+                className="text-[10px] font-semibold px-2.5 py-1 rounded-lg text-primary-foreground active:scale-95 transition inline-flex items-center gap-1"
                 style={{ background: "linear-gradient(180deg, oklch(0.78 0.17 250), oklch(0.66 0.18 252))" }}
-              >+ Nueva</button>
+              ><Plus size={12} strokeWidth={2.5} /> Nueva</button>
               <button
                 onClick={flatten}
-                className="text-[10px] font-medium px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-foreground/80"
+                className="text-[10px] font-medium px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-foreground/80 active:scale-95 transition"
               >Aplanar</button>
             </div>
           </div>
@@ -1001,20 +1001,20 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
                   <button
                     onClick={(e) => { e.stopPropagation(); updateLayer(l.id, { visible: !l.visible }); }}
                     title={l.visible ? "Ocultar" : "Mostrar"}
-                    className={`w-7 h-7 grid place-items-center rounded-md transition ${l.visible ? "text-primary-glow" : "text-muted-foreground"}`}
-                  >{l.visible ? "👁" : "—"}</button>
+                    className={`w-7 h-7 grid place-items-center rounded-md transition hover:bg-white/5 ${l.visible ? "text-primary-glow" : "text-muted-foreground"}`}
+                  >{l.visible ? <Eye size={14} /> : <EyeOff size={14} />}</button>
                   <button
                     onClick={(e) => { e.stopPropagation(); updateLayer(l.id, { locked: !l.locked }); }}
                     title={l.locked ? "Desbloquear" : "Bloquear"}
-                    className={`w-7 h-7 grid place-items-center rounded-md transition text-sm ${l.locked ? "text-destructive" : "text-muted-foreground"}`}
-                  >{l.locked ? "🔒" : "🔓"}</button>
+                    className={`w-7 h-7 grid place-items-center rounded-md transition hover:bg-white/5 ${l.locked ? "text-destructive" : "text-muted-foreground"}`}
+                  >{l.locked ? <Lock size={14} /> : <Unlock size={14} />}</button>
                   <div className="flex flex-col">
-                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, 1); }} title="Subir" className="w-6 h-3.5 grid place-items-center text-[9px] text-muted-foreground hover:text-primary-glow">▲</button>
-                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, -1); }} title="Bajar" className="w-6 h-3.5 grid place-items-center text-[9px] text-muted-foreground hover:text-primary-glow">▼</button>
+                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, 1); }} title="Subir" className="w-6 h-3.5 grid place-items-center text-muted-foreground hover:text-primary-glow"><ChevronUp size={12} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, -1); }} title="Bajar" className="w-6 h-3.5 grid place-items-center text-muted-foreground hover:text-primary-glow"><ChevronDown size={12} /></button>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); duplicateLayer(l.id); }} title="Duplicar" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow text-sm">⧉</button>
-                  <button onClick={(e) => { e.stopPropagation(); mergeDown(l.id); }} title="Combinar con la inferior" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow text-sm">⊕</button>
-                  <button onClick={(e) => { e.stopPropagation(); deleteLayer(l.id); }} title="Borrar" className="w-7 h-7 grid place-items-center rounded-md text-destructive/70 hover:text-destructive text-xs">✕</button>
+                  <button onClick={(e) => { e.stopPropagation(); duplicateLayer(l.id); }} title="Duplicar" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow hover:bg-white/5"><Copy size={13} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); mergeDown(l.id); }} title="Combinar con la inferior" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow hover:bg-white/5"><Layers size={13} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); deleteLayer(l.id); }} title="Borrar" className="w-7 h-7 grid place-items-center rounded-md text-destructive/70 hover:text-destructive hover:bg-destructive/10"><Trash2 size={13} /></button>
                 </div>
               );
             })}
