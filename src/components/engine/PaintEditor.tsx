@@ -458,10 +458,14 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     if (t === "brush" || t === "eraser") {
       const erase = t === "eraser";
       strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, erase);
-      strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, p.x, p.y, erase, width);
-      recomposite();
+      if (!erase) strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, p.x, p.y, erase, width);
+      recomposite(); blit();
     } else if (t === "line" || t === "rect" || t === "circle") {
       commitShape(t, drag.current.start.x, drag.current.start.y, p.x, p.y);
+      recomposite(); blit();
+    } else if (t === "move") {
+      // Already drawn during onMove. Just clear snapshot.
+      drag.current.moveSnap = null;
       recomposite(); blit();
     }
     drag.current.active = false;
