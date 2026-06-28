@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { SpriteAsset } from "@/lib/engine/core";
 import { uid } from "@/lib/engine/core";
 import { useFormFactor } from "@/hooks/use-mobile";
+import {
+  Pencil, Eraser, PaintBucket, Slash, Square, Circle, Pipette, Type, Move,
+  Eye, EyeOff, Lock, Unlock, ChevronUp, ChevronDown, Copy, Trash2, Layers,
+  Undo2, Redo2, Plus,
+} from "lucide-react";
 
-type Tool = "brush" | "eraser" | "fill" | "line" | "rect" | "circle" | "picker" | "text";
+type Tool = "brush" | "eraser" | "fill" | "line" | "rect" | "circle" | "picker" | "text" | "move";
 
 interface Props {
   onSave: (sprite: SpriteAsset) => void;
