@@ -54,6 +54,7 @@ export function AsternalEditor() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [showManager, setShowManager] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [layersOpen, setLayersOpen] = useState(false);
   const [library, setLibrary] = useState<LibraryItem[]>(() => loadLibrary());
   const updateLibrary = (items: LibraryItem[]) => { setLibrary(items); saveLibrary(items); };
 
