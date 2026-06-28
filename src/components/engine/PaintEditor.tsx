@@ -374,16 +374,23 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     }
     if (!isLayerEditable()) { dragRect.current = null; return; }
     pushSnapshot();
-    drag.current = { active: true, tool, last: p, start: p, smooth: p };
+    drag.current = { active: true, tool, last: p, start: p, smooth: p, moveSnap: null };
     if (tool === "brush" || tool === "eraser") {
       const pr = pressureOn && e.pressure > 0 && e.pressure !== 0.5 ? e.pressure : 0.5;
       const w = width * (pressureOn ? (0.4 + 1.2 * pr) : 1);
       const erase = tool === "eraser";
       stampDot(p.x, p.y, erase, w);
-      stampDotDisplay(p.x, p.y, erase, w);
+      if (erase) { recomposite(); blit(); }
+      else stampDotDisplay(p.x, p.y, erase, w);
     } else if (tool === "fill") {
       floodFill(p.x, p.y, color);
       recomposite(); blit();
+    } else if (tool === "move") {
+      const layer = activeLayer();
+      if (layer) {
+        const lc = layer.canvas.getContext("2d")!;
+        drag.current.moveSnap = lc.getImageData(0, 0, size, size);
+      }
     }
   };
 
