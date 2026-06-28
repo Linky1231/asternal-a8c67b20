@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { SpriteAsset } from "@/lib/engine/core";
 import { uid } from "@/lib/engine/core";
 import { useFormFactor } from "@/hooks/use-mobile";
+import {
+  Pencil, Eraser, PaintBucket, Slash, Square, Circle, Pipette, Type, Move,
+  Eye, EyeOff, Lock, Unlock, ChevronUp, ChevronDown, Copy, Trash2, Layers,
+  Undo2, Redo2, Plus,
+} from "lucide-react";
 
-type Tool = "brush" | "eraser" | "fill" | "line" | "rect" | "circle" | "picker" | "text";
+type Tool = "brush" | "eraser" | "fill" | "line" | "rect" | "circle" | "picker" | "text" | "move";
 
 interface Props {
   onSave: (sprite: SpriteAsset) => void;
@@ -220,7 +225,8 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     last: { x: number; y: number };
     start: { x: number; y: number };
     smooth: { x: number; y: number };
-  }>({ active: false, tool: "brush", last: { x: 0, y: 0 }, start: { x: 0, y: 0 }, smooth: { x: 0, y: 0 } });
+    moveSnap?: ImageData | null;
+  }>({ active: false, tool: "brush", last: { x: 0, y: 0 }, start: { x: 0, y: 0 }, smooth: { x: 0, y: 0 }, moveSnap: null });
 
   const bctx = (): CanvasRenderingContext2D => {
     const layer = activeLayer();
@@ -368,16 +374,23 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     }
     if (!isLayerEditable()) { dragRect.current = null; return; }
     pushSnapshot();
-    drag.current = { active: true, tool, last: p, start: p, smooth: p };
+    drag.current = { active: true, tool, last: p, start: p, smooth: p, moveSnap: null };
     if (tool === "brush" || tool === "eraser") {
       const pr = pressureOn && e.pressure > 0 && e.pressure !== 0.5 ? e.pressure : 0.5;
       const w = width * (pressureOn ? (0.4 + 1.2 * pr) : 1);
       const erase = tool === "eraser";
       stampDot(p.x, p.y, erase, w);
-      stampDotDisplay(p.x, p.y, erase, w);
+      if (erase) { recomposite(); blit(); }
+      else stampDotDisplay(p.x, p.y, erase, w);
     } else if (tool === "fill") {
       floodFill(p.x, p.y, color);
       recomposite(); blit();
+    } else if (tool === "move") {
+      const layer = activeLayer();
+      if (layer) {
+        const lc = layer.canvas.getContext("2d")!;
+        drag.current.moveSnap = lc.getImageData(0, 0, size, size);
+      }
     }
   };
 
@@ -405,15 +418,33 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
           x1 = (drag.current.last.x + pt.x) / 2;
           y1 = (drag.current.last.y + pt.y) / 2;
         }
-        // Draw to the buffer (truth) AND to the display directly (instant feedback)
         strokeSegment(drag.current.last.x, drag.current.last.y, x1, y1, erase, w);
-        strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, x1, y1, erase, w);
+        if (!erase) {
+          // Brush: paint instant preview directly on display canvas.
+          strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, x1, y1, erase, w);
+        }
         drag.current.last = { x: x1, y: y1 };
       }
-      // No full blit() here — display already has the new segment painted on top.
+      if (erase) { recomposite(); blit(); }
     } else if (drag.current.tool === "line" || drag.current.tool === "rect" || drag.current.tool === "circle") {
       const t = drag.current.tool;
       blit(ctx => drawPreviewShape(ctx, t, drag.current.start.x, drag.current.start.y, p.x, p.y));
+    } else if (drag.current.tool === "move") {
+      const layer = activeLayer();
+      const snap = drag.current.moveSnap;
+      if (layer && snap) {
+        const dx = Math.round(p.x - drag.current.start.x);
+        const dy = Math.round(p.y - drag.current.start.y);
+        const lc = layer.canvas.getContext("2d")!;
+        // restore original then translate-draw
+        lc.clearRect(0, 0, size, size);
+        // put original into a temp canvas to draw with offset
+        const tmp = document.createElement("canvas");
+        tmp.width = size; tmp.height = size;
+        tmp.getContext("2d")!.putImageData(snap, 0, 0);
+        lc.drawImage(tmp, dx, dy);
+        recomposite(); blit();
+      }
     }
   };
 
@@ -427,10 +458,14 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     if (t === "brush" || t === "eraser") {
       const erase = t === "eraser";
       strokeSegment(drag.current.last.x, drag.current.last.y, p.x, p.y, erase);
-      strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, p.x, p.y, erase, width);
-      recomposite();
+      if (!erase) strokeSegmentDisplay(drag.current.last.x, drag.current.last.y, p.x, p.y, erase, width);
+      recomposite(); blit();
     } else if (t === "line" || t === "rect" || t === "circle") {
       commitShape(t, drag.current.start.x, drag.current.start.y, p.x, p.y);
+      recomposite(); blit();
+    } else if (t === "move") {
+      // Already drawn during onMove. Just clear snapshot.
+      drag.current.moveSnap = null;
       recomposite(); blit();
     }
     drag.current.active = false;
@@ -612,15 +647,16 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
   // touch previewVersion so re-renders recompute thumb
   void previewVersion;
 
-  const TOOLS: { id: Tool; label: string; title: string }[] = [
-    { id: "brush", label: "✎", title: "Brush" },
-    { id: "eraser", label: "⌫", title: "Eraser" },
-    { id: "fill", label: "▣", title: "Fill" },
-    { id: "line", label: "／", title: "Line" },
-    { id: "rect", label: "▭", title: "Rectangle" },
-    { id: "circle", label: "◯", title: "Circle" },
-    { id: "picker", label: "◎", title: "Color picker" },
-    { id: "text", label: "T", title: "Text" },
+  const TOOLS: { id: Tool; icon: ReactNode; title: string }[] = [
+    { id: "brush", icon: <Pencil size={18} strokeWidth={2} />, title: "Pincel" },
+    { id: "eraser", icon: <Eraser size={18} strokeWidth={2} />, title: "Borrador" },
+    { id: "fill", icon: <PaintBucket size={18} strokeWidth={2} />, title: "Relleno" },
+    { id: "line", icon: <Slash size={18} strokeWidth={2} />, title: "Línea" },
+    { id: "rect", icon: <Square size={18} strokeWidth={2} />, title: "Rectángulo" },
+    { id: "circle", icon: <Circle size={18} strokeWidth={2} />, title: "Círculo" },
+    { id: "picker", icon: <Pipette size={18} strokeWidth={2} />, title: "Cuentagotas" },
+    { id: "text", icon: <Type size={18} strokeWidth={2} />, title: "Texto" },
+    { id: "move", icon: <Move size={18} strokeWidth={2} />, title: "Seleccionar y mover capa" },
   ];
 
   return (
@@ -773,16 +809,16 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
                   background: "linear-gradient(180deg, oklch(0.78 0.17 250), oklch(0.64 0.18 252))",
                   boxShadow: "inset 0 1px 0 oklch(1 0 0 / 0.25), 0 2px 8px -2px oklch(0.66 0.18 252 / 0.5)",
                 } : undefined}
-              >{t.label}</button>
+              >{t.icon}</button>
             ))}
           </div>
         </div>
 
         {/* History row */}
         <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} flex gap-1.5`}>
-          <button onClick={undo} title="Undo" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition text-lg">↶</button>
-          <button onClick={redo} title="Redo" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition text-lg">↷</button>
-          <button onClick={clearAll} title="Clear" className="flex-1 h-10 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition text-[12px] font-medium">Clear</button>
+          <button onClick={undo} title="Deshacer" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition flex items-center justify-center active:scale-95"><Undo2 size={16} /></button>
+          <button onClick={redo} title="Rehacer" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition flex items-center justify-center active:scale-95"><Redo2 size={16} /></button>
+          <button onClick={clearAll} title="Limpiar capa" className="flex-1 h-10 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition flex items-center justify-center gap-1.5 text-[12px] font-medium active:scale-95"><Trash2 size={14} /> Limpiar</button>
         </div>
 
         {/* Color + size card */}
@@ -922,16 +958,16 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
           }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold tracking-wider text-foreground/80">CAPAS · {layers.length}</span>
+            <span className="text-[11px] font-semibold tracking-wider text-foreground/80 inline-flex items-center gap-1.5"><Layers size={12} /> CAPAS · {layers.length}</span>
             <div className="flex gap-1">
               <button
                 onClick={addLayer}
-                className="text-[10px] font-semibold px-2.5 py-1 rounded-lg text-primary-foreground active:scale-95 transition"
+                className="text-[10px] font-semibold px-2.5 py-1 rounded-lg text-primary-foreground active:scale-95 transition inline-flex items-center gap-1"
                 style={{ background: "linear-gradient(180deg, oklch(0.78 0.17 250), oklch(0.66 0.18 252))" }}
-              >+ Nueva</button>
+              ><Plus size={12} strokeWidth={2.5} /> Nueva</button>
               <button
                 onClick={flatten}
-                className="text-[10px] font-medium px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-foreground/80"
+                className="text-[10px] font-medium px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-foreground/80 active:scale-95 transition"
               >Aplanar</button>
             </div>
           </div>
@@ -965,20 +1001,20 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
                   <button
                     onClick={(e) => { e.stopPropagation(); updateLayer(l.id, { visible: !l.visible }); }}
                     title={l.visible ? "Ocultar" : "Mostrar"}
-                    className={`w-7 h-7 grid place-items-center rounded-md transition ${l.visible ? "text-primary-glow" : "text-muted-foreground"}`}
-                  >{l.visible ? "👁" : "—"}</button>
+                    className={`w-7 h-7 grid place-items-center rounded-md transition hover:bg-white/5 ${l.visible ? "text-primary-glow" : "text-muted-foreground"}`}
+                  >{l.visible ? <Eye size={14} /> : <EyeOff size={14} />}</button>
                   <button
                     onClick={(e) => { e.stopPropagation(); updateLayer(l.id, { locked: !l.locked }); }}
                     title={l.locked ? "Desbloquear" : "Bloquear"}
-                    className={`w-7 h-7 grid place-items-center rounded-md transition text-sm ${l.locked ? "text-destructive" : "text-muted-foreground"}`}
-                  >{l.locked ? "🔒" : "🔓"}</button>
+                    className={`w-7 h-7 grid place-items-center rounded-md transition hover:bg-white/5 ${l.locked ? "text-destructive" : "text-muted-foreground"}`}
+                  >{l.locked ? <Lock size={14} /> : <Unlock size={14} />}</button>
                   <div className="flex flex-col">
-                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, 1); }} title="Subir" className="w-6 h-3.5 grid place-items-center text-[9px] text-muted-foreground hover:text-primary-glow">▲</button>
-                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, -1); }} title="Bajar" className="w-6 h-3.5 grid place-items-center text-[9px] text-muted-foreground hover:text-primary-glow">▼</button>
+                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, 1); }} title="Subir" className="w-6 h-3.5 grid place-items-center text-muted-foreground hover:text-primary-glow"><ChevronUp size={12} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, -1); }} title="Bajar" className="w-6 h-3.5 grid place-items-center text-muted-foreground hover:text-primary-glow"><ChevronDown size={12} /></button>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); duplicateLayer(l.id); }} title="Duplicar" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow text-sm">⧉</button>
-                  <button onClick={(e) => { e.stopPropagation(); mergeDown(l.id); }} title="Combinar con la inferior" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow text-sm">⊕</button>
-                  <button onClick={(e) => { e.stopPropagation(); deleteLayer(l.id); }} title="Borrar" className="w-7 h-7 grid place-items-center rounded-md text-destructive/70 hover:text-destructive text-xs">✕</button>
+                  <button onClick={(e) => { e.stopPropagation(); duplicateLayer(l.id); }} title="Duplicar" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow hover:bg-white/5"><Copy size={13} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); mergeDown(l.id); }} title="Combinar con la inferior" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow hover:bg-white/5"><Layers size={13} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); deleteLayer(l.id); }} title="Borrar" className="w-7 h-7 grid place-items-center rounded-md text-destructive/70 hover:text-destructive hover:bg-destructive/10"><Trash2 size={13} /></button>
                 </div>
               );
             })}
