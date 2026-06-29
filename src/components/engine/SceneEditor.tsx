@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Entity, EntityKind, Scene } from "@/lib/engine/core";
-import { KIND_PRESETS, uid, sortedForRender, isOnHiddenLayer } from "@/lib/engine/core";
+import { KIND_PRESETS, uid, sortedForRender, isOnHiddenLayer, layerOpacityFor } from "@/lib/engine/core";
 import { getRenderableImage } from "@/lib/engine/images";
 import { currentFrameRenderable } from "@/lib/engine/animations";
 
