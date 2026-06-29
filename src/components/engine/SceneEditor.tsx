@@ -252,6 +252,9 @@ export function SceneEditor({ scene, tool, selectedId, onSelect, onChange }: Pro
       const tSec = t / 1000;
       for (const e of sortedEnts) {
         ctx.save();
+        const la = layerOpacityFor(scene, e);
+        const ea = (e.opacity ?? 1) * la;
+        if (ea !== 1) ctx.globalAlpha = ea;
         const flipX = (e.facing === -1) !== !!e.flipX;
         const flipY = !!(e as Entity & { flipY?: boolean }).flipY;
         ctx.translate(e.x + (flipX ? e.w : 0), e.y + (flipY ? e.h : 0));
