@@ -1788,13 +1788,13 @@ function LayersPanel({
             <button
               onClick={() => bumpZ(e.id, 1)}
               title="Adelante"
-              className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
-            >▲</button>
+              className="w-5 h-5 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"
+            ><ArrowUp size={11} /></button>
             <button
               onClick={() => bumpZ(e.id, -1)}
               title="Atrás"
-              className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
-            >▼</button>
+              className="w-5 h-5 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"
+            ><ArrowDown size={11} /></button>
             <span
               className="w-2.5 h-2.5 rounded-sm shrink-0"
               style={{ background: e.color, boxShadow: visible ? `0 0 8px ${e.color}` : undefined, opacity: visible ? 1 : 0.3 }}
@@ -1809,29 +1809,29 @@ function LayersPanel({
             <button
               onClick={() => patch(e.id, { visible: !visible })}
               title={visible ? "Ocultar" : "Mostrar"}
-              className={`w-6 h-6 grid place-items-center rounded text-xs ${visible ? "text-primary-glow" : "text-muted-foreground/50"}`}
-            >{visible ? "◉" : "◌"}</button>
+              className={`w-6 h-6 grid place-items-center rounded ${visible ? "text-primary-glow" : "text-muted-foreground/50"}`}
+            >{visible ? <Eye size={13} /> : <EyeOff size={13} />}</button>
             <button
               onClick={() => patch(e.id, { locked: !locked })}
               title={locked ? "Desbloquear" : "Bloquear"}
-              className={`w-6 h-6 grid place-items-center rounded text-xs ${locked ? "text-destructive" : "text-muted-foreground/60"}`}
-            >{locked ? "🔒" : "🔓"}</button>
+              className={`w-6 h-6 grid place-items-center rounded ${locked ? "text-destructive" : "text-muted-foreground/60"}`}
+            >{locked ? <Lock size={13} /> : <Unlock size={13} />}</button>
             <button
               onClick={() => toTop(e.id)}
               title="Mover al frente"
-              className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
-            >⇈</button>
+              className="hidden sm:grid w-6 h-6 place-items-center rounded text-muted-foreground hover:text-primary-glow"
+            ><ChevronsUp size={12} /></button>
             <button
               onClick={() => toBottom(e.id)}
               title="Mover al fondo"
-              className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
-            >⇊</button>
+              className="hidden sm:grid w-6 h-6 place-items-center rounded text-muted-foreground hover:text-primary-glow"
+            ><ChevronsDown size={12} /></button>
             {e.kind !== "player" && (
               <button
                 onClick={() => remove(e.id)}
                 title="Borrar"
-                className="w-6 h-6 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive"
-              >✕</button>
+                className="w-6 h-6 grid place-items-center rounded text-destructive/70 hover:text-destructive"
+              ><Trash2 size={12} /></button>
             )}
           </div>
         );
