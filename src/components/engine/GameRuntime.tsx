@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Entity, RuntimeInput, RuntimeState, Scene, UIElement } from "@/lib/engine/core";
-import { stepScene, newRuntimeState, resolveUIRect, sortedForRender, isOnHiddenLayer } from "@/lib/engine/core";
+import { stepScene, newRuntimeState, resolveUIRect, sortedForRender, isOnHiddenLayer, layerOpacityFor } from "@/lib/engine/core";
 import { getRenderableImage } from "@/lib/engine/images";
 import { currentFrameRenderable } from "@/lib/engine/animations";
 import { createScriptRunner } from "@/lib/engine/scripts";
