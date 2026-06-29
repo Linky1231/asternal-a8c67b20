@@ -197,10 +197,11 @@ export function GameRuntime({
       const visualEffects = W >= 700;
       for (const e of drawList) {
         if (e.visible === false) continue;
-        const a = e.opacity ?? 1;
+        const la = layerOpacityFor(work, e);
+        const a = (e.opacity ?? 1) * la;
         // invuln blink
         if (e.controllable && state.invulnT > 0 && Math.floor(state.invulnT * 16) % 2 === 0) {
-          ctx.globalAlpha = 0.4;
+          ctx.globalAlpha = 0.4 * la;
         } else if (a !== 1) ctx.globalAlpha = a;
         drawEntity(ctx, e, tSec, visualEffects);
         ctx.globalAlpha = 1;
