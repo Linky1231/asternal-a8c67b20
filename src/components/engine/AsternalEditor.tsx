@@ -268,29 +268,29 @@ export function AsternalEditor() {
                     updateScene({ ...activeScene, entities: [...activeScene.entities, copy] });
                     setSelectedId(copy.id);
                   }}
-                  className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow font-display text-lg active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+                  className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow grid place-items-center active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
                   title="Duplicar asset (Ctrl+D)"
                   aria-label="Duplicar"
-                >⧉</button>
+                ><Copy size={18} /></button>
               )}
               <button
                 onClick={() => setLayersOpen(o => !o)}
-                className={`pointer-events-auto w-11 h-11 rounded-full panel glow-border font-display text-lg active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)] ${layersOpen ? "text-primary-foreground bg-primary" : "text-primary-glow"}`}
+                className={`pointer-events-auto w-11 h-11 rounded-full panel glow-border grid place-items-center active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)] ${layersOpen ? "text-primary-foreground bg-primary" : "text-primary-glow"}`}
                 title="Capas de la escena"
                 aria-label="Capas"
-              >☰</button>
+              ><Layers size={18} /></button>
               <button
                 onClick={() => setLibraryOpen(true)}
-                className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow font-display text-lg active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+                className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow grid place-items-center active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
                 title={t("library.title")}
                 aria-label="Library"
-              >★</button>
+              ><Star size={18} /></button>
             </div>
             {layersOpen && (
               <div className="pointer-events-auto absolute right-3 bottom-3 z-30 w-[300px] max-h-[70vh] overflow-auto rounded-xl panel border border-primary/30 view-slide-right">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
                   <span className="text-[10px] font-display tracking-widest text-primary-glow">CAPAS DE LA ESCENA</span>
-                  <button onClick={() => setLayersOpen(false)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+                  <button onClick={() => setLayersOpen(false)} className="text-muted-foreground hover:text-foreground grid place-items-center w-6 h-6 rounded"><X size={14} /></button>
                 </div>
                 <div className="p-2">
                   <SceneLayersPanel scene={activeScene} onChangeScene={updateScene} />
