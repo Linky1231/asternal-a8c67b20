@@ -1857,6 +1857,18 @@ function SceneLayersPanel({
     const id = uid();
     setLayers([...layers, { id, name: `Capa ${layers.length + 1}`, z: maxZ + 1, visible: true, locked: false, opacity: 1 }]);
   };
+  const duplicate = (id: string) => {
+    const src = layers.find(l => l.id === id);
+    if (!src) return;
+    const newId = uid();
+    const maxZ = layers.reduce((m, l) => Math.max(m, l.z), 0);
+    const copy: SceneLayer = { ...src, id: newId, name: `${src.name} copia`, z: maxZ + 1 };
+    // also clone entities on this layer to the new layer
+    const clonedEnts: Entity[] = scene.entities
+      .filter(e => (e.layerId ?? DEFAULT_LAYER_ID) === id)
+      .map(e => ({ ...e, id: uid(), layerId: newId }));
+    onChangeScene({ ...scene, layers: [...layers, copy], entities: [...scene.entities, ...clonedEnts] });
+  };
   const remove = (id: string) => {
     if (layers.length <= 1) return;
     if (!confirm(`Borrar capa? Las entidades pasarán a la capa principal.`)) return;
@@ -1874,7 +1886,6 @@ function SceneLayersPanel({
     if (j < 0 || j >= layers.length) return;
     const next = [...layers];
     [next[idx], next[j]] = [next[j], next[idx]];
-    // re-sequence z to match new order
     next.forEach((l, i) => { l.z = i; });
     setLayers(next);
   };
@@ -1895,11 +1906,12 @@ function SceneLayersPanel({
         <span className="text-[10px] font-display tracking-widest text-primary-glow">{t("scene.layers")} · {layers.length}</span>
         <button
           onClick={addLayer}
-          className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary-glow active:scale-95 transition"
-        >{t("layers.add")}</button>
+          className="flex items-center gap-1 text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary-glow active:scale-95 transition"
+        ><Plus size={11} /> {t("layers.add")}</button>
       </div>
       {[...layers].sort((a, b) => b.z - a.z).map((l) => {
         const count = scene.entities.filter(e => (e.layerId ?? DEFAULT_LAYER_ID) === l.id).length;
+        const op = l.opacity ?? 1;
         return (
           <div key={l.id} className="rounded-md border border-border/50 bg-white/[0.02] p-2 space-y-1.5 transition-all hover:border-primary/40">
             <div className="flex items-center gap-1.5">
@@ -1915,7 +1927,7 @@ function SceneLayersPanel({
                 onClick={() => update(l.id, { visible: !l.visible })}
                 title={l.visible ? "Ocultar" : "Mostrar"}
                 className={`w-8 h-7 grid place-items-center rounded transition ${l.visible ? "text-primary-glow bg-primary/15" : "text-muted-foreground bg-muted/30"}`}
-              >{l.visible ? "◉" : "○"}</button>
+              >{l.visible ? <Eye size={14} /> : <EyeOff size={14} />}</button>
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] font-mono text-muted-foreground w-3">Z</span>
                 <input
@@ -1927,15 +1939,29 @@ function SceneLayersPanel({
                 <button
                   onClick={() => update(l.id, { locked: !l.locked })}
                   title={l.locked ? "Desbloquear" : "Bloquear"}
-                  className={`w-8 h-7 grid place-items-center rounded transition text-sm ${l.locked ? "text-destructive bg-destructive/15" : "text-muted-foreground bg-muted/30"}`}
-                >{l.locked ? "🔒" : "🔓"}</button>
+                  className={`w-8 h-7 grid place-items-center rounded transition ${l.locked ? "text-destructive bg-destructive/15" : "text-muted-foreground bg-muted/30"}`}
+                >{l.locked ? <Lock size={14} /> : <Unlock size={14} />}</button>
               </div>
               <div className="flex items-center gap-0.5">
-                <button onClick={() => move(l.id, 1)} title="Subir" className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">↑</button>
-                <button onClick={() => move(l.id, -1)} title="Bajar" className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">↓</button>
-                <button onClick={() => mergeDown(l.id)} title={t("layers.merge")} className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">⊕</button>
-                <button onClick={() => remove(l.id)} title="Borrar" className="w-6 h-7 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive">✕</button>
+                <button onClick={() => move(l.id, 1)} title="Subir" className="w-6 h-7 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"><ArrowUp size={12} /></button>
+                <button onClick={() => move(l.id, -1)} title="Bajar" className="w-6 h-7 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"><ArrowDown size={12} /></button>
+                <button onClick={() => duplicate(l.id)} title="Duplicar capa" className="w-6 h-7 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"><Copy size={12} /></button>
+                <button onClick={() => mergeDown(l.id)} title={t("layers.merge")} className="w-6 h-7 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"><Merge size={12} /></button>
+                <button onClick={() => remove(l.id)} title="Borrar" className="w-6 h-7 grid place-items-center rounded text-destructive/70 hover:text-destructive"><Trash2 size={12} /></button>
               </div>
+            </div>
+            <div className="flex items-center gap-2 pt-0.5">
+              <span className="text-[9px] font-mono text-muted-foreground w-10 shrink-0">OPAC.</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={op}
+                onChange={e => update(l.id, { opacity: Number(e.target.value) })}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-[9px] font-mono text-muted-foreground tabular-nums w-9 text-right">{Math.round(op * 100)}%</span>
             </div>
           </div>
         );
