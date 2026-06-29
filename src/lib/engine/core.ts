@@ -189,6 +189,14 @@ export function isOnHiddenLayer(scene: Scene, e: Entity): boolean {
   return !!l && l.visible === false;
 }
 
+/** Opacity contribution from the entity's scene layer (1 if none). */
+export function layerOpacityFor(scene: Scene, e: Entity): number {
+  if (!e.layerId || !scene.layers) return 1;
+  const l = scene.layers.find(x => x.id === e.layerId);
+  if (!l) return 1;
+  return l.opacity ?? 1;
+}
+
 export interface ProjectSettings {
   fpsCap: 30 | 60;
   showHUD: boolean;

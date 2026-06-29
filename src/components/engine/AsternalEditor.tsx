@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Settings, Layers } from "lucide-react";
+import { Settings, Layers, Copy, Star, X, Eye, EyeOff, Lock, Unlock, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Trash2, Merge, Plus } from "lucide-react";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox, SceneLayer } from "@/lib/engine/core";
 import { newScene, uid, DEFAULT_SETTINGS, ensureSceneLayers, DEFAULT_LAYER_ID } from "@/lib/engine/core";
 import { loadProject, loadProjectById, saveProject, saveProjectById, getCurrentProjectId, setCurrentProjectId } from "@/lib/engine/storage";
@@ -268,29 +268,29 @@ export function AsternalEditor() {
                     updateScene({ ...activeScene, entities: [...activeScene.entities, copy] });
                     setSelectedId(copy.id);
                   }}
-                  className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow font-display text-lg active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+                  className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow grid place-items-center active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
                   title="Duplicar asset (Ctrl+D)"
                   aria-label="Duplicar"
-                >⧉</button>
+                ><Copy size={18} /></button>
               )}
               <button
                 onClick={() => setLayersOpen(o => !o)}
-                className={`pointer-events-auto w-11 h-11 rounded-full panel glow-border font-display text-lg active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)] ${layersOpen ? "text-primary-foreground bg-primary" : "text-primary-glow"}`}
+                className={`pointer-events-auto w-11 h-11 rounded-full panel glow-border grid place-items-center active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)] ${layersOpen ? "text-primary-foreground bg-primary" : "text-primary-glow"}`}
                 title="Capas de la escena"
                 aria-label="Capas"
-              >☰</button>
+              ><Layers size={18} /></button>
               <button
                 onClick={() => setLibraryOpen(true)}
-                className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow font-display text-lg active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+                className="pointer-events-auto w-11 h-11 rounded-full panel glow-border text-primary-glow grid place-items-center active:scale-90 transition shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
                 title={t("library.title")}
                 aria-label="Library"
-              >★</button>
+              ><Star size={18} /></button>
             </div>
             {layersOpen && (
               <div className="pointer-events-auto absolute right-3 bottom-3 z-30 w-[300px] max-h-[70vh] overflow-auto rounded-xl panel border border-primary/30 view-slide-right">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
                   <span className="text-[10px] font-display tracking-widest text-primary-glow">CAPAS DE LA ESCENA</span>
-                  <button onClick={() => setLayersOpen(false)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+                  <button onClick={() => setLayersOpen(false)} className="text-muted-foreground hover:text-foreground grid place-items-center w-6 h-6 rounded"><X size={14} /></button>
                 </div>
                 <div className="p-2">
                   <SceneLayersPanel scene={activeScene} onChangeScene={updateScene} />
@@ -1788,13 +1788,13 @@ function LayersPanel({
             <button
               onClick={() => bumpZ(e.id, 1)}
               title="Adelante"
-              className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
-            >▲</button>
+              className="w-5 h-5 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"
+            ><ArrowUp size={11} /></button>
             <button
               onClick={() => bumpZ(e.id, -1)}
               title="Atrás"
-              className="w-5 h-5 grid place-items-center rounded text-[9px] font-mono text-muted-foreground hover:text-primary-glow"
-            >▼</button>
+              className="w-5 h-5 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"
+            ><ArrowDown size={11} /></button>
             <span
               className="w-2.5 h-2.5 rounded-sm shrink-0"
               style={{ background: e.color, boxShadow: visible ? `0 0 8px ${e.color}` : undefined, opacity: visible ? 1 : 0.3 }}
@@ -1809,29 +1809,29 @@ function LayersPanel({
             <button
               onClick={() => patch(e.id, { visible: !visible })}
               title={visible ? "Ocultar" : "Mostrar"}
-              className={`w-6 h-6 grid place-items-center rounded text-xs ${visible ? "text-primary-glow" : "text-muted-foreground/50"}`}
-            >{visible ? "◉" : "◌"}</button>
+              className={`w-6 h-6 grid place-items-center rounded ${visible ? "text-primary-glow" : "text-muted-foreground/50"}`}
+            >{visible ? <Eye size={13} /> : <EyeOff size={13} />}</button>
             <button
               onClick={() => patch(e.id, { locked: !locked })}
               title={locked ? "Desbloquear" : "Bloquear"}
-              className={`w-6 h-6 grid place-items-center rounded text-xs ${locked ? "text-destructive" : "text-muted-foreground/60"}`}
-            >{locked ? "🔒" : "🔓"}</button>
+              className={`w-6 h-6 grid place-items-center rounded ${locked ? "text-destructive" : "text-muted-foreground/60"}`}
+            >{locked ? <Lock size={13} /> : <Unlock size={13} />}</button>
             <button
               onClick={() => toTop(e.id)}
               title="Mover al frente"
-              className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
-            >⇈</button>
+              className="hidden sm:grid w-6 h-6 place-items-center rounded text-muted-foreground hover:text-primary-glow"
+            ><ChevronsUp size={12} /></button>
             <button
               onClick={() => toBottom(e.id)}
               title="Mover al fondo"
-              className="hidden sm:grid w-6 h-6 place-items-center rounded text-[9px] text-muted-foreground"
-            >⇊</button>
+              className="hidden sm:grid w-6 h-6 place-items-center rounded text-muted-foreground hover:text-primary-glow"
+            ><ChevronsDown size={12} /></button>
             {e.kind !== "player" && (
               <button
                 onClick={() => remove(e.id)}
                 title="Borrar"
-                className="w-6 h-6 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive"
-              >✕</button>
+                className="w-6 h-6 grid place-items-center rounded text-destructive/70 hover:text-destructive"
+              ><Trash2 size={12} /></button>
             )}
           </div>
         );
@@ -1857,6 +1857,18 @@ function SceneLayersPanel({
     const id = uid();
     setLayers([...layers, { id, name: `Capa ${layers.length + 1}`, z: maxZ + 1, visible: true, locked: false, opacity: 1 }]);
   };
+  const duplicate = (id: string) => {
+    const src = layers.find(l => l.id === id);
+    if (!src) return;
+    const newId = uid();
+    const maxZ = layers.reduce((m, l) => Math.max(m, l.z), 0);
+    const copy: SceneLayer = { ...src, id: newId, name: `${src.name} copia`, z: maxZ + 1 };
+    // also clone entities on this layer to the new layer
+    const clonedEnts: Entity[] = scene.entities
+      .filter(e => (e.layerId ?? DEFAULT_LAYER_ID) === id)
+      .map(e => ({ ...e, id: uid(), layerId: newId }));
+    onChangeScene({ ...scene, layers: [...layers, copy], entities: [...scene.entities, ...clonedEnts] });
+  };
   const remove = (id: string) => {
     if (layers.length <= 1) return;
     if (!confirm(`Borrar capa? Las entidades pasarán a la capa principal.`)) return;
@@ -1874,7 +1886,6 @@ function SceneLayersPanel({
     if (j < 0 || j >= layers.length) return;
     const next = [...layers];
     [next[idx], next[j]] = [next[j], next[idx]];
-    // re-sequence z to match new order
     next.forEach((l, i) => { l.z = i; });
     setLayers(next);
   };
@@ -1895,11 +1906,12 @@ function SceneLayersPanel({
         <span className="text-[10px] font-display tracking-widest text-primary-glow">{t("scene.layers")} · {layers.length}</span>
         <button
           onClick={addLayer}
-          className="text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary-glow active:scale-95 transition"
-        >{t("layers.add")}</button>
+          className="flex items-center gap-1 text-[10px] font-display tracking-widest px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary-glow active:scale-95 transition"
+        ><Plus size={11} /> {t("layers.add")}</button>
       </div>
       {[...layers].sort((a, b) => b.z - a.z).map((l) => {
         const count = scene.entities.filter(e => (e.layerId ?? DEFAULT_LAYER_ID) === l.id).length;
+        const op = l.opacity ?? 1;
         return (
           <div key={l.id} className="rounded-md border border-border/50 bg-white/[0.02] p-2 space-y-1.5 transition-all hover:border-primary/40">
             <div className="flex items-center gap-1.5">
@@ -1915,7 +1927,7 @@ function SceneLayersPanel({
                 onClick={() => update(l.id, { visible: !l.visible })}
                 title={l.visible ? "Ocultar" : "Mostrar"}
                 className={`w-8 h-7 grid place-items-center rounded transition ${l.visible ? "text-primary-glow bg-primary/15" : "text-muted-foreground bg-muted/30"}`}
-              >{l.visible ? "◉" : "○"}</button>
+              >{l.visible ? <Eye size={14} /> : <EyeOff size={14} />}</button>
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] font-mono text-muted-foreground w-3">Z</span>
                 <input
@@ -1927,15 +1939,29 @@ function SceneLayersPanel({
                 <button
                   onClick={() => update(l.id, { locked: !l.locked })}
                   title={l.locked ? "Desbloquear" : "Bloquear"}
-                  className={`w-8 h-7 grid place-items-center rounded transition text-sm ${l.locked ? "text-destructive bg-destructive/15" : "text-muted-foreground bg-muted/30"}`}
-                >{l.locked ? "🔒" : "🔓"}</button>
+                  className={`w-8 h-7 grid place-items-center rounded transition ${l.locked ? "text-destructive bg-destructive/15" : "text-muted-foreground bg-muted/30"}`}
+                >{l.locked ? <Lock size={14} /> : <Unlock size={14} />}</button>
               </div>
               <div className="flex items-center gap-0.5">
-                <button onClick={() => move(l.id, 1)} title="Subir" className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">↑</button>
-                <button onClick={() => move(l.id, -1)} title="Bajar" className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">↓</button>
-                <button onClick={() => mergeDown(l.id)} title={t("layers.merge")} className="w-6 h-7 grid place-items-center rounded text-xs text-muted-foreground hover:text-primary-glow">⊕</button>
-                <button onClick={() => remove(l.id)} title="Borrar" className="w-6 h-7 grid place-items-center rounded text-xs text-destructive/70 hover:text-destructive">✕</button>
+                <button onClick={() => move(l.id, 1)} title="Subir" className="w-6 h-7 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"><ArrowUp size={12} /></button>
+                <button onClick={() => move(l.id, -1)} title="Bajar" className="w-6 h-7 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"><ArrowDown size={12} /></button>
+                <button onClick={() => duplicate(l.id)} title="Duplicar capa" className="w-6 h-7 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"><Copy size={12} /></button>
+                <button onClick={() => mergeDown(l.id)} title={t("layers.merge")} className="w-6 h-7 grid place-items-center rounded text-muted-foreground hover:text-primary-glow"><Merge size={12} /></button>
+                <button onClick={() => remove(l.id)} title="Borrar" className="w-6 h-7 grid place-items-center rounded text-destructive/70 hover:text-destructive"><Trash2 size={12} /></button>
               </div>
+            </div>
+            <div className="flex items-center gap-2 pt-0.5">
+              <span className="text-[9px] font-mono text-muted-foreground w-10 shrink-0">OPAC.</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={op}
+                onChange={e => update(l.id, { opacity: Number(e.target.value) })}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-[9px] font-mono text-muted-foreground tabular-nums w-9 text-right">{Math.round(op * 100)}%</span>
             </div>
           </div>
         );
