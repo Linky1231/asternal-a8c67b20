@@ -253,18 +253,23 @@ export function GameRuntime({
       const uiState = { score: state.score, lives: state.lives, time: state.time, timeLimit: work.timeLimit, startLives: work.startLives };
       for (const el of (work.ui ?? [])) {
         if (el.visible === false) continue;
-        drawUIElement(ctx, el, W2, H2, tick, uiState);
         if (el.kind === "joystick") {
+          // Custom joystick render: single base + real knob (no duplicate preview knob).
           const r = resolveUIRect(el, W2, H2);
           const rad = Math.min(r.w, r.h) / 2;
-          const k = joyKnobs.current.get(el.id);
-          const kx = r.x + r.w / 2 + (k?.dx ?? 0);
-          const ky = r.y + r.h / 2 + (k?.dy ?? 0);
-          ctx.fillStyle = el.color ?? "#7dd3fc";
+          const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
           ctx.globalAlpha = el.opacity ?? 1;
+          ctx.fillStyle = el.bg ?? "rgba(2,6,23,0.4)";
+          ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
+          const k = joyKnobs.current.get(el.id);
+          const kx = cx + (k?.dx ?? 0);
+          const ky = cy + (k?.dy ?? 0);
+          ctx.fillStyle = el.color ?? "#7dd3fc";
           ctx.beginPath(); ctx.arc(kx, ky, rad / 2.2, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
+          continue;
         }
+        drawUIElement(ctx, el, W2, H2, tick, uiState);
       }
     };
 

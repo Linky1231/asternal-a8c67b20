@@ -315,6 +315,27 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
       data[i] = fr; data[i + 1] = fg; data[i + 2] = fb; data[i + 3] = 255;
       stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
     }
+    // Dilate filled mask by 2px to eat into AA halo and remove leftover gaps.
+    let mask = visited;
+    for (let pass = 0; pass < 2; pass++) {
+      const next = new Uint8Array(mask);
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const p = y * W + x;
+          if (mask[p]) continue;
+          const up = y > 0 && mask[p - W];
+          const dn = y < H - 1 && mask[p + W];
+          const lf = x > 0 && mask[p - 1];
+          const rt = x < W - 1 && mask[p + 1];
+          if (up || dn || lf || rt) {
+            next[p] = 1;
+            const i = p * 4;
+            data[i] = fr; data[i + 1] = fg; data[i + 2] = fb; data[i + 3] = 255;
+          }
+        }
+      }
+      mask = next;
+    }
     c.putImageData(img, 0, 0);
   };
 
