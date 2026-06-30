@@ -757,7 +757,7 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
             }}
           >
             <div
-              className="w-full h-full rounded-xl overflow-hidden"
+              className="w-full h-full rounded-sm overflow-hidden"
               style={{
                 backgroundImage:
                   "linear-gradient(45deg, oklch(0.93 0 0) 25%, transparent 25%), linear-gradient(-45deg, oklch(0.93 0 0) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, oklch(0.93 0 0) 75%), linear-gradient(-45deg, transparent 75%, oklch(0.93 0 0) 75%)",
