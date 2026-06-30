@@ -716,7 +716,14 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
             onChange={(e) => setName(e.target.value)}
             className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-[13px] font-medium tracking-tight min-w-0 flex-1 max-w-[180px] focus:outline-none focus:border-primary/50 focus:bg-white/10 transition"
           />
-          <span className="text-[10px] font-mono text-muted-foreground shrink-0 tabular-nums">{size}×{size}</span>
+          <select
+            value={size}
+            onChange={(e) => changeSize(Number(e.target.value))}
+            className="bg-white/5 border border-white/10 rounded-md px-2 py-1 text-[10px] font-mono tracking-tight focus:outline-none focus:border-primary/50 tabular-nums shrink-0"
+            aria-label="Tamaño del lienzo"
+          >
+            {SIZE_OPTIONS.map(s => <option key={s} value={s}>{s}×{s}</option>)}
+          </select>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button
