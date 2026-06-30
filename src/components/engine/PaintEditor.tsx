@@ -16,6 +16,8 @@ interface Props {
   size?: number;
 }
 
+const SIZE_OPTIONS = [128, 256, 512, 768, 1024];
+
 interface PaintLayer {
   id: string;
   name: string;
@@ -75,9 +77,23 @@ const PALETTES: { name: string; colors: string[] }[] = [
 
 const FONTS = ["Rajdhani", "Orbitron", "JetBrains Mono", "Georgia", "Arial"];
 
-export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
+export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props) {
   const ff = useFormFactor();
   const isWide = ff === "tablet" || ff === "desktop";
+  const [size, setSize] = useState<number>(initialSize);
+  const changeSize = (next: number) => {
+    if (next === size) return;
+    const hasContent = layersRef.current.some(l => {
+      const ctx = l.canvas.getContext("2d")!;
+      const d = ctx.getImageData(0, 0, l.canvas.width, l.canvas.height).data;
+      for (let i = 3; i < d.length; i += 4) if (d[i] !== 0) return true;
+      return false;
+    });
+    if (hasContent && !confirm("Cambiar el tamaño del lienzo borrará el dibujo actual. ¿Continuar?")) return;
+    undoStack.current = [];
+    redoStack.current = [];
+    setSize(next);
+  };
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#38bdf8");
   const [width, setWidth] = useState(6);
@@ -268,21 +284,34 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
     const c = bctx();
     const img = c.getImageData(0, 0, size, size);
     const data = img.data;
-    const idx = (x: number, y: number) => (y * size + x) * 4;
+    const W = size, H = size;
+    const idx = (x: number, y: number) => (y * W + x) * 4;
     const startX = Math.floor(sx), startY = Math.floor(sy);
-    if (startX < 0 || startY < 0 || startX >= size || startY >= size) return;
+    if (startX < 0 || startY < 0 || startX >= W || startY >= H) return;
     const i0 = idx(startX, startY);
     const tr = data[i0], tg = data[i0 + 1], tb = data[i0 + 2], ta = data[i0 + 3];
     const fr = parseInt(hex.slice(1, 3), 16);
     const fg = parseInt(hex.slice(3, 5), 16);
     const fb = parseInt(hex.slice(5, 7), 16);
-    if (tr === fr && tg === fg && tb === fb && ta === 255) return;
+    // Tolerance handles anti-aliased edges so no thin halo remains.
+    const TOL = 90 * 90; // squared color distance
+    const TOL_A = 80;     // alpha tolerance
+    const matches = (i: number) => {
+      const dr = data[i] - tr, dg = data[i + 1] - tg, db = data[i + 2] - tb;
+      const da = Math.abs(data[i + 3] - ta);
+      return (dr * dr + dg * dg + db * db) <= TOL && da <= TOL_A;
+    };
+    if (data[i0] === fr && data[i0 + 1] === fg && data[i0 + 2] === fb && data[i0 + 3] === 255) return;
+    const visited = new Uint8Array(W * H);
     const stack: number[] = [startX, startY];
     while (stack.length) {
       const y = stack.pop()!, x = stack.pop()!;
-      if (x < 0 || y < 0 || x >= size || y >= size) continue;
-      const i = idx(x, y);
-      if (data[i] !== tr || data[i + 1] !== tg || data[i + 2] !== tb || data[i + 3] !== ta) continue;
+      if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      const vi = y * W + x;
+      if (visited[vi]) continue;
+      const i = vi * 4;
+      if (!matches(i)) continue;
+      visited[vi] = 1;
       data[i] = fr; data[i + 1] = fg; data[i + 2] = fb; data[i + 3] = 255;
       stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
     }
@@ -687,7 +716,14 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
             onChange={(e) => setName(e.target.value)}
             className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-[13px] font-medium tracking-tight min-w-0 flex-1 max-w-[180px] focus:outline-none focus:border-primary/50 focus:bg-white/10 transition"
           />
-          <span className="text-[10px] font-mono text-muted-foreground shrink-0 tabular-nums">{size}×{size}</span>
+          <select
+            value={size}
+            onChange={(e) => changeSize(Number(e.target.value))}
+            className="bg-white/5 border border-white/10 rounded-md px-2 py-1 text-[10px] font-mono tracking-tight focus:outline-none focus:border-primary/50 tabular-nums shrink-0"
+            aria-label="Tamaño del lienzo"
+          >
+            {SIZE_OPTIONS.map(s => <option key={s} value={s}>{s}×{s}</option>)}
+          </select>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button
@@ -711,9 +747,9 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
 
       <div className="flex-1 min-h-0 flex flex-col overflow-auto px-4 py-4 gap-4">
         {/* Canvas surface */}
-        <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} aspect-square relative`}>
+        <div key={`canvas-${size}`} className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} aspect-square relative view-fade`}>
           <div
-            className="absolute inset-0 rounded-2xl p-[10px]"
+            className="absolute inset-0 rounded-md p-[10px]"
             style={{
               background: "linear-gradient(180deg, oklch(0.28 0.05 260 / 0.6), oklch(0.18 0.04 265 / 0.6))",
               boxShadow:
@@ -721,7 +757,7 @@ export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
             }}
           >
             <div
-              className="w-full h-full rounded-xl overflow-hidden"
+              className="w-full h-full rounded-sm overflow-hidden"
               style={{
                 backgroundImage:
                   "linear-gradient(45deg, oklch(0.93 0 0) 25%, transparent 25%), linear-gradient(-45deg, oklch(0.93 0 0) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, oklch(0.93 0 0) 75%), linear-gradient(-45deg, transparent 75%, oklch(0.93 0 0) 75%)",
