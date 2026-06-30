@@ -749,7 +749,7 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
         {/* Canvas surface */}
         <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} aspect-square relative`}>
           <div
-            className="absolute inset-0 rounded-2xl p-[10px]"
+            className="absolute inset-0 rounded-md p-[10px]"
             style={{
               background: "linear-gradient(180deg, oklch(0.28 0.05 260 / 0.6), oklch(0.18 0.04 265 / 0.6))",
               boxShadow:
