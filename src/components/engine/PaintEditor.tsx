@@ -747,7 +747,7 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
 
       <div className="flex-1 min-h-0 flex flex-col overflow-auto px-4 py-4 gap-4">
         {/* Canvas surface */}
-        <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} aspect-square relative`}>
+        <div key={`canvas-${size}`} className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} aspect-square relative view-fade`}>
           <div
             className="absolute inset-0 rounded-md p-[10px]"
             style={{
