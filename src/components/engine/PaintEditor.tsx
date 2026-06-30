@@ -284,21 +284,34 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
     const c = bctx();
     const img = c.getImageData(0, 0, size, size);
     const data = img.data;
-    const idx = (x: number, y: number) => (y * size + x) * 4;
+    const W = size, H = size;
+    const idx = (x: number, y: number) => (y * W + x) * 4;
     const startX = Math.floor(sx), startY = Math.floor(sy);
-    if (startX < 0 || startY < 0 || startX >= size || startY >= size) return;
+    if (startX < 0 || startY < 0 || startX >= W || startY >= H) return;
     const i0 = idx(startX, startY);
     const tr = data[i0], tg = data[i0 + 1], tb = data[i0 + 2], ta = data[i0 + 3];
     const fr = parseInt(hex.slice(1, 3), 16);
     const fg = parseInt(hex.slice(3, 5), 16);
     const fb = parseInt(hex.slice(5, 7), 16);
-    if (tr === fr && tg === fg && tb === fb && ta === 255) return;
+    // Tolerance handles anti-aliased edges so no thin halo remains.
+    const TOL = 90 * 90; // squared color distance
+    const TOL_A = 80;     // alpha tolerance
+    const matches = (i: number) => {
+      const dr = data[i] - tr, dg = data[i + 1] - tg, db = data[i + 2] - tb;
+      const da = Math.abs(data[i + 3] - ta);
+      return (dr * dr + dg * dg + db * db) <= TOL && da <= TOL_A;
+    };
+    if (data[i0] === fr && data[i0 + 1] === fg && data[i0 + 2] === fb && data[i0 + 3] === 255) return;
+    const visited = new Uint8Array(W * H);
     const stack: number[] = [startX, startY];
     while (stack.length) {
       const y = stack.pop()!, x = stack.pop()!;
-      if (x < 0 || y < 0 || x >= size || y >= size) continue;
-      const i = idx(x, y);
-      if (data[i] !== tr || data[i + 1] !== tg || data[i + 2] !== tb || data[i + 3] !== ta) continue;
+      if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      const vi = y * W + x;
+      if (visited[vi]) continue;
+      const i = vi * 4;
+      if (!matches(i)) continue;
+      visited[vi] = 1;
       data[i] = fr; data[i + 1] = fg; data[i + 2] = fb; data[i + 3] = 255;
       stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
     }
