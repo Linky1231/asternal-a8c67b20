@@ -16,6 +16,8 @@ interface Props {
   size?: number;
 }
 
+const SIZE_OPTIONS = [128, 256, 512, 768, 1024];
+
 interface PaintLayer {
   id: string;
   name: string;
