@@ -77,9 +77,23 @@ const PALETTES: { name: string; colors: string[] }[] = [
 
 const FONTS = ["Rajdhani", "Orbitron", "JetBrains Mono", "Georgia", "Arial"];
 
-export function PaintEditor({ onSave, onClose, size = 512 }: Props) {
+export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props) {
   const ff = useFormFactor();
   const isWide = ff === "tablet" || ff === "desktop";
+  const [size, setSize] = useState<number>(initialSize);
+  const changeSize = (next: number) => {
+    if (next === size) return;
+    const hasContent = layersRef.current.some(l => {
+      const ctx = l.canvas.getContext("2d")!;
+      const d = ctx.getImageData(0, 0, l.canvas.width, l.canvas.height).data;
+      for (let i = 3; i < d.length; i += 4) if (d[i] !== 0) return true;
+      return false;
+    });
+    if (hasContent && !confirm("Cambiar el tamaño del lienzo borrará el dibujo actual. ¿Continuar?")) return;
+    undoStack.current = [];
+    redoStack.current = [];
+    setSize(next);
+  };
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#38bdf8");
   const [width, setWidth] = useState(6);
