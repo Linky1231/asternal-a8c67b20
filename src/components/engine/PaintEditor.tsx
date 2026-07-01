@@ -1040,12 +1040,12 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
                   <div
                     className="w-9 h-9 rounded-md shrink-0"
                     style={{
-                      backgroundColor: "#1a1f2e",
+                      backgroundColor: "#ffffff",
                       backgroundImage: `url(${(() => { try { return l.canvas.toDataURL("image/png"); } catch { return ""; }})()})`,
                       backgroundSize: "contain",
                       backgroundPosition: "center",
                       backgroundRepeat: "no-repeat",
-                      boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.08)",
+                      boxShadow: "inset 0 0 0 1px oklch(0.82 0.01 250 / 0.6)",
                       opacity: l.visible ? 1 : 0.35,
                     }}
                   />
