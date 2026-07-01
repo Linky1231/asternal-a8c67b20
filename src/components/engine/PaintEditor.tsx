@@ -711,11 +711,11 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--gradient-deep)" }}>
-      {/* Top bar — Apple-style translucent */}
+      {/* Top bar — light translucent */}
       <div
         className="flex items-center justify-between px-4 py-2.5 border-b border-border gap-2 shrink-0"
         style={{
-          background: "linear-gradient(180deg, oklch(0.22 0.04 260 / 0.85), oklch(0.18 0.035 263 / 0.7))",
+          background: "linear-gradient(180deg, oklch(1 0 0 / 0.9), oklch(0.97 0.005 250 / 0.8))",
           backdropFilter: "blur(20px) saturate(180%)",
         }}
       >
