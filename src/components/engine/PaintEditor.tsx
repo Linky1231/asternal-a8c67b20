@@ -772,19 +772,19 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
           <div
             className="absolute inset-0 rounded-md p-[10px]"
             style={{
-              background: "linear-gradient(180deg, oklch(0.28 0.05 260 / 0.6), oklch(0.18 0.04 265 / 0.6))",
+              background: "linear-gradient(180deg, oklch(0.97 0.005 250), oklch(0.93 0.008 250))",
               boxShadow:
-                "inset 0 1px 0 oklch(1 0 0 / 0.08), 0 20px 60px -20px oklch(0 0 0 / 0.55), 0 0 0 1px oklch(1 0 0 / 0.05)",
+                "inset 0 1px 0 oklch(1 0 0 / 0.7), 0 12px 40px -18px oklch(0.4 0.05 258 / 0.28), 0 0 0 1px oklch(0.82 0.01 250 / 0.6)",
             }}
           >
             <div
               className="w-full h-full rounded-sm overflow-hidden"
               style={{
                 backgroundImage:
-                  "linear-gradient(45deg, oklch(0.93 0 0) 25%, transparent 25%), linear-gradient(-45deg, oklch(0.93 0 0) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, oklch(0.93 0 0) 75%), linear-gradient(-45deg, transparent 75%, oklch(0.93 0 0) 75%)",
+                  "linear-gradient(45deg, oklch(0.88 0 0) 25%, transparent 25%), linear-gradient(-45deg, oklch(0.88 0 0) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, oklch(0.88 0 0) 75%), linear-gradient(-45deg, transparent 75%, oklch(0.88 0 0) 75%)",
                 backgroundSize: "16px 16px",
                 backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0",
-                backgroundColor: "#fcfcfc",
+                backgroundColor: "#ffffff",
               }}
             >
               <canvas
