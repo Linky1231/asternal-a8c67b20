@@ -713,7 +713,7 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--gradient-deep)" }}>
       {/* Top bar — Apple-style translucent */}
       <div
-        className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 gap-2 shrink-0"
+        className="flex items-center justify-between px-4 py-2.5 border-b border-border gap-2 shrink-0"
         style={{
           background: "linear-gradient(180deg, oklch(0.22 0.04 260 / 0.85), oklch(0.18 0.035 263 / 0.7))",
           backdropFilter: "blur(20px) saturate(180%)",
@@ -735,12 +735,12 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-[13px] font-medium tracking-tight min-w-0 flex-1 max-w-[180px] focus:outline-none focus:border-primary/50 focus:bg-white/10 transition"
+            className="bg-muted border border-border rounded-lg px-3 py-1.5 text-[13px] font-medium tracking-tight min-w-0 flex-1 max-w-[180px] focus:outline-none focus:border-primary/50 focus:bg-accent transition"
           />
           <select
             value={size}
             onChange={(e) => changeSize(Number(e.target.value))}
-            className="bg-white/5 border border-white/10 rounded-md px-2 py-1 text-[10px] font-mono tracking-tight focus:outline-none focus:border-primary/50 tabular-nums shrink-0"
+            className="bg-muted border border-border rounded-md px-2 py-1 text-[10px] font-mono tracking-tight focus:outline-none focus:border-primary/50 tabular-nums shrink-0"
             aria-label="Tamaño del lienzo"
           >
             {SIZE_OPTIONS.map(s => <option key={s} value={s}>{s}×{s}</option>)}
@@ -749,7 +749,7 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={onClose}
-            className="text-[12px] font-medium px-3.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition"
+            className="text-[12px] font-medium px-3.5 py-1.5 rounded-lg border border-border bg-muted text-foreground/80 hover:bg-accent transition"
           >
             Cancel
           </button>
@@ -816,13 +816,13 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
                 value={textInput.value}
                 onChange={(e) => setTextInput({ ...textInput, value: e.target.value })}
                 placeholder="Type text…"
-                className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[13px] w-48 min-h-[60px] focus:outline-none focus:border-primary/50"
+                className="bg-muted border border-border rounded-lg px-2 py-1.5 text-[13px] w-48 min-h-[60px] focus:outline-none focus:border-primary/50"
               />
               <div className="flex items-center gap-1.5">
                 <select
                   value={textInput.font}
                   onChange={(e) => setTextInput({ ...textInput, font: e.target.value })}
-                  className="bg-white/5 border border-white/10 rounded-lg text-[11px] px-2 py-1 flex-1"
+                  className="bg-muted border border-border rounded-lg text-[11px] px-2 py-1 flex-1"
                 >
                   {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
@@ -832,11 +832,11 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
                   max={200}
                   value={textInput.fontSize}
                   onChange={(e) => setTextInput({ ...textInput, fontSize: Number(e.target.value) })}
-                  className="bg-white/5 border border-white/10 rounded-lg text-[11px] px-2 py-1 w-14 tabular-nums"
+                  className="bg-muted border border-border rounded-lg text-[11px] px-2 py-1 w-14 tabular-nums"
                 />
               </div>
               <div className="flex gap-1.5">
-                <button onClick={() => setTextInput(null)} className="text-[11px] font-medium px-2 py-1.5 rounded-lg border border-white/10 bg-white/5 flex-1">Cancel</button>
+                <button onClick={() => setTextInput(null)} className="text-[11px] font-medium px-2 py-1.5 rounded-lg border border-border bg-muted flex-1">Cancel</button>
                 <button onClick={commitText} className="text-[11px] font-semibold px-2 py-1.5 rounded-lg text-primary-foreground flex-1" style={{ background: "linear-gradient(180deg, oklch(0.78 0.17 250), oklch(0.66 0.18 252))" }}>Add</button>
               </div>
             </div>
@@ -873,8 +873,8 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
 
         {/* History row */}
         <div className={`mx-auto w-full ${isWide ? "max-w-[760px]" : "max-w-[460px]"} flex gap-1.5`}>
-          <button onClick={undo} title="Deshacer" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition flex items-center justify-center active:scale-95"><Undo2 size={16} /></button>
-          <button onClick={redo} title="Rehacer" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-foreground/80 hover:bg-white/10 transition flex items-center justify-center active:scale-95"><Redo2 size={16} /></button>
+          <button onClick={undo} title="Deshacer" className="flex-1 h-10 rounded-xl border border-border bg-muted text-foreground/80 hover:bg-accent transition flex items-center justify-center active:scale-95"><Undo2 size={16} /></button>
+          <button onClick={redo} title="Rehacer" className="flex-1 h-10 rounded-xl border border-border bg-muted text-foreground/80 hover:bg-accent transition flex items-center justify-center active:scale-95"><Redo2 size={16} /></button>
           <button onClick={clearAll} title="Limpiar capa" className="flex-1 h-10 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition flex items-center justify-center gap-1.5 text-[12px] font-medium active:scale-95"><Trash2 size={14} /> Limpiar</button>
         </div>
 
@@ -911,14 +911,14 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
                 const v = e.target.value.trim();
                 if (/^#?[0-9a-fA-F]{6}$/.test(v)) setColor(v.startsWith("#") ? v : `#${v}`);
               }}
-              className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-mono w-[88px] tracking-tight focus:outline-none focus:border-primary/50 uppercase"
+              className="bg-muted border border-border rounded-lg px-2 py-1.5 text-[11px] font-mono w-[88px] tracking-tight focus:outline-none focus:border-primary/50 uppercase"
               maxLength={7}
               aria-label="Hex color"
             />
             <select
               value={paletteIdx}
               onChange={(e) => setPaletteIdx(Number(e.target.value))}
-              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none focus:border-primary/50"
+              className="flex-1 bg-muted border border-border rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none focus:border-primary/50"
               aria-label="Palette"
             >
               {PALETTES.map((p, i) => (
@@ -1024,7 +1024,7 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
               ><Plus size={12} strokeWidth={2.5} /> Nueva</button>
               <button
                 onClick={flatten}
-                className="text-[10px] font-medium px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-foreground/80 active:scale-95 transition"
+                className="text-[10px] font-medium px-2.5 py-1 rounded-lg border border-border bg-muted text-foreground/80 active:scale-95 transition"
               >Aplanar</button>
             </div>
           </div>
@@ -1034,7 +1034,7 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
               return (
                 <div
                   key={l.id}
-                  className={`group rounded-xl p-1.5 flex items-center gap-1.5 transition-all cursor-pointer ${isActive ? "bg-primary/15 border border-primary/40" : "bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06]"}`}
+                  className={`group rounded-xl p-1.5 flex items-center gap-1.5 transition-all cursor-pointer ${isActive ? "bg-primary/15 border border-primary/40" : "bg-muted border border-border hover:bg-muted"}`}
                   onClick={() => { setActiveLayerId(l.id); activeLayerIdRef.current = l.id; }}
                 >
                   <div
@@ -1053,24 +1053,24 @@ export function PaintEditor({ onSave, onClose, size: initialSize = 512 }: Props)
                     value={l.name}
                     onChange={(e) => updateLayer(l.id, { name: e.target.value })}
                     onClick={(e) => e.stopPropagation()}
-                    className="flex-1 min-w-0 bg-transparent text-[12px] font-medium focus:outline-none focus:bg-white/5 rounded px-1 py-0.5"
+                    className="flex-1 min-w-0 bg-transparent text-[12px] font-medium focus:outline-none focus:bg-muted rounded px-1 py-0.5"
                   />
                   <button
                     onClick={(e) => { e.stopPropagation(); updateLayer(l.id, { visible: !l.visible }); }}
                     title={l.visible ? "Ocultar" : "Mostrar"}
-                    className={`w-7 h-7 grid place-items-center rounded-md transition hover:bg-white/5 ${l.visible ? "text-primary-glow" : "text-muted-foreground"}`}
+                    className={`w-7 h-7 grid place-items-center rounded-md transition hover:bg-muted ${l.visible ? "text-primary-glow" : "text-muted-foreground"}`}
                   >{l.visible ? <Eye size={14} /> : <EyeOff size={14} />}</button>
                   <button
                     onClick={(e) => { e.stopPropagation(); updateLayer(l.id, { locked: !l.locked }); }}
                     title={l.locked ? "Desbloquear" : "Bloquear"}
-                    className={`w-7 h-7 grid place-items-center rounded-md transition hover:bg-white/5 ${l.locked ? "text-destructive" : "text-muted-foreground"}`}
+                    className={`w-7 h-7 grid place-items-center rounded-md transition hover:bg-muted ${l.locked ? "text-destructive" : "text-muted-foreground"}`}
                   >{l.locked ? <Lock size={14} /> : <Unlock size={14} />}</button>
                   <div className="flex flex-col">
                     <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, 1); }} title="Subir" className="w-6 h-3.5 grid place-items-center text-muted-foreground hover:text-primary-glow"><ChevronUp size={12} /></button>
                     <button onClick={(e) => { e.stopPropagation(); moveLayer(l.id, -1); }} title="Bajar" className="w-6 h-3.5 grid place-items-center text-muted-foreground hover:text-primary-glow"><ChevronDown size={12} /></button>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); duplicateLayer(l.id); }} title="Duplicar" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow hover:bg-white/5"><Copy size={13} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); mergeDown(l.id); }} title="Combinar con la inferior" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow hover:bg-white/5"><Layers size={13} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); duplicateLayer(l.id); }} title="Duplicar" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow hover:bg-muted"><Copy size={13} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); mergeDown(l.id); }} title="Combinar con la inferior" className="w-7 h-7 grid place-items-center rounded-md text-muted-foreground hover:text-primary-glow hover:bg-muted"><Layers size={13} /></button>
                   <button onClick={(e) => { e.stopPropagation(); deleteLayer(l.id); }} title="Borrar" className="w-7 h-7 grid place-items-center rounded-md text-destructive/70 hover:text-destructive hover:bg-destructive/10"><Trash2 size={13} /></button>
                 </div>
               );
