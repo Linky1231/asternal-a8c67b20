@@ -404,6 +404,29 @@ function emit(state: RuntimeState, p: ParticleSpec) {
 export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState, dt: number) {
   const BASE_SPEED = 220;
   const JUMP = 520;
+
+  // ── Dialogs ───────────────────────────────────────────────────
+  // Auto-trigger on scene start (once) for any entity with a dialog flagged auto.
+  for (const e of scene.entities) {
+    if (!e.dialog || e._dialogPlayed) continue;
+    if (e.dialog.trigger === "auto" && !state.dialog) {
+      startDialog(state, e);
+      break;
+    }
+  }
+  // If a dialog is on screen and pauses the game, honor advance and freeze physics.
+  if (state.dialog) {
+    if (state.dialogAdvance) {
+      state.dialogAdvance = false;
+      advanceDialog(state, scene);
+    }
+    if (state.dialog?.pauses) {
+      state.time += dt;
+      state.jumpPrev = input.jump;
+      return;
+    }
+  }
+
   state.time += dt;
 
   // time limit
