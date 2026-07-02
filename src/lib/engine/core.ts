@@ -113,6 +113,7 @@ export interface Entity {
   textureFit?: "stretch" | "contain" | "cover";
   // goal-specific
   nextSceneId?: string | null;
+  endsGame?: boolean;
   // dialog
   dialog?: DialogSpec | null;
   _dialogPlayed?: boolean;
