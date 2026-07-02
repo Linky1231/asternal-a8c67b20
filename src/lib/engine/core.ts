@@ -337,6 +337,9 @@ export interface RuntimeState {
   switches: Record<string, boolean>;
   checkpoint?: { x: number; y: number } | null;
   particles?: ParticleSpec[];
+  dialog?: { entityId: string; speaker: string; text: string; portrait?: string | null; lineIndex: number; totalLines: number; pauses: boolean } | null;
+  dialogQueue?: { entityId: string }[];
+  dialogAdvance?: boolean; // set by UI to advance current line
 }
 
 export function newRuntimeState(scene?: Scene): RuntimeState {
