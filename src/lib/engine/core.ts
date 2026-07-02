@@ -54,6 +54,20 @@ export interface ParticleEmitter {
   _acc?: number;
 }
 
+export type DialogTrigger = "touch" | "interact" | "auto";
+export interface DialogLine {
+  id: string;
+  speaker?: string;      // shown as name over the bubble; falls back to entity name
+  text: string;
+  portrait?: string | null; // dataURL / URL — optional avatar shown next to the text
+}
+export interface DialogSpec {
+  lines: DialogLine[];
+  trigger: DialogTrigger; // touch = on collision, interact = on JUMP press while overlapping, auto = when scene starts
+  once?: boolean;         // if true, only plays a single time
+  pausesGame?: boolean;   // if true, freezes physics while the dialog is on screen
+}
+
 export interface Entity {
   id: string;
   kind: EntityKind;
