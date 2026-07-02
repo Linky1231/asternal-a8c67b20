@@ -683,6 +683,20 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
       else state.dead = true;
     }
 
+    // dialog triggers (touch / interact)
+    if (!state.dialog) {
+      const jumpEdge = input.jump && !state.jumpPrev;
+      for (const o of scene.entities) {
+        if (!o.dialog || o === e) continue;
+        if (o.dialog.once && o._dialogPlayed) continue;
+        if (o.dialog.trigger !== "touch" && o.dialog.trigger !== "interact") continue;
+        if (!intersects(e, o)) continue;
+        if (o.dialog.trigger === "interact" && !jumpEdge) continue;
+        startDialog(state, o);
+        break;
+      }
+    }
+
     // interact
     for (const o of interactables) {
       if (o === e) continue;
