@@ -356,6 +356,43 @@ export function newRuntimeState(scene?: Scene): RuntimeState {
     switches: {},
     checkpoint: null,
     particles: [],
+    dialog: null,
+    dialogQueue: [],
+    dialogAdvance: false,
+  };
+}
+
+function startDialog(state: RuntimeState, ent: Entity) {
+  const d = ent.dialog;
+  if (!d || !d.lines?.length) return;
+  const line = d.lines[0];
+  state.dialog = {
+    entityId: ent.id,
+    speaker: line.speaker || d.lines[0]?.speaker || (ent as Entity & { name?: string }).name || ent.kind,
+    text: line.text,
+    portrait: line.portrait ?? null,
+    lineIndex: 0,
+    totalLines: d.lines.length,
+    pauses: !!d.pausesGame,
+  };
+  ent._dialogPlayed = true;
+}
+function advanceDialog(state: RuntimeState, scene: Scene) {
+  if (!state.dialog) return;
+  const ent = scene.entities.find(e => e.id === state.dialog!.entityId);
+  if (!ent || !ent.dialog) { state.dialog = null; return; }
+  const next = state.dialog.lineIndex + 1;
+  if (next >= ent.dialog.lines.length) {
+    state.dialog = null;
+    return;
+  }
+  const line = ent.dialog.lines[next];
+  state.dialog = {
+    ...state.dialog,
+    lineIndex: next,
+    speaker: line.speaker || state.dialog.speaker,
+    text: line.text,
+    portrait: line.portrait ?? state.dialog.portrait,
   };
 }
 
