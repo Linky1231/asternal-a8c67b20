@@ -30,7 +30,9 @@ export function GameRuntime({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<RuntimeInput>({ left: false, right: false, jump: false });
+  const stateRef = useRef<RuntimeState | null>(null);
   const [hud, setHud] = useState({ score: 0, fps: 0, win: false, dead: false });
+  const [dialog, setDialog] = useState<RuntimeState["dialog"]>(null);
 
   useEffect(() => { setVolume(volume); }, [volume]);
   useEffect(() => { setMuted(muted); }, [muted]);
