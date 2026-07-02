@@ -49,6 +49,7 @@ export function GameRuntime({
     let work: Scene = JSON.parse(JSON.stringify(initial));
     let drawList = sortedForRender(work).filter(e => !isOnHiddenLayer(work, e));
     const state: RuntimeState = newRuntimeState(initial);
+    stateRef.current = state;
     let scripts = createScriptRunner();
     const shake = { intensity: 0, time: 0 };
     const hooks = {
