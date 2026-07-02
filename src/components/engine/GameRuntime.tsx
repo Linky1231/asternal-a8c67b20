@@ -30,7 +30,9 @@ export function GameRuntime({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<RuntimeInput>({ left: false, right: false, jump: false });
+  const stateRef = useRef<RuntimeState | null>(null);
   const [hud, setHud] = useState({ score: 0, fps: 0, win: false, dead: false });
+  const [dialog, setDialog] = useState<RuntimeState["dialog"]>(null);
 
   useEffect(() => { setVolume(volume); }, [volume]);
   useEffect(() => { setMuted(muted); }, [muted]);
@@ -47,6 +49,7 @@ export function GameRuntime({
     let work: Scene = JSON.parse(JSON.stringify(initial));
     let drawList = sortedForRender(work).filter(e => !isOnHiddenLayer(work, e));
     const state: RuntimeState = newRuntimeState(initial);
+    stateRef.current = state;
     let scripts = createScriptRunner();
     const shake = { intensity: 0, time: 0 };
     const hooks = {
@@ -305,6 +308,13 @@ export function GameRuntime({
       }
       draw();
       frames++;
+      // Sync dialog to React (compare by identity to avoid extra renders)
+      setDialog(prev => {
+        const d = state.dialog ?? null;
+        if (!prev && !d) return prev;
+        if (prev && d && prev.entityId === d.entityId && prev.lineIndex === d.lineIndex) return prev;
+        return d;
+      });
       if (now - fpsT > 500) {
         const fps = Math.round((frames * 1000) / (now - fpsT));
         setHud({ score: state.score, fps, win: state.win, dead: state.dead });
@@ -479,6 +489,34 @@ export function GameRuntime({
               onClick={onExit}
               className="font-display text-sm px-5 py-2 rounded-md bg-primary text-primary-foreground glow-border"
             >BACK TO EDITOR</button>
+          </div>
+        </div>
+      )}
+      {dialog && (
+        <div
+          className="absolute inset-x-0 bottom-0 p-3 sm:p-5 pointer-events-auto"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            const s = stateRef.current;
+            if (s) s.dialogAdvance = true;
+          }}
+        >
+          <div className="mx-auto max-w-[720px] rounded-2xl border border-primary/30 bg-background/92 backdrop-blur-md shadow-2xl overflow-hidden">
+            {dialog.speaker && (
+              <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+                {dialog.portrait && (
+                  <img src={dialog.portrait} alt="" className="w-9 h-9 rounded-full object-cover border border-primary/40" />
+                )}
+                <div className="text-[11px] font-display tracking-widest text-primary uppercase">{dialog.speaker}</div>
+              </div>
+            )}
+            <div className="px-4 pb-3 pt-1 text-[15px] leading-snug text-foreground">
+              {dialog.text}
+            </div>
+            <div className="px-4 pb-2 flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+              <span>{dialog.lineIndex + 1} / {dialog.totalLines}</span>
+              <span className="animate-pulse">▶ tap to continue</span>
+            </div>
           </div>
         </div>
       )}

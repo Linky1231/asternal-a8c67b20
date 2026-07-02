@@ -54,6 +54,20 @@ export interface ParticleEmitter {
   _acc?: number;
 }
 
+export type DialogTrigger = "touch" | "interact" | "auto";
+export interface DialogLine {
+  id: string;
+  speaker?: string;      // shown as name over the bubble; falls back to entity name
+  text: string;
+  portrait?: string | null; // dataURL / URL — optional avatar shown next to the text
+}
+export interface DialogSpec {
+  lines: DialogLine[];
+  trigger: DialogTrigger; // touch = on collision, interact = on JUMP press while overlapping, auto = when scene starts
+  once?: boolean;         // if true, only plays a single time
+  pausesGame?: boolean;   // if true, freezes physics while the dialog is on screen
+}
+
 export interface Entity {
   id: string;
   kind: EntityKind;
@@ -100,6 +114,9 @@ export interface Entity {
   // goal-specific
   nextSceneId?: string | null;
   endsGame?: boolean;
+  // dialog
+  dialog?: DialogSpec | null;
+  _dialogPlayed?: boolean;
 }
 
 export interface ParallaxLayer { color: string; speed: number; height: number; y: number }
@@ -320,6 +337,9 @@ export interface RuntimeState {
   switches: Record<string, boolean>;
   checkpoint?: { x: number; y: number } | null;
   particles?: ParticleSpec[];
+  dialog?: { entityId: string; speaker: string; text: string; portrait?: string | null; lineIndex: number; totalLines: number; pauses: boolean } | null;
+  dialogQueue?: { entityId: string }[];
+  dialogAdvance?: boolean; // set by UI to advance current line
 }
 
 export function newRuntimeState(scene?: Scene): RuntimeState {
@@ -336,6 +356,43 @@ export function newRuntimeState(scene?: Scene): RuntimeState {
     switches: {},
     checkpoint: null,
     particles: [],
+    dialog: null,
+    dialogQueue: [],
+    dialogAdvance: false,
+  };
+}
+
+function startDialog(state: RuntimeState, ent: Entity) {
+  const d = ent.dialog;
+  if (!d || !d.lines?.length) return;
+  const line = d.lines[0];
+  state.dialog = {
+    entityId: ent.id,
+    speaker: line.speaker || d.lines[0]?.speaker || (ent as Entity & { name?: string }).name || ent.kind,
+    text: line.text,
+    portrait: line.portrait ?? null,
+    lineIndex: 0,
+    totalLines: d.lines.length,
+    pauses: !!d.pausesGame,
+  };
+  ent._dialogPlayed = true;
+}
+function advanceDialog(state: RuntimeState, scene: Scene) {
+  if (!state.dialog) return;
+  const ent = scene.entities.find(e => e.id === state.dialog!.entityId);
+  if (!ent || !ent.dialog) { state.dialog = null; return; }
+  const next = state.dialog.lineIndex + 1;
+  if (next >= ent.dialog.lines.length) {
+    state.dialog = null;
+    return;
+  }
+  const line = ent.dialog.lines[next];
+  state.dialog = {
+    ...state.dialog,
+    lineIndex: next,
+    speaker: line.speaker || state.dialog.speaker,
+    text: line.text,
+    portrait: line.portrait ?? state.dialog.portrait,
   };
 }
 
@@ -347,6 +404,29 @@ function emit(state: RuntimeState, p: ParticleSpec) {
 export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState, dt: number) {
   const BASE_SPEED = 220;
   const JUMP = 520;
+
+  // ── Dialogs ───────────────────────────────────────────────────
+  // Auto-trigger on scene start (once) for any entity with a dialog flagged auto.
+  for (const e of scene.entities) {
+    if (!e.dialog || e._dialogPlayed) continue;
+    if (e.dialog.trigger === "auto" && !state.dialog) {
+      startDialog(state, e);
+      break;
+    }
+  }
+  // If a dialog is on screen and pauses the game, honor advance and freeze physics.
+  if (state.dialog) {
+    if (state.dialogAdvance) {
+      state.dialogAdvance = false;
+      advanceDialog(state, scene);
+    }
+    if (state.dialog?.pauses) {
+      state.time += dt;
+      state.jumpPrev = input.jump;
+      return;
+    }
+  }
+
   state.time += dt;
 
   // time limit
@@ -601,6 +681,20 @@ export function stepScene(scene: Scene, input: RuntimeInput, state: RuntimeState
     if (e.y > scene.height + 200) {
       if (state.checkpoint) { e.x = state.checkpoint.x; e.y = state.checkpoint.y; e.vx = 0; e.vy = 0; }
       else state.dead = true;
+    }
+
+    // dialog triggers (touch / interact)
+    if (!state.dialog) {
+      const jumpEdge = input.jump && !state.jumpPrev;
+      for (const o of scene.entities) {
+        if (!o.dialog || o === e) continue;
+        if (o.dialog.once && o._dialogPlayed) continue;
+        if (o.dialog.trigger !== "touch" && o.dialog.trigger !== "interact") continue;
+        if (!intersects(e, o)) continue;
+        if (o.dialog.trigger === "interact" && !jumpEdge) continue;
+        startDialog(state, o);
+        break;
+      }
     }
 
     // interact

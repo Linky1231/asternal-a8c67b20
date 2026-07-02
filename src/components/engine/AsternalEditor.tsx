@@ -12,6 +12,7 @@ import { AnimationEditor } from "./AnimationEditor";
 import { PaintEditor } from "./PaintEditor";
 import { UIEditor } from "./UIEditor";
 import { ProjectManager } from "./ProjectManager";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { ScriptEditor } from "./ScriptEditor";
 import { useT, setLang } from "@/lib/i18n";
@@ -640,6 +641,7 @@ function InspectorPanel({
 
       <AnimationsButton entity={ent} onUpdate={update} />
       <ScriptsButton entity={ent} onUpdate={update} />
+      <DialogEditor entity={ent} onUpdate={update} />
       <HitboxEditor entity={ent} onUpdate={update} />
 
       <div className="grid grid-cols-2 gap-2">
@@ -1380,6 +1382,118 @@ function HelpModal({ onClose }: { onClose: () => void }) {
         <button onClick={onClose} className="w-full mt-2 py-2.5 rounded-xl bg-primary/20 border border-primary/50 text-primary-glow font-display text-xs tracking-widest active:scale-[0.98] transition">ENTENDIDO</button>
       </div>
     </div>
+  );
+}
+
+function DialogEditor({ entity, onUpdate }: { entity: Entity; onUpdate: (patch: Partial<Entity>) => void }) {
+  const [open, setOpen] = useState(false);
+  const d = entity.dialog ?? null;
+  const lines = d?.lines ?? [];
+  const setDialog = (patch: Partial<NonNullable<Entity["dialog"]>>) => {
+    const base = d ?? { lines: [], trigger: "interact" as const };
+    onUpdate({ dialog: { ...base, ...patch } });
+  };
+  const addLine = () => {
+    const newLine = { id: uid(), text: "", speaker: "" };
+    setDialog({ lines: [...lines, newLine] });
+  };
+  const removeLine = (id: string) => setDialog({ lines: lines.filter(l => l.id !== id) });
+  const updateLine = (id: string, patch: Partial<typeof lines[number]>) =>
+    setDialog({ lines: lines.map(l => l.id === id ? { ...l, ...patch } : l) });
+  const moveLine = (id: string, dir: -1 | 1) => {
+    const idx = lines.findIndex(l => l.id === id);
+    if (idx < 0) return;
+    const j = idx + dir;
+    if (j < 0 || j >= lines.length) return;
+    const next = [...lines];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    setDialog({ lines: next });
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => { if (!d) setDialog({ lines: [{ id: uid(), text: "", speaker: "" }] }); setOpen(true); }}
+        className="w-full py-2 rounded-md panel border border-border text-xs font-display tracking-widest text-primary-glow glow-border flex items-center justify-center gap-2"
+      >
+        DIÁLOGO {d ? `· ${lines.length}` : ""}
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-[540px] max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Diálogo · {entity.kind}</DialogTitle>
+            <DialogDescription>Lo dice el personaje cuando el jugador lo activa.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <div className="col-span-3">
+              <label className="text-[10px] font-display tracking-widest text-muted-foreground">DISPARADOR</label>
+              <select
+                value={d?.trigger ?? "interact"}
+                onChange={e => setDialog({ trigger: e.target.value as "touch" | "interact" | "auto" })}
+                className="w-full mt-1 bg-input/60 border border-border rounded-md px-2 py-2 text-xs font-mono"
+              >
+                <option value="interact">Al pulsar SALTAR sobre él</option>
+                <option value="touch">Al tocarlo</option>
+                <option value="auto">Al empezar la escena</option>
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-xs col-span-3">
+              <input type="checkbox" checked={!!d?.pausesGame} onChange={e => setDialog({ pausesGame: e.target.checked })} />
+              <span>Pausar el juego mientras habla</span>
+            </label>
+            <label className="flex items-center gap-2 text-xs col-span-3">
+              <input type="checkbox" checked={!!d?.once} onChange={e => setDialog({ once: e.target.checked })} />
+              <span>Reproducir solo una vez</span>
+            </label>
+          </div>
+
+          <div className="flex-1 overflow-auto space-y-2 mt-2 pr-1">
+            {lines.map((l, i) => (
+              <div key={l.id} className="panel rounded-md p-2 border border-border space-y-2">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-mono text-muted-foreground w-6">#{i + 1}</span>
+                  <input
+                    value={l.speaker ?? ""}
+                    onChange={e => updateLine(l.id, { speaker: e.target.value })}
+                    placeholder="Nombre (opcional)"
+                    className="flex-1 bg-input/60 border border-border rounded px-2 py-1 text-xs"
+                  />
+                  <button onClick={() => moveLine(l.id, -1)} className="w-7 h-7 grid place-items-center rounded hover:bg-muted"><ArrowUp size={12} /></button>
+                  <button onClick={() => moveLine(l.id, 1)} className="w-7 h-7 grid place-items-center rounded hover:bg-muted"><ArrowDown size={12} /></button>
+                  <button onClick={() => removeLine(l.id)} className="w-7 h-7 grid place-items-center rounded text-destructive/70 hover:text-destructive"><Trash2 size={12} /></button>
+                </div>
+                <textarea
+                  value={l.text}
+                  onChange={e => updateLine(l.id, { text: e.target.value })}
+                  placeholder="Escribe lo que dice…"
+                  rows={2}
+                  className="w-full bg-input/60 border border-border rounded px-2 py-1.5 text-sm resize-y"
+                />
+              </div>
+            ))}
+            {lines.length === 0 && (
+              <div className="text-xs text-muted-foreground text-center py-6">Sin líneas de diálogo aún.</div>
+            )}
+          </div>
+
+          <div className="flex gap-2 pt-2 border-t border-border">
+            <button onClick={addLine} className="flex-1 py-2 rounded-md bg-primary/15 border border-primary/40 text-primary-glow font-display text-[10px] tracking-widest flex items-center justify-center gap-1">
+              <Plus size={12} /> AÑADIR LÍNEA
+            </button>
+            {d && (
+              <button
+                onClick={() => { onUpdate({ dialog: null }); setOpen(false); }}
+                className="py-2 px-3 rounded-md bg-destructive/15 border border-destructive/40 text-destructive font-display text-[10px] tracking-widest"
+              >
+                QUITAR
+              </button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
