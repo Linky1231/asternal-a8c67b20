@@ -308,6 +308,13 @@ export function GameRuntime({
       }
       draw();
       frames++;
+      // Sync dialog to React (compare by identity to avoid extra renders)
+      setDialog(prev => {
+        const d = state.dialog ?? null;
+        if (!prev && !d) return prev;
+        if (prev && d && prev.entityId === d.entityId && prev.lineIndex === d.lineIndex) return prev;
+        return d;
+      });
       if (now - fpsT > 500) {
         const fps = Math.round((frames * 1000) / (now - fpsT));
         setHud({ score: state.score, fps, win: state.win, dead: state.dead });
