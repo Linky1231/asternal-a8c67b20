@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Settings, Layers, Copy, Star, X, Eye, EyeOff, Lock, Unlock, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Trash2, Merge, Plus } from "lucide-react";
+import { Settings, Layers, Copy, Star, X, Eye, EyeOff, Lock, Unlock, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Trash2, Merge, Plus, Upload, Home } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { PublishGameDialog } from "./PublishGameDialog";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox, SceneLayer } from "@/lib/engine/core";
 import { newScene, uid, DEFAULT_SETTINGS, ensureSceneLayers, DEFAULT_LAYER_ID } from "@/lib/engine/core";
 import { loadProject, loadProjectById, saveProject, saveProjectById, getCurrentProjectId, setCurrentProjectId } from "@/lib/engine/storage";
@@ -55,6 +57,7 @@ export function AsternalEditor() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [showManager, setShowManager] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
   const [library, setLibrary] = useState<LibraryItem[]>(() => loadLibrary());
   const updateLibrary = (items: LibraryItem[]) => { setLibrary(items); saveLibrary(items); };
@@ -220,10 +223,16 @@ export function AsternalEditor() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <Link
+            to="/"
+            aria-label="Ir al inicio"
+            title="Inicio"
+            className="w-9 h-9 rounded-md border border-border text-muted-foreground grid place-items-center active:scale-95 transition"
+          ><Home size={16} /></Link>
           <button
             onClick={exitToManager}
             aria-label="Salir al gestor de proyectos"
-            title="Salir"
+            title="Proyectos"
             className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
           >⌂</button>
           <button
@@ -231,6 +240,18 @@ export function AsternalEditor() {
             aria-label="Help"
             className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
           >?</button>
+          <button
+            onClick={() => setPublishOpen(true)}
+            aria-label="Publicar juego"
+            title="Publicar"
+            className="hidden sm:flex items-center gap-1.5 font-display text-xs tracking-widest px-3 py-1.5 rounded-md border border-primary/40 text-primary-glow bg-primary/10 active:scale-95 transition"
+          ><Upload size={14} /> PUBLICAR</button>
+          <button
+            onClick={() => setPublishOpen(true)}
+            aria-label="Publicar juego"
+            title="Publicar"
+            className="sm:hidden w-9 h-9 rounded-md border border-primary/40 text-primary-glow bg-primary/10 grid place-items-center active:scale-95 transition"
+          ><Upload size={15} /></button>
           <button
             onClick={() => {
               if (project.settings.fpsCap !== 60) {
@@ -246,6 +267,14 @@ export function AsternalEditor() {
           </button>
         </div>
       </header>
+      {publishOpen && (
+        <PublishGameDialog
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          project={project}
+          defaultTitle={project.name || "Mi juego"}
+        />
+      )}
       {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
 
       {/* Main */}
