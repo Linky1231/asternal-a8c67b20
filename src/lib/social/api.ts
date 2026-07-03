@@ -75,10 +75,11 @@ export async function uploadMedia(file: File, userId: string): Promise<string> {
   return path;
 }
 
-export async function fetchFeed(opts: { search?: string; tag?: string; category?: string } = {}): Promise<PostWithMeta[]> {
+export async function fetchFeed(opts: { search?: string; tag?: string; category?: string; includeGames?: boolean } = {}): Promise<PostWithMeta[]> {
   let q = supabase.from("posts").select("*").is("deleted_at", null).order("created_at", { ascending: false }).limit(100);
   if (opts.search) q = q.ilike("content", `%${opts.search}%`);
   if (opts.category) q = q.eq("category", opts.category);
+  else if (!opts.includeGames) q = q.or("category.is.null,category.neq.game");
   const { data: posts, error } = await q;
   if (error) throw error;
   if (!posts || !posts.length) return [];
