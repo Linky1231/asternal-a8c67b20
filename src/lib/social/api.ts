@@ -309,3 +309,51 @@ export async function isMod(): Promise<boolean> {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
   return (data ?? []).some(r => r.role === "moderator" || r.role === "admin");
 }
+
+// ---------- Published games ----------
+export async function publishGame(input: {
+  project: unknown;
+  title: string;
+  description?: string;
+  tags?: string[];
+}): Promise<PostRow> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const json = JSON.stringify(input.project);
+  const file = new File([json], `${input.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "game"}.asternal.json`, {
+    type: "application/json",
+  });
+  const path = await uploadMedia(file, user.id);
+  const content = `🎮 ${input.title}${input.description ? "\n\n" + input.description : ""}`;
+  const { data: post, error } = await supabase.from("posts").insert({
+    author_id: user.id,
+    content,
+    media_urls: [path],
+    media_type: "none",
+    link_url: null,
+    category: "game",
+  }).select().single();
+  if (error) throw error;
+  if (input.tags?.length) {
+    const names = Array.from(new Set(input.tags.map(t => t.trim().toLowerCase()).filter(Boolean)));
+    for (const name of names) {
+      let { data: tag } = await supabase.from("tags").select("id").eq("name", name).maybeSingle();
+      if (!tag) {
+        const { data: created } = await supabase.from("tags").insert({ name }).select().single();
+        tag = created;
+      }
+      if (tag) await supabase.from("post_tags").insert({ post_id: post!.id, tag_id: tag.id });
+    }
+  }
+  return post as PostRow;
+}
+
+export async function fetchGames(opts: { search?: string } = {}): Promise<PostWithMeta[]> {
+  return fetchFeed({ ...opts, category: "game" });
+}
+
+export async function loadGameProject(signedUrl: string): Promise<unknown> {
+  const res = await fetch(signedUrl);
+  if (!res.ok) throw new Error("No se pudo cargar el juego");
+  return await res.json();
+}
