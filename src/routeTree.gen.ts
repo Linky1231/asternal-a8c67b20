@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as FeedRouteImport } from './routes/feed'
+import { Route as EditorRouteImport } from './routes/editor'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 
 const FeedRoute = FeedRouteImport.update({
   id: '/feed',
   path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditorRoute = EditorRouteImport.update({
+  id: '/editor',
+  path: '/editor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/editor': typeof EditorRoute
   '/feed': typeof FeedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/editor': typeof EditorRoute
   '/feed': typeof FeedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/editor': typeof EditorRoute
   '/feed': typeof FeedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/feed'
+  fullPaths: '/' | '/auth' | '/editor' | '/feed'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/feed'
-  id: '__root__' | '/' | '/auth' | '/feed'
+  to: '/' | '/auth' | '/editor' | '/feed'
+  id: '__root__' | '/' | '/auth' | '/editor' | '/feed'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  EditorRoute: typeof EditorRoute
   FeedRoute: typeof FeedRoute
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/feed'
       fullPath: '/feed'
       preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editor': {
+      id: '/editor'
+      path: '/editor'
+      fullPath: '/editor'
+      preLoaderRoute: typeof EditorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  EditorRoute: EditorRoute,
   FeedRoute: FeedRoute,
 }
 export const routeTree = rootRouteImport
