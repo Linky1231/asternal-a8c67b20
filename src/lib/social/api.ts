@@ -18,6 +18,7 @@ export type PostRow = {
   media_type: MediaType;
   link_url: string | null;
   category: string | null;
+  cover_url: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -34,7 +35,9 @@ export type PostWithMeta = PostRow & {
   my_favorite: boolean;
   my_repost: boolean;
   signed_media: string[];
+  signed_cover: string | null;
 };
+
 
 export type CommentRow = {
   id: string;
