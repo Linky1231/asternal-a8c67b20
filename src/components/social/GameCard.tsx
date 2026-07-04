@@ -5,9 +5,6 @@ import type { Project, Scene } from "@/lib/engine/core";
 import { GameRuntime } from "@/components/engine/GameRuntime";
 import { CommentSection } from "./CommentSection";
 import { PublishGameDialog } from "@/components/engine/PublishGameDialog";
-import type { Project, Scene } from "@/lib/engine/core";
-import { GameRuntime } from "@/components/engine/GameRuntime";
-import { CommentSection } from "./CommentSection";
 
 function timeAgo(iso: string) {
   const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
