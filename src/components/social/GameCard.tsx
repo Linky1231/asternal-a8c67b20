@@ -1,6 +1,10 @@
 import { useState } from "react";
-import { Play, Heart, MessageCircle, Share2, Trash2, MoreHorizontal } from "lucide-react";
+import { Play, Heart, MessageCircle, Share2, Trash2, MoreHorizontal, Pencil } from "lucide-react";
 import { type PostWithMeta, toggleReaction, deletePost, loadGameProject, reportContent } from "@/lib/social/api";
+import type { Project, Scene } from "@/lib/engine/core";
+import { GameRuntime } from "@/components/engine/GameRuntime";
+import { CommentSection } from "./CommentSection";
+import { PublishGameDialog } from "@/components/engine/PublishGameDialog";
 import type { Project, Scene } from "@/lib/engine/core";
 import { GameRuntime } from "@/components/engine/GameRuntime";
 import { CommentSection } from "./CommentSection";
