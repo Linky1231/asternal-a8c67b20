@@ -39,9 +39,53 @@ export function ProjectManager({
   const [items, setItems] = useState<ProjectMeta[]>([]);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [signedIn, setSignedIn] = useState(false);
+  const [cloudList, setCloudList] = useState<CloudProject[]>([]);
+  const [cloudBusy, setCloudBusy] = useState<string | null>(null);
+  const [cloudErr, setCloudErr] = useState<string | null>(null);
 
   const refresh = () => setItems(listProjects());
-  useEffect(() => { refresh(); }, []);
+  const refreshCloud = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSignedIn(!!session);
+      if (!session) { setCloudList([]); return; }
+      setCloudList(await cloudListProjects());
+    } catch (e) { setCloudErr((e as Error).message); }
+  };
+  useEffect(() => { refresh(); refreshCloud(); }, []);
+
+  const pushLocalToCloud = async (m: ProjectMeta) => {
+    setCloudBusy(m.id); setCloudErr(null);
+    try {
+      const p = loadProjectById(m.id); if (!p) return;
+      const cloudId = getProjectCloudId(m.id);
+      const saved = await cloudSaveProject({ id: cloudId, name: p.name || m.name, data: p });
+      if (!cloudId) setProjectCloudId(m.id, saved.id);
+      await refreshCloud();
+    } catch (e) { setCloudErr((e as Error).message); }
+    finally { setCloudBusy(null); }
+  };
+
+  const pullCloudToLocal = async (c: CloudProject) => {
+    setCloudBusy(c.id); setCloudErr(null);
+    try {
+      const existing = items.find(m => getProjectCloudId(m.id) === c.id);
+      const localId = existing ? existing.id : createProject(c.name);
+      saveProjectById(localId, c.data as Project);
+      setProjectCloudId(localId, c.id);
+      refresh();
+    } catch (e) { setCloudErr((e as Error).message); }
+    finally { setCloudBusy(null); }
+  };
+
+  const removeCloud = async (c: CloudProject) => {
+    if (!confirm(`¿Borrar "${c.name}" de la nube? Tu copia local no se borra.`)) return;
+    setCloudBusy(c.id);
+    try { await cloudDeleteProject(c.id); await refreshCloud(); }
+    finally { setCloudBusy(null); }
+  };
+
 
   const handleNew = () => {
     const name = prompt("Nombre del nuevo proyecto:", "Nuevo Juego");
