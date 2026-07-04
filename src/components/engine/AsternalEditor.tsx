@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Settings, Layers, Copy, Star, X, Eye, EyeOff, Lock, Unlock, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Trash2, Merge, Plus, Upload, Home } from "lucide-react";
+import { Settings, Layers, Copy, Star, X, Eye, EyeOff, Lock, Unlock, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Trash2, Merge, Plus, Upload, Home, FolderOpen } from "lucide-react";
+import { schedulePushToCloud } from "@/lib/engine/cloud-sync";
 import { Link } from "@tanstack/react-router";
 import { PublishGameDialog } from "./PublishGameDialog";
 import type { EntityKind, Project, SpriteAsset, Entity, Scene, Hitbox, SceneLayer } from "@/lib/engine/core";
@@ -101,6 +102,7 @@ export function AsternalEditor() {
       const persist = () => {
         saveProjectById(projectId, project);
         setSavedAt(Date.now());
+        schedulePushToCloud(projectId, project);
       };
       let idleId: number | null = null;
       const timer = window.setTimeout(() => {
@@ -233,8 +235,8 @@ export function AsternalEditor() {
             onClick={exitToManager}
             aria-label="Salir al gestor de proyectos"
             title="Proyectos"
-            className="w-9 h-9 rounded-md border border-border text-muted-foreground font-display"
-          >⌂</button>
+            className="w-9 h-9 rounded-md border border-border text-muted-foreground grid place-items-center active:scale-95 transition"
+          ><FolderOpen size={16} /></button>
           <button
             onClick={() => setHelpOpen(true)}
             aria-label="Help"

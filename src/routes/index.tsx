@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import { Gamepad2, Newspaper, Search, LogOut, Wrench, Plus } from "lucide-react";
+import { Gamepad2, Newspaper, Search, LogOut, Wrench, Plus, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchFeed, fetchGames, getMyProfile, isMod, type PostWithMeta, type Profile } from "@/lib/social/api";
+import { fetchFeed, fetchGames, getMyProfile, isMod, isAdmin, type PostWithMeta, type Profile } from "@/lib/social/api";
 import { PostComposer } from "@/components/social/PostComposer";
 import { PostCard } from "@/components/social/PostCard";
 import { GameCard } from "@/components/social/GameCard";
@@ -30,6 +30,7 @@ function HomePage() {
   const [me, setMe] = useState<Profile | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
   const [mod, setMod] = useState(false);
+  const [admin, setAdmin] = useState(false);
   const [tab, setTab] = useState<Tab>("games");
   const [games, setGames] = useState<PostWithMeta[]>([]);
   const [posts, setPosts] = useState<PostWithMeta[]>([]);
@@ -52,6 +53,7 @@ function HomePage() {
       setMyId(session.user.id);
       setMe(await getMyProfile());
       setMod(await isMod());
+      setAdmin(await isAdmin());
       await reload(tab);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,6 +80,12 @@ function HomePage() {
             <Search size={16} />
           </button>
           <NotificationBell />
+          {admin && (
+            <Link to="/admin" title="Admin"
+              className="w-9 h-9 rounded-xl border border-accent/40 bg-accent/10 grid place-items-center active:scale-95 transition">
+              <ShieldCheck size={16} className="text-primary-glow" />
+            </Link>
+          )}
           <Link to="/editor" title="Editor"
             className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/40 grid place-items-center active:scale-95 transition">
             <Wrench size={16} className="text-primary-glow" />
@@ -86,6 +94,7 @@ function HomePage() {
             className="w-9 h-9 rounded-xl border border-border grid place-items-center text-muted-foreground active:scale-95 transition">
             <LogOut size={15} />
           </button>
+
         </div>
 
         {showSearch && (

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Play, Heart, MessageCircle, Share2, Trash2, MoreHorizontal } from "lucide-react";
+import { Play, Heart, MessageCircle, Share2, Trash2, MoreHorizontal, Pencil } from "lucide-react";
 import { type PostWithMeta, toggleReaction, deletePost, loadGameProject, reportContent } from "@/lib/social/api";
 import type { Project, Scene } from "@/lib/engine/core";
 import { GameRuntime } from "@/components/engine/GameRuntime";
 import { CommentSection } from "./CommentSection";
+import { PublishGameDialog } from "@/components/engine/PublishGameDialog";
 
 function timeAgo(iso: string) {
   const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -30,8 +31,10 @@ export function GameCard({
   const [err, setErr] = useState<string | null>(null);
   const [openComments, setOpenComments] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const { title, body } = extractTitle(post.content);
   const mine = myId === post.author_id;
+
 
   const play = async () => {
     if (!post.signed_media[0]) { setErr("Sin datos"); return; }
@@ -82,9 +85,17 @@ export function GameCard({
     <article className="panel rounded-2xl overflow-hidden border border-border/50 shadow-sm">
       <div
         onClick={play}
-        className="relative aspect-[16/10] bg-gradient-to-br from-primary/25 via-accent/20 to-primary/10 grid place-items-center cursor-pointer active:scale-[0.99] transition"
+        className="relative aspect-[16/10] grid place-items-center cursor-pointer active:scale-[0.99] transition overflow-hidden"
+        style={post.signed_cover ? undefined : { background: "linear-gradient(135deg, oklch(0.72 0.17 250 / 0.25), oklch(0.72 0.17 250 / 0.1))" }}
       >
-        <div className="absolute inset-0 opacity-40" style={{ background: "radial-gradient(circle at 30% 30%, oklch(0.72 0.17 250 / 0.35), transparent 60%)" }} />
+        {post.signed_cover ? (
+          <>
+            <img src={post.signed_cover} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+          </>
+        ) : (
+          <div className="absolute inset-0 opacity-40" style={{ background: "radial-gradient(circle at 30% 30%, oklch(0.72 0.17 250 / 0.35), transparent 60%)" }} />
+        )}
         <button
           className="relative w-16 h-16 rounded-full bg-white/90 backdrop-blur grid place-items-center shadow-lg active:scale-95 transition"
           aria-label="Jugar"
@@ -93,14 +104,15 @@ export function GameCard({
         </button>
         <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between gap-2">
           <div className="min-w-0">
-            <div className="font-display text-base text-foreground truncate drop-shadow">{title}</div>
-            <div className="text-[10px] font-mono text-muted-foreground truncate">
+            <div className={`font-display text-base truncate drop-shadow ${post.signed_cover ? "text-white" : "text-foreground"}`}>{title}</div>
+            <div className={`text-[10px] font-mono truncate ${post.signed_cover ? "text-white/80" : "text-muted-foreground"}`}>
               @{post.author?.username ?? "anon"} · {timeAgo(post.created_at)}
             </div>
           </div>
           <span className="text-[9px] font-display tracking-widest px-2 py-0.5 rounded-full bg-primary/20 text-primary-glow border border-primary/40">JUEGO</span>
         </div>
       </div>
+
 
       {(body || err) && (
         <div className="px-3 pt-2 text-sm whitespace-pre-wrap break-words">
@@ -125,6 +137,11 @@ export function GameCard({
           </button>
           {menuOpen && (
             <div className="absolute right-0 bottom-9 z-10 panel border border-border rounded-lg p-1 min-w-[140px] text-xs shadow-lg">
+              {mine && (
+                <button onClick={() => { setEditOpen(true); setMenuOpen(false); }} className="flex items-center gap-2 w-full text-left px-2 py-1.5 hover:bg-muted/40 rounded">
+                  <Pencil size={13} /> Editar
+                </button>
+              )}
               {(mine || isMod) && (
                 <button onClick={remove} className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-destructive hover:bg-muted/40 rounded">
                   <Trash2 size={13} /> Borrar
@@ -142,6 +159,21 @@ export function GameCard({
         <div className="px-3 pb-3">
           <CommentSection postId={post.id} myId={myId} isMod={isMod} onChange={onChange} />
         </div>
+      )}
+
+      {editOpen && (
+        <PublishGameDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          defaultTitle={title}
+          mode="edit"
+          editPostId={post.id}
+          initialTitle={title}
+          initialDescription={body}
+          initialTags={post.tags}
+          initialCoverUrl={post.signed_cover}
+          onSaved={onChange}
+        />
       )}
     </article>
   );

@@ -11,7 +11,24 @@ export interface ProjectMeta {
   id: string;
   name: string;
   updatedAt: number;
+  cloudId?: string;
 }
+
+export function setProjectCloudId(id: string, cloudId: string) {
+  if (typeof window === "undefined") return;
+  const idx = readIndex();
+  const i = idx.findIndex(m => m.id === id);
+  if (i >= 0) {
+    idx[i] = { ...idx[i], cloudId };
+    writeIndex(idx);
+  }
+}
+
+export function getProjectCloudId(id: string): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  return readIndex().find(m => m.id === id)?.cloudId;
+}
+
 
 function readIndex(): ProjectMeta[] {
   try {

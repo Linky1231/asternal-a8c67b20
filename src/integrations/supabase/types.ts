@@ -163,6 +163,7 @@ export type Database = {
           author_id: string
           category: string | null
           content: string
+          cover_url: string | null
           created_at: string
           deleted_at: string | null
           id: string
@@ -175,6 +176,7 @@ export type Database = {
           author_id: string
           category?: string | null
           content?: string
+          cover_url?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -187,6 +189,7 @@ export type Database = {
           author_id?: string
           category?: string | null
           content?: string
+          cover_url?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -366,6 +369,44 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      user_projects: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          name: string
+          published_post_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          id?: string
+          name?: string
+          published_post_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          name?: string
+          published_post_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_projects_published_post_id_fkey"
+            columns: ["published_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
