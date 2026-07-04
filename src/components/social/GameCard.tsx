@@ -178,13 +178,3 @@ export function GameCard({
     </article>
   );
 }
-
-
-      {openComments && (
-        <div className="px-3 pb-3">
-          <CommentSection postId={post.id} myId={myId} isMod={isMod} onChange={onChange} />
-        </div>
-      )}
-    </article>
-  );
-}
