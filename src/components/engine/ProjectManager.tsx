@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import {
   listProjects,
   createProject,
@@ -9,9 +8,15 @@ import {
   setCurrentProjectId,
   loadProjectById,
   saveProjectById,
+  setProjectCloudId,
+  getProjectCloudId,
   type ProjectMeta,
 } from "@/lib/engine/storage";
 import type { Project } from "@/lib/engine/core";
+import { supabase } from "@/integrations/supabase/client";
+import { cloudSaveProject, cloudListProjects, cloudDeleteProject, type CloudProject } from "@/lib/social/api";
+import { Cloud, CloudDownload, CloudUpload, Loader2 } from "lucide-react";
+
 
 function timeAgo(t: number) {
   const s = Math.max(1, Math.floor((Date.now() - t) / 1000));
