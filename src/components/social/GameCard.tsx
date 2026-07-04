@@ -137,6 +137,11 @@ export function GameCard({
           </button>
           {menuOpen && (
             <div className="absolute right-0 bottom-9 z-10 panel border border-border rounded-lg p-1 min-w-[140px] text-xs shadow-lg">
+              {mine && (
+                <button onClick={() => { setEditOpen(true); setMenuOpen(false); }} className="flex items-center gap-2 w-full text-left px-2 py-1.5 hover:bg-muted/40 rounded">
+                  <Pencil size={13} /> Editar
+                </button>
+              )}
               {(mine || isMod) && (
                 <button onClick={remove} className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-destructive hover:bg-muted/40 rounded">
                   <Trash2 size={13} /> Borrar
@@ -149,6 +154,31 @@ export function GameCard({
           )}
         </div>
       </footer>
+
+      {openComments && (
+        <div className="px-3 pb-3">
+          <CommentSection postId={post.id} myId={myId} isMod={isMod} onChange={onChange} />
+        </div>
+      )}
+
+      {editOpen && (
+        <PublishGameDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          defaultTitle={title}
+          mode="edit"
+          editPostId={post.id}
+          initialTitle={title}
+          initialDescription={body}
+          initialTags={post.tags}
+          initialCoverUrl={post.signed_cover}
+          onSaved={onChange}
+        />
+      )}
+    </article>
+  );
+}
+
 
       {openComments && (
         <div className="px-3 pb-3">
