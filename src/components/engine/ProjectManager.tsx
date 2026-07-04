@@ -127,12 +127,6 @@ export function ProjectManager({
             ← VOLVER
           </button>
         )}
-        <Link
-          to="/feed"
-          className="text-[10px] font-display tracking-widest px-3 py-2 rounded-md border border-accent/50 bg-accent/15 text-primary-glow ml-2"
-        >
-          FEED →
-        </Link>
       </header>
 
       <div className="flex-1 overflow-auto p-3 space-y-2">
