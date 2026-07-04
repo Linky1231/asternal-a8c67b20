@@ -122,6 +122,7 @@ export async function fetchFeed(opts: { search?: string; tag?: string; category?
     const reps = (reposts.data ?? []).filter(x => x.post_id === p.id);
     const my_repost = !!me && reps.some(x => x.user_id === me);
     const signed = await signMediaUrls(p.media_urls ?? []);
+    const signedCover = p.cover_url ? (await signMediaUrls([p.cover_url]))[0] ?? null : null;
     result.push({
       ...(p as PostRow),
       author: pmap.get(p.author_id) ?? null,
@@ -129,7 +130,9 @@ export async function fetchFeed(opts: { search?: string; tag?: string; category?
       likes, favorites: favs, comments_count: c, reposts_count: reps.length,
       my_like, my_favorite, my_repost,
       signed_media: signed,
+      signed_cover: signedCover,
     });
+
   }
   return result;
 }
