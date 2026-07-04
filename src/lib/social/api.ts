@@ -384,7 +384,7 @@ export async function updateGame(postId: string, input: {
   } else if (input.removeCover) {
     patch.cover_url = null;
   }
-  const { error } = await supabase.from("posts").update(patch).eq("id", postId);
+  const { error } = await supabase.from("posts").update(patch as never).eq("id", postId);
   if (error) throw error;
   if (input.tags) {
     await supabase.from("post_tags").delete().eq("post_id", postId);
