@@ -317,11 +317,25 @@ export async function isMod(): Promise<boolean> {
 }
 
 // ---------- Published games ----------
+async function upsertTagsFor(postId: string, tags?: string[]) {
+  if (!tags?.length) return;
+  const names = Array.from(new Set(tags.map(t => t.trim().toLowerCase()).filter(Boolean)));
+  for (const name of names) {
+    let { data: tag } = await supabase.from("tags").select("id").eq("name", name).maybeSingle();
+    if (!tag) {
+      const { data: created } = await supabase.from("tags").insert({ name }).select().single();
+      tag = created;
+    }
+    if (tag) await supabase.from("post_tags").insert({ post_id: postId, tag_id: tag.id }).select();
+  }
+}
+
 export async function publishGame(input: {
   project: unknown;
   title: string;
   description?: string;
   tags?: string[];
+  coverFile?: File | null;
 }): Promise<PostRow> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
@@ -330,6 +344,7 @@ export async function publishGame(input: {
     type: "application/json",
   });
   const path = await uploadMedia(file, user.id);
+  const coverPath = input.coverFile ? await uploadMedia(input.coverFile, user.id) : null;
   const content = `🎮 ${input.title}${input.description ? "\n\n" + input.description : ""}`;
   const { data: post, error } = await supabase.from("posts").insert({
     author_id: user.id,
@@ -338,20 +353,43 @@ export async function publishGame(input: {
     media_type: "none",
     link_url: null,
     category: "game",
+    cover_url: coverPath,
   }).select().single();
   if (error) throw error;
-  if (input.tags?.length) {
-    const names = Array.from(new Set(input.tags.map(t => t.trim().toLowerCase()).filter(Boolean)));
-    for (const name of names) {
-      let { data: tag } = await supabase.from("tags").select("id").eq("name", name).maybeSingle();
-      if (!tag) {
-        const { data: created } = await supabase.from("tags").insert({ name }).select().single();
-        tag = created;
-      }
-      if (tag) await supabase.from("post_tags").insert({ post_id: post!.id, tag_id: tag.id });
-    }
-  }
+  await upsertTagsFor(post!.id, input.tags);
   return post as PostRow;
+}
+
+export async function updateGame(postId: string, input: {
+  project?: unknown;
+  title: string;
+  description?: string;
+  tags?: string[];
+  coverFile?: File | null;
+  removeCover?: boolean;
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const patch: Record<string, unknown> = {
+    content: `🎮 ${input.title}${input.description ? "\n\n" + input.description : ""}`,
+  };
+  if (input.project !== undefined) {
+    const json = JSON.stringify(input.project);
+    const file = new File([json], `${input.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "game"}.asternal.json`, { type: "application/json" });
+    const path = await uploadMedia(file, user.id);
+    patch.media_urls = [path];
+  }
+  if (input.coverFile) {
+    patch.cover_url = await uploadMedia(input.coverFile, user.id);
+  } else if (input.removeCover) {
+    patch.cover_url = null;
+  }
+  const { error } = await supabase.from("posts").update(patch).eq("id", postId);
+  if (error) throw error;
+  if (input.tags) {
+    await supabase.from("post_tags").delete().eq("post_id", postId);
+    await upsertTagsFor(postId, input.tags);
+  }
 }
 
 export async function fetchGames(opts: { search?: string } = {}): Promise<PostWithMeta[]> {
@@ -363,3 +401,85 @@ export async function loadGameProject(signedUrl: string): Promise<unknown> {
   if (!res.ok) throw new Error("No se pudo cargar el juego");
   return await res.json();
 }
+
+// ---------- Cloud project sync ----------
+export type CloudProject = {
+  id: string;
+  user_id: string;
+  name: string;
+  data: unknown;
+  published_post_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function cloudListProjects(): Promise<CloudProject[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase.from("user_projects").select("id,user_id,name,data,published_post_id,created_at,updated_at").eq("user_id", user.id).order("updated_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as CloudProject[];
+}
+
+export async function cloudSaveProject(input: { id?: string; name: string; data: unknown }): Promise<CloudProject> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  if (input.id) {
+    const { data, error } = await supabase.from("user_projects")
+      .update({ name: input.name, data: input.data as never })
+      .eq("id", input.id).eq("user_id", user.id)
+      .select().single();
+    if (error) throw error;
+    return data as CloudProject;
+  }
+  const { data, error } = await supabase.from("user_projects")
+    .insert({ user_id: user.id, name: input.name, data: input.data as never })
+    .select().single();
+  if (error) throw error;
+  return data as CloudProject;
+}
+
+export async function cloudDeleteProject(id: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from("user_projects").delete().eq("id", id).eq("user_id", user.id);
+}
+
+// ---------- Admin ----------
+export type ManagedUser = { id: string; username: string; display_name: string | null; is_mod: boolean; is_admin: boolean };
+
+export async function isAdmin(): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+  return (data ?? []).some(r => r.role === "admin");
+}
+
+export async function listManagedUsers(search?: string): Promise<ManagedUser[]> {
+  let q = supabase.from("profiles").select("id,username,display_name").limit(200);
+  if (search) q = q.ilike("username", `%${search}%`);
+  const { data: profs, error } = await q;
+  if (error) throw error;
+  const ids = (profs ?? []).map(p => p.id);
+  if (!ids.length) return [];
+  const { data: roles } = await supabase.from("user_roles").select("user_id,role").in("user_id", ids);
+  const rmap = new Map<string, string[]>();
+  (roles ?? []).forEach(r => {
+    const arr = rmap.get(r.user_id) ?? [];
+    arr.push(r.role);
+    rmap.set(r.user_id, arr);
+  });
+  return (profs ?? []).map(p => {
+    const rs = rmap.get(p.id) ?? [];
+    return { ...p, is_mod: rs.includes("moderator"), is_admin: rs.includes("admin") };
+  });
+}
+
+export async function setUserModerator(userId: string, on: boolean): Promise<void> {
+  if (on) {
+    await supabase.from("user_roles").insert({ user_id: userId, role: "moderator" });
+  } else {
+    await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "moderator");
+  }
+}
+
