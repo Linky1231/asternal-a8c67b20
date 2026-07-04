@@ -30,6 +30,7 @@ function HomePage() {
   const [me, setMe] = useState<Profile | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
   const [mod, setMod] = useState(false);
+  const [admin, setAdmin] = useState(false);
   const [tab, setTab] = useState<Tab>("games");
   const [games, setGames] = useState<PostWithMeta[]>([]);
   const [posts, setPosts] = useState<PostWithMeta[]>([]);
@@ -52,6 +53,7 @@ function HomePage() {
       setMyId(session.user.id);
       setMe(await getMyProfile());
       setMod(await isMod());
+      setAdmin(await isAdmin());
       await reload(tab);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
