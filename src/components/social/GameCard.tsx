@@ -31,8 +31,10 @@ export function GameCard({
   const [err, setErr] = useState<string | null>(null);
   const [openComments, setOpenComments] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const { title, body } = extractTitle(post.content);
   const mine = myId === post.author_id;
+
 
   const play = async () => {
     if (!post.signed_media[0]) { setErr("Sin datos"); return; }
