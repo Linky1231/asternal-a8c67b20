@@ -80,6 +80,12 @@ function HomePage() {
             <Search size={16} />
           </button>
           <NotificationBell />
+          {admin && (
+            <Link to="/admin" title="Admin"
+              className="w-9 h-9 rounded-xl border border-accent/40 bg-accent/10 grid place-items-center active:scale-95 transition">
+              <ShieldCheck size={16} className="text-primary-glow" />
+            </Link>
+          )}
           <Link to="/editor" title="Editor"
             className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/40 grid place-items-center active:scale-95 transition">
             <Wrench size={16} className="text-primary-glow" />
@@ -88,6 +94,7 @@ function HomePage() {
             className="w-9 h-9 rounded-xl border border-border grid place-items-center text-muted-foreground active:scale-95 transition">
             <LogOut size={15} />
           </button>
+
         </div>
 
         {showSearch && (
