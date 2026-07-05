@@ -40,6 +40,7 @@ function HomePage() {
   const [showSearch, setShowSearch] = useState(false);
 
   const reload = useCallback(async (which: Tab) => {
+    if (which === "profile") return;
     setLoading(true);
     try {
       if (which === "games") setGames(await fetchGames({ search: search || undefined }));
