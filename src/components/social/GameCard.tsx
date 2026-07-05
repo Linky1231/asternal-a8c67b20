@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Play, Heart, MessageCircle, Share2, Trash2, MoreHorizontal, Pencil } from "lucide-react";
-import { type PostWithMeta, toggleReaction, deletePost, loadGameProject, reportContent } from "@/lib/social/api";
+import { useState, useEffect } from "react";
+import { Play, Heart, MessageCircle, Share2, Trash2, MoreHorizontal, Pencil, GitFork, Loader2 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { type PostWithMeta, toggleReaction, deletePost, loadGameProject, reportContent, remixGame } from "@/lib/social/api";
 import type { Project, Scene } from "@/lib/engine/core";
 import { GameRuntime } from "@/components/engine/GameRuntime";
 import { CommentSection } from "./CommentSection";
