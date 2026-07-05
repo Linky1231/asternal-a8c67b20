@@ -1,0 +1,1 @@
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS allow_remix BOOLEAN NOT NULL DEFAULT true;
