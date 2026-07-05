@@ -162,6 +162,16 @@ export function PublishGameDialog({
             <input value={tagInput} onChange={e => setTagInput(e.target.value)} placeholder="plataformas, retro, aventura"
               className="w-full mt-1 bg-input/50 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
           </label>
+          <label className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-input/30 cursor-pointer active:scale-[0.99] transition">
+            <div className={`w-10 h-6 rounded-full relative transition-colors ${allowRemix ? "bg-primary" : "bg-muted"}`}>
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${allowRemix ? "left-[18px]" : "left-0.5"}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-display tracking-widest flex items-center gap-1.5"><GitFork size={12}/> PERMITIR REMIX</div>
+              <div className="text-[10px] text-muted-foreground leading-tight">Otras personas podrán copiar tu juego para modificarlo.</div>
+            </div>
+            <input type="checkbox" checked={allowRemix} onChange={e => setAllowRemix(e.target.checked)} className="sr-only" />
+          </label>
           {err && <div className="text-xs text-destructive">{err}</div>}
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={() => onOpenChange(false)} disabled={busy}
