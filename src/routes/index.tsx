@@ -121,19 +121,25 @@ function HomePage() {
           <div className="relative flex bg-muted/40 rounded-2xl p-1">
             <button
               onClick={() => setTab("games")}
-              className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-display tracking-widest transition-all ${tab === "games" ? "text-primary-foreground" : "text-muted-foreground"}`}
+              className={`relative z-10 flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-display tracking-widest transition-colors duration-200 ${tab === "games" ? "text-primary-foreground" : "text-muted-foreground"}`}
             >
-              <Gamepad2 size={15} /> JUEGOS
+              <Gamepad2 size={14} /> JUEGOS
             </button>
             <button
               onClick={() => setTab("feed")}
-              className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-display tracking-widest transition-all ${tab === "feed" ? "text-primary-foreground" : "text-muted-foreground"}`}
+              className={`relative z-10 flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-display tracking-widest transition-colors duration-200 ${tab === "feed" ? "text-primary-foreground" : "text-muted-foreground"}`}
             >
-              <Newspaper size={15} /> FEED
+              <Newspaper size={14} /> FEED
+            </button>
+            <button
+              onClick={() => setTab("profile")}
+              className={`relative z-10 flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-display tracking-widest transition-colors duration-200 ${tab === "profile" ? "text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              <User size={14} /> PERFIL
             </button>
             <div
-              className="absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-xl bg-gradient-to-r from-primary to-accent shadow-[0_4px_14px_-4px_oklch(0.68_0.21_250/0.55)] transition-transform duration-300"
-              style={{ transform: `translateX(${tab === "games" ? "0%" : "calc(100% + 8px)"})` }}
+              className="absolute top-1 bottom-1 w-[calc(33.333%-6px)] rounded-xl bg-gradient-to-r from-primary to-accent shadow-[0_4px_14px_-4px_oklch(0.68_0.21_250/0.55)] transition-transform duration-300 ease-out"
+              style={{ transform: `translateX(${tab === "games" ? "0%" : tab === "feed" ? "calc(100% + 8px)" : "calc(200% + 16px)"})` }}
             />
           </div>
         </div>
@@ -141,23 +147,23 @@ function HomePage() {
 
       {/* Content */}
       <main className="flex-1 max-w-2xl mx-auto w-full px-3 py-3 space-y-3 pb-24">
-        {tab === "games" ? (
-          loading ? (
-            <SkeletonList />
-          ) : games.length === 0 ? (
-            <EmptyGames />
+        <div key={tab} className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {tab === "games" ? (
+            loading ? <SkeletonList /> : games.length === 0 ? <EmptyGames /> : (
+              games.map(g => <GameCard key={g.id} post={g} myId={myId} isMod={mod} onChange={() => reload("games")} />)
+            )
+          ) : tab === "feed" ? (
+            <>
+              <PostComposer onCreated={() => reload("feed")} />
+              {loading ? <SkeletonList /> :
+                posts.length === 0 ? (
+                  <div className="text-center text-xs text-muted-foreground py-10">Sé el primero en publicar.</div>
+                ) : posts.map(p => <PostCard key={p.id} post={p} myId={myId} isMod={mod} onChange={() => reload("feed")} />)}
+            </>
           ) : (
-            games.map(g => <GameCard key={g.id} post={g} myId={myId} isMod={mod} onChange={() => reload("games")} />)
-          )
-        ) : (
-          <>
-            <PostComposer onCreated={() => reload("feed")} />
-            {loading ? <SkeletonList /> :
-              posts.length === 0 ? (
-                <div className="text-center text-xs text-muted-foreground py-10">Sé el primero en publicar.</div>
-              ) : posts.map(p => <PostCard key={p.id} post={p} myId={myId} isMod={mod} onChange={() => reload("feed")} />)}
-          </>
-        )}
+            myId && <ProfilePanel userId={myId} myId={myId} isMod={mod} viewingOwn={true} />
+          )}
+        </div>
       </main>
 
       {/* Floating CTA to editor */}
