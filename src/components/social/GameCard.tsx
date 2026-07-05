@@ -204,6 +204,7 @@ export function GameCard({
           initialDescription={body}
           initialTags={post.tags}
           initialCoverUrl={post.signed_cover}
+          initialAllowRemix={post.allow_remix !== false}
           onSaved={onChange}
         />
       )}
