@@ -14,6 +14,7 @@ export function PublishGameDialog({
   initialDescription,
   initialTags,
   initialCoverUrl,
+  initialAllowRemix,
   onSaved,
 }: {
   open: boolean;
