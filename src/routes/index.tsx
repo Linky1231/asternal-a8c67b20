@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import { Gamepad2, Newspaper, Search, LogOut, Wrench, Plus, ShieldCheck } from "lucide-react";
+import { Gamepad2, Newspaper, Search, LogOut, Wrench, Plus, ShieldCheck, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchFeed, fetchGames, getMyProfile, isMod, isAdmin, type PostWithMeta, type Profile } from "@/lib/social/api";
 import { PostComposer } from "@/components/social/PostComposer";
 import { PostCard } from "@/components/social/PostCard";
 import { GameCard } from "@/components/social/GameCard";
 import { NotificationBell } from "@/components/social/NotificationBell";
+import { ProfilePanel } from "@/components/social/ProfilePanel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
