@@ -337,6 +337,7 @@ export async function publishGame(input: {
   description?: string;
   tags?: string[];
   coverFile?: File | null;
+  allowRemix?: boolean;
 }): Promise<PostRow> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
@@ -355,7 +356,8 @@ export async function publishGame(input: {
     link_url: null,
     category: "game",
     cover_url: coverPath,
-  }).select().single();
+    allow_remix: input.allowRemix ?? true,
+  } as never).select().single();
   if (error) throw error;
   await upsertTagsFor(post!.id, input.tags);
   return post as PostRow;
@@ -368,6 +370,7 @@ export async function updateGame(postId: string, input: {
   tags?: string[];
   coverFile?: File | null;
   removeCover?: boolean;
+  allowRemix?: boolean;
 }): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
@@ -385,6 +388,7 @@ export async function updateGame(postId: string, input: {
   } else if (input.removeCover) {
     patch.cover_url = null;
   }
+  if (typeof input.allowRemix === "boolean") patch.allow_remix = input.allowRemix;
   const { error } = await supabase.from("posts").update(patch as never).eq("id", postId);
   if (error) throw error;
   if (input.tags) {
@@ -392,6 +396,23 @@ export async function updateGame(postId: string, input: {
     await upsertTagsFor(postId, input.tags);
   }
 }
+
+export async function remixGame(post: PostWithMeta): Promise<{ cloudId: string; name: string }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  if (post.allow_remix === false) throw new Error("El autor no permite remixes de este juego");
+  if (!post.signed_media[0]) throw new Error("Juego sin datos");
+  const project = await loadGameProject(post.signed_media[0]);
+  const title = (post.content.split("\n")[0] || "Juego").replace(/^🎮\s*/, "").trim() || "Juego";
+  const name = `${title} (remix)`;
+  try { (project as { name?: string }).name = name; } catch { /* ignore */ }
+  const { data, error } = await supabase.from("user_projects")
+    .insert({ user_id: user.id, name, data: project as never })
+    .select().single();
+  if (error) throw error;
+  return { cloudId: (data as { id: string }).id, name };
+}
+
 
 export async function fetchGames(opts: { search?: string } = {}): Promise<PostWithMeta[]> {
   return fetchFeed({ ...opts, category: "game" });
