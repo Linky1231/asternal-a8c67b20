@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
 import { fetchNotifications, markNotificationsRead } from "@/lib/social/api";
 
 type Notif = {
