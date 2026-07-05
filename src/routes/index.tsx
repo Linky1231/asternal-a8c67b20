@@ -70,9 +70,16 @@ function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-20 panel border-b backdrop-blur-xl">
         <div className="max-w-2xl mx-auto flex items-center gap-2 px-3 py-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center shadow-[0_6px_16px_-6px_oklch(0.68_0.21_250/0.6)]">
-            <span className="font-display text-sm text-primary-foreground">A</span>
-          </div>
+          <Link to="/profile" title="Mi perfil"
+            className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center shadow-[0_6px_16px_-6px_oklch(0.68_0.21_250/0.6)] active:scale-95 transition overflow-hidden">
+            {me?.avatar_url ? (
+              <img src={me.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-display text-sm text-primary-foreground">
+                {(me?.display_name ?? me?.username ?? "A")[0]?.toUpperCase()}
+              </span>
+            )}
+          </Link>
           <div className="flex-1 min-w-0">
             <div className="font-display text-sm text-primary-glow glow-text leading-none">ASTERNAL</div>
             <div className="text-[10px] font-mono text-muted-foreground truncate">@{me?.username ?? "…"}</div>
