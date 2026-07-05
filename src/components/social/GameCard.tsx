@@ -153,7 +153,14 @@ export function GameCard({
         <button onClick={() => setOpenComments(o => !o)} className="flex items-center gap-1 px-2 py-1.5 rounded-lg active:scale-95 transition">
           <MessageCircle size={15} /> {post.comments_count}
         </button>
-        <button onClick={share} className="flex items-center gap-1 px-2 py-1.5 rounded-lg active:scale-95 transition ml-auto">
+        {canRemix && !mine && (
+          <button onClick={doRemix} disabled={remixing} title="Hacer remix"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg active:scale-95 transition ml-auto text-primary-glow disabled:opacity-60">
+            {remixing ? <Loader2 size={14} className="animate-spin" /> : <GitFork size={14} />}
+            <span className="text-[10px] font-display tracking-widest">REMIX</span>
+          </button>
+        )}
+        <button onClick={share} className={`flex items-center gap-1 px-2 py-1.5 rounded-lg active:scale-95 transition ${canRemix && !mine ? "" : "ml-auto"}`}>
           <Share2 size={15} />
         </button>
         <div className="relative">
