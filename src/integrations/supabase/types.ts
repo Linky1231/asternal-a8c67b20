@@ -160,6 +160,7 @@ export type Database = {
       }
       posts: {
         Row: {
+          allow_remix: boolean
           author_id: string
           category: string | null
           content: string
@@ -173,6 +174,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_remix?: boolean
           author_id: string
           category?: string | null
           content?: string
@@ -186,6 +188,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_remix?: boolean
           author_id?: string
           category?: string | null
           content?: string

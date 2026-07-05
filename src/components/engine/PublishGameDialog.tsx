@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { publishGame, updateGame } from "@/lib/social/api";
-import { Upload, Loader2, CheckCircle2, ImagePlus, X } from "lucide-react";
+import { Upload, Loader2, CheckCircle2, ImagePlus, X, GitFork } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 import type { Project } from "@/lib/engine/core";
@@ -14,6 +14,7 @@ export function PublishGameDialog({
   initialDescription,
   initialTags,
   initialCoverUrl,
+  initialAllowRemix,
   onSaved,
 }: {
   open: boolean;
@@ -26,6 +27,7 @@ export function PublishGameDialog({
   initialDescription?: string;
   initialTags?: string[];
   initialCoverUrl?: string | null;
+  initialAllowRemix?: boolean;
   onSaved?: () => void;
 }) {
   const navigate = useNavigate();
@@ -35,6 +37,7 @@ export function PublishGameDialog({
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(initialCoverUrl ?? null);
   const [removeCover, setRemoveCover] = useState(false);
+  const [allowRemix, setAllowRemix] = useState<boolean>(initialAllowRemix ?? true);
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -48,9 +51,10 @@ export function PublishGameDialog({
       setCoverPreview(initialCoverUrl ?? null);
       setCoverFile(null);
       setRemoveCover(false);
+      setAllowRemix(initialAllowRemix ?? true);
       setErr(null); setDone(false);
     }
-  }, [open, initialTitle, defaultTitle, initialDescription, initialTags, initialCoverUrl]);
+  }, [open, initialTitle, defaultTitle, initialDescription, initialTags, initialCoverUrl, initialAllowRemix]);
 
   const pickCover = (f: File | null) => {
     if (!f) return;
@@ -81,9 +85,10 @@ export function PublishGameDialog({
           tags,
           coverFile,
           removeCover,
+          allowRemix,
         });
       } else if (project) {
-        await publishGame({ project, title: title.trim(), description: description.trim(), tags, coverFile });
+        await publishGame({ project, title: title.trim(), description: description.trim(), tags, coverFile, allowRemix });
       }
       setDone(true);
       setTimeout(() => {
@@ -156,6 +161,16 @@ export function PublishGameDialog({
             <span className="text-[10px] font-display tracking-widest text-muted-foreground">ETIQUETAS</span>
             <input value={tagInput} onChange={e => setTagInput(e.target.value)} placeholder="plataformas, retro, aventura"
               className="w-full mt-1 bg-input/50 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
+          </label>
+          <label className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-input/30 cursor-pointer active:scale-[0.99] transition">
+            <div className={`w-10 h-6 rounded-full relative transition-colors ${allowRemix ? "bg-primary" : "bg-muted"}`}>
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${allowRemix ? "left-[18px]" : "left-0.5"}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-display tracking-widest flex items-center gap-1.5"><GitFork size={12}/> PERMITIR REMIX</div>
+              <div className="text-[10px] text-muted-foreground leading-tight">Otras personas podrán copiar tu juego para modificarlo.</div>
+            </div>
+            <input type="checkbox" checked={allowRemix} onChange={e => setAllowRemix(e.target.checked)} className="sr-only" />
           </label>
           {err && <div className="text-xs text-destructive">{err}</div>}
           <div className="flex justify-end gap-2 pt-1">

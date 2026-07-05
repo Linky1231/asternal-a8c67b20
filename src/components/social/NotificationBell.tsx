@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
 import { fetchNotifications, markNotificationsRead } from "@/lib/social/api";
 
 type Notif = {
@@ -42,10 +43,11 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      <button onClick={toggle} className="relative w-9 h-9 rounded-md border border-border">
-        🔔
+      <button onClick={toggle} title="Notificaciones"
+        className="relative w-9 h-9 rounded-xl border border-border grid place-items-center active:scale-95 transition text-muted-foreground hover:text-primary-glow">
+        <Bell size={16} />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[9px] font-mono rounded-full w-4 h-4 grid place-items-center">{unread}</span>
+          <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[9px] font-mono rounded-full w-4 h-4 grid place-items-center animate-in zoom-in">{unread}</span>
         )}
       </button>
       {open && (

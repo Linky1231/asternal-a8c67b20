@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Play, Heart, MessageCircle, Share2, Trash2, MoreHorizontal, Pencil } from "lucide-react";
-import { type PostWithMeta, toggleReaction, deletePost, loadGameProject, reportContent } from "@/lib/social/api";
+import { useState, useEffect } from "react";
+import { Play, Heart, MessageCircle, Share2, Trash2, MoreHorizontal, Pencil, GitFork, Loader2 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { type PostWithMeta, toggleReaction, deletePost, loadGameProject, reportContent, remixGame } from "@/lib/social/api";
 import type { Project, Scene } from "@/lib/engine/core";
 import { GameRuntime } from "@/components/engine/GameRuntime";
 import { CommentSection } from "./CommentSection";
@@ -26,15 +27,28 @@ export function GameCard({
 }: {
   post: PostWithMeta; myId: string | null; isMod: boolean; onChange: () => void;
 }) {
+  const navigate = useNavigate();
   const [playing, setPlaying] = useState<Scene | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [openComments, setOpenComments] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [remixing, setRemixing] = useState(false);
   const { title, body } = extractTitle(post.content);
   const mine = myId === post.author_id;
+  const canRemix = post.allow_remix !== false;
 
+  useEffect(() => {
+    if (!playing) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.requestFullscreen?.().catch(() => {/* ignore */});
+    return () => {
+      document.body.style.overflow = prev;
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {/* ignore */});
+    };
+  }, [playing]);
 
   const play = async () => {
     if (!post.signed_media[0]) { setErr("Sin datos"); return; }
@@ -63,10 +77,21 @@ export function GameCard({
     await reportContent({ postId: post.id, reason });
     setMenuOpen(false);
   };
+  const doRemix = async () => {
+    if (!canRemix) { setErr("El autor no permite remixes"); return; }
+    setRemixing(true); setErr(null);
+    try {
+      const { name } = await remixGame(post);
+      setMenuOpen(false);
+      alert(`✅ Remix creado: "${name}"\nLo encontrarás en CREAR → Mis juegos en la nube.`);
+      navigate({ to: "/editor" });
+    } catch (e) { setErr((e as Error).message); }
+    finally { setRemixing(false); }
+  };
 
   if (playing) {
     return (
-      <div className="fixed inset-0 z-50 bg-background">
+      <div className="fixed inset-0 z-[100] bg-background" style={{ height: "100dvh", width: "100vw" }}>
         <GameRuntime
           scene={playing}
           fpsCap={60}
@@ -75,7 +100,7 @@ export function GameCard({
         />
         <button
           onClick={() => setPlaying(null)}
-          className="fixed top-3 right-3 z-[60] px-3 py-2 rounded-xl glass text-xs font-display tracking-widest active:scale-95"
+          className="fixed top-3 right-3 z-[110] px-3 py-2 rounded-xl glass text-xs font-display tracking-widest active:scale-95"
         >SALIR</button>
       </div>
     );
@@ -128,7 +153,14 @@ export function GameCard({
         <button onClick={() => setOpenComments(o => !o)} className="flex items-center gap-1 px-2 py-1.5 rounded-lg active:scale-95 transition">
           <MessageCircle size={15} /> {post.comments_count}
         </button>
-        <button onClick={share} className="flex items-center gap-1 px-2 py-1.5 rounded-lg active:scale-95 transition ml-auto">
+        {canRemix && !mine && (
+          <button onClick={doRemix} disabled={remixing} title="Hacer remix"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg active:scale-95 transition ml-auto text-primary-glow disabled:opacity-60">
+            {remixing ? <Loader2 size={14} className="animate-spin" /> : <GitFork size={14} />}
+            <span className="text-[10px] font-display tracking-widest">REMIX</span>
+          </button>
+        )}
+        <button onClick={share} className={`flex items-center gap-1 px-2 py-1.5 rounded-lg active:scale-95 transition ${canRemix && !mine ? "" : "ml-auto"}`}>
           <Share2 size={15} />
         </button>
         <div className="relative">
@@ -172,6 +204,7 @@ export function GameCard({
           initialDescription={body}
           initialTags={post.tags}
           initialCoverUrl={post.signed_cover}
+          initialAllowRemix={post.allow_remix !== false}
           onSaved={onChange}
         />
       )}

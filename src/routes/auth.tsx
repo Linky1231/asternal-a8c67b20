@@ -19,7 +19,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/feed" });
+      if (data.session) navigate({ to: "/" });
     });
   }, [navigate]);
 
@@ -32,7 +32,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: window.location.origin + "/feed",
+            emailRedirectTo: window.location.origin + "/",
             data: { username: username || email.split("@")[0] },
           },
         });
@@ -41,7 +41,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate({ to: "/feed" });
+      navigate({ to: "/" });
     } catch (e) {
       setErr((e as Error).message);
     } finally { setBusy(false); }
@@ -49,8 +49,15 @@ function AuthPage() {
 
   const google = async () => {
     setErr(null);
-    const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/feed" });
-    if (res.error) setErr(String(res.error));
+    setBusy(true);
+    try {
+      const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+      if (res.error) { setErr(String(res.error)); return; }
+      if (res.redirected) return;
+      navigate({ to: "/" });
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally { setBusy(false); }
   };
 
   return (

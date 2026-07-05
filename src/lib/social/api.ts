@@ -19,6 +19,7 @@ export type PostRow = {
   link_url: string | null;
   category: string | null;
   cover_url: string | null;
+  allow_remix?: boolean;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -336,6 +337,7 @@ export async function publishGame(input: {
   description?: string;
   tags?: string[];
   coverFile?: File | null;
+  allowRemix?: boolean;
 }): Promise<PostRow> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
@@ -354,7 +356,8 @@ export async function publishGame(input: {
     link_url: null,
     category: "game",
     cover_url: coverPath,
-  }).select().single();
+    allow_remix: input.allowRemix ?? true,
+  } as never).select().single();
   if (error) throw error;
   await upsertTagsFor(post!.id, input.tags);
   return post as PostRow;
@@ -367,6 +370,7 @@ export async function updateGame(postId: string, input: {
   tags?: string[];
   coverFile?: File | null;
   removeCover?: boolean;
+  allowRemix?: boolean;
 }): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
@@ -384,6 +388,7 @@ export async function updateGame(postId: string, input: {
   } else if (input.removeCover) {
     patch.cover_url = null;
   }
+  if (typeof input.allowRemix === "boolean") patch.allow_remix = input.allowRemix;
   const { error } = await supabase.from("posts").update(patch as never).eq("id", postId);
   if (error) throw error;
   if (input.tags) {
@@ -391,6 +396,23 @@ export async function updateGame(postId: string, input: {
     await upsertTagsFor(postId, input.tags);
   }
 }
+
+export async function remixGame(post: PostWithMeta): Promise<{ cloudId: string; name: string }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  if (post.allow_remix === false) throw new Error("El autor no permite remixes de este juego");
+  if (!post.signed_media[0]) throw new Error("Juego sin datos");
+  const project = await loadGameProject(post.signed_media[0]);
+  const title = (post.content.split("\n")[0] || "Juego").replace(/^🎮\s*/, "").trim() || "Juego";
+  const name = `${title} (remix)`;
+  try { (project as { name?: string }).name = name; } catch { /* ignore */ }
+  const { data, error } = await supabase.from("user_projects")
+    .insert({ user_id: user.id, name, data: project as never })
+    .select().single();
+  if (error) throw error;
+  return { cloudId: (data as { id: string }).id, name };
+}
+
 
 export async function fetchGames(opts: { search?: string } = {}): Promise<PostWithMeta[]> {
   return fetchFeed({ ...opts, category: "game" });
@@ -483,3 +505,69 @@ export async function setUserModerator(userId: string, on: boolean): Promise<voi
   }
 }
 
+
+// ---------- Profile ----------
+export async function updateMyProfile(patch: { username?: string; display_name?: string; bio?: string; avatar_url?: string | null }): Promise<Profile> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const clean: Record<string, unknown> = {};
+  if (patch.username !== undefined) clean.username = patch.username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+  if (patch.display_name !== undefined) clean.display_name = patch.display_name.trim();
+  if (patch.bio !== undefined) clean.bio = patch.bio;
+  if (patch.avatar_url !== undefined) clean.avatar_url = patch.avatar_url;
+  const { data, error } = await supabase.from("profiles").update(clean as never).eq("id", user.id).select().single();
+  if (error) throw error;
+  return data as Profile;
+}
+
+export async function uploadAvatar(file: File): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const path = await uploadMedia(file, user.id);
+  const { data } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 365);
+  return data?.signedUrl ?? path;
+}
+
+export async function fetchProfileById(userId: string): Promise<Profile | null> {
+  const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+  return (data as Profile) ?? null;
+}
+
+export async function fetchUserPosts(userId: string, opts: { games?: boolean } = {}): Promise<PostWithMeta[]> {
+  let q = supabase.from("posts").select("*").eq("author_id", userId).is("deleted_at", null).order("created_at", { ascending: false }).limit(100);
+  if (opts.games === true) q = q.eq("category", "game");
+  else if (opts.games === false) q = q.or("category.is.null,category.neq.game");
+  const { data: posts, error } = await q;
+  if (error) throw error;
+  if (!posts?.length) return [];
+  const ids = posts.map(p => p.id);
+  const { data: { user } } = await supabase.auth.getUser();
+  const me = user?.id ?? null;
+  const [profile, reactions, comments] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+    supabase.from("reactions").select("post_id,user_id,type").in("post_id", ids),
+    supabase.from("comments").select("post_id").in("post_id", ids).is("deleted_at", null),
+  ]);
+  const author = (profile.data as Profile) ?? null;
+  const out: PostWithMeta[] = [];
+  for (const p of posts) {
+    const r = (reactions.data ?? []).filter(x => x.post_id === p.id);
+    const signed = await signMediaUrls(p.media_urls ?? []);
+    const signedCover = p.cover_url ? (await signMediaUrls([p.cover_url]))[0] ?? null : null;
+    out.push({
+      ...(p as PostRow),
+      author,
+      tags: [],
+      likes: r.filter(x => x.type === "like").length,
+      favorites: r.filter(x => x.type === "favorite").length,
+      comments_count: (comments.data ?? []).filter(x => x.post_id === p.id).length,
+      reposts_count: 0,
+      my_like: !!me && r.some(x => x.user_id === me && x.type === "like"),
+      my_favorite: !!me && r.some(x => x.user_id === me && x.type === "favorite"),
+      my_repost: false,
+      signed_media: signed,
+      signed_cover: signedCover,
+    });
+  }
+  return out;
+}
