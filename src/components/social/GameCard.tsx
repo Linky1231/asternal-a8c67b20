@@ -27,15 +27,28 @@ export function GameCard({
 }: {
   post: PostWithMeta; myId: string | null; isMod: boolean; onChange: () => void;
 }) {
+  const navigate = useNavigate();
   const [playing, setPlaying] = useState<Scene | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [openComments, setOpenComments] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [remixing, setRemixing] = useState(false);
   const { title, body } = extractTitle(post.content);
   const mine = myId === post.author_id;
+  const canRemix = post.allow_remix !== false;
 
+  useEffect(() => {
+    if (!playing) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.requestFullscreen?.().catch(() => {/* ignore */});
+    return () => {
+      document.body.style.overflow = prev;
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {/* ignore */});
+    };
+  }, [playing]);
 
   const play = async () => {
     if (!post.signed_media[0]) { setErr("Sin datos"); return; }
@@ -64,10 +77,21 @@ export function GameCard({
     await reportContent({ postId: post.id, reason });
     setMenuOpen(false);
   };
+  const doRemix = async () => {
+    if (!canRemix) { setErr("El autor no permite remixes"); return; }
+    setRemixing(true); setErr(null);
+    try {
+      const { name } = await remixGame(post);
+      setMenuOpen(false);
+      alert(`✅ Remix creado: "${name}"\nLo encontrarás en CREAR → Mis juegos en la nube.`);
+      navigate({ to: "/editor" });
+    } catch (e) { setErr((e as Error).message); }
+    finally { setRemixing(false); }
+  };
 
   if (playing) {
     return (
-      <div className="fixed inset-0 z-50 bg-background">
+      <div className="fixed inset-0 z-[100] bg-background" style={{ height: "100dvh", width: "100vw" }}>
         <GameRuntime
           scene={playing}
           fpsCap={60}
@@ -76,7 +100,7 @@ export function GameCard({
         />
         <button
           onClick={() => setPlaying(null)}
-          className="fixed top-3 right-3 z-[60] px-3 py-2 rounded-xl glass text-xs font-display tracking-widest active:scale-95"
+          className="fixed top-3 right-3 z-[110] px-3 py-2 rounded-xl glass text-xs font-display tracking-widest active:scale-95"
         >SALIR</button>
       </div>
     );
