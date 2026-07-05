@@ -26,6 +26,7 @@ export function PublishGameDialog({
   initialDescription?: string;
   initialTags?: string[];
   initialCoverUrl?: string | null;
+  initialAllowRemix?: boolean;
   onSaved?: () => void;
 }) {
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ export function PublishGameDialog({
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(initialCoverUrl ?? null);
   const [removeCover, setRemoveCover] = useState(false);
+  const [allowRemix, setAllowRemix] = useState<boolean>(initialAllowRemix ?? true);
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -48,9 +50,10 @@ export function PublishGameDialog({
       setCoverPreview(initialCoverUrl ?? null);
       setCoverFile(null);
       setRemoveCover(false);
+      setAllowRemix(initialAllowRemix ?? true);
       setErr(null); setDone(false);
     }
-  }, [open, initialTitle, defaultTitle, initialDescription, initialTags, initialCoverUrl]);
+  }, [open, initialTitle, defaultTitle, initialDescription, initialTags, initialCoverUrl, initialAllowRemix]);
 
   const pickCover = (f: File | null) => {
     if (!f) return;
@@ -81,9 +84,10 @@ export function PublishGameDialog({
           tags,
           coverFile,
           removeCover,
+          allowRemix,
         });
       } else if (project) {
-        await publishGame({ project, title: title.trim(), description: description.trim(), tags, coverFile });
+        await publishGame({ project, title: title.trim(), description: description.trim(), tags, coverFile, allowRemix });
       }
       setDone(true);
       setTimeout(() => {
