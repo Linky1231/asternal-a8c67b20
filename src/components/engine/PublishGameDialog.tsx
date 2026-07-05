@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { publishGame, updateGame } from "@/lib/social/api";
-import { Upload, Loader2, CheckCircle2, ImagePlus, X } from "lucide-react";
+import { Upload, Loader2, CheckCircle2, ImagePlus, X, GitFork } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 import type { Project } from "@/lib/engine/core";
