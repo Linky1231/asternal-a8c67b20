@@ -24,7 +24,7 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-type Tab = "games" | "feed";
+type Tab = "games" | "feed" | "profile";
 
 function HomePage() {
   const navigate = useNavigate();
