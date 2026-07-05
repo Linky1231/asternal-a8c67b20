@@ -19,6 +19,7 @@ export type PostRow = {
   link_url: string | null;
   category: string | null;
   cover_url: string | null;
+  allow_remix?: boolean;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
