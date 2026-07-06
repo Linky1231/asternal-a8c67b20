@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Play, Heart, MessageCircle, Share2, Trash2, MoreHorizontal, Pencil, GitFork, Loader2 } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { type PostWithMeta, toggleReaction, deletePost, loadGameProject, reportContent, remixGame } from "@/lib/social/api";
 import type { Project, Scene } from "@/lib/engine/core";
 import { GameRuntime } from "@/components/engine/GameRuntime";
 import { CommentSection } from "./CommentSection";
 import { PublishGameDialog } from "@/components/engine/PublishGameDialog";
+import { createProject, saveProjectById, setProjectCloudId, setCurrentProjectId } from "@/lib/engine/storage";
 
 function timeAgo(iso: string) {
   const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -81,9 +82,15 @@ export function GameCard({
     if (!canRemix) { setErr("El autor no permite remixes"); return; }
     setRemixing(true); setErr(null);
     try {
-      const { name } = await remixGame(post);
+      const { cloudId, name } = await remixGame(post);
+      // Auto-import locally so aparece en "Mis juegos" del editor al instante
+      const project = (await loadGameProject(post.signed_media[0])) as Project;
+      try { (project as { name?: string }).name = name; } catch { /* ignore */ }
+      const localId = createProject(name);
+      saveProjectById(localId, project);
+      setProjectCloudId(localId, cloudId);
+      setCurrentProjectId(localId);
       setMenuOpen(false);
-      alert(`✅ Remix creado: "${name}"\nLo encontrarás en CREAR → Mis juegos en la nube.`);
       navigate({ to: "/editor" });
     } catch (e) { setErr((e as Error).message); }
     finally { setRemixing(false); }
@@ -128,10 +135,29 @@ export function GameCard({
           {loading ? <span className="text-xs font-mono">…</span> : <Play size={26} className="text-primary translate-x-[2px]" fill="currentColor" />}
         </button>
         <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between gap-2">
-          <div className="min-w-0">
-            <div className={`font-display text-base truncate drop-shadow ${post.signed_cover ? "text-white" : "text-foreground"}`}>{title}</div>
-            <div className={`text-[10px] font-mono truncate ${post.signed_cover ? "text-white/80" : "text-muted-foreground"}`}>
-              @{post.author?.username ?? "anon"} · {timeAgo(post.created_at)}
+          <div className="min-w-0 flex items-end gap-2">
+            <Link
+              to="/profile/$userId" params={{ userId: post.author_id }}
+              onClick={e => e.stopPropagation()}
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/50 to-accent/40 grid place-items-center overflow-hidden shrink-0 border border-white/30"
+            >
+              {post.author?.avatar_url ? (
+                <img src={post.author.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[10px] font-display text-primary-foreground">
+                  {(post.author?.display_name ?? post.author?.username ?? "?")[0]?.toUpperCase()}
+                </span>
+              )}
+            </Link>
+            <div className="min-w-0">
+              <div className={`font-display text-base truncate drop-shadow ${post.signed_cover ? "text-white" : "text-foreground"}`}>{title}</div>
+              <Link
+                to="/profile/$userId" params={{ userId: post.author_id }}
+                onClick={e => e.stopPropagation()}
+                className={`text-[10px] font-mono truncate hover:underline ${post.signed_cover ? "text-white/80" : "text-muted-foreground"}`}
+              >
+                @{post.author?.username ?? "anon"} · {timeAgo(post.created_at)}
+              </Link>
             </div>
           </div>
           <span className="text-[9px] font-display tracking-widest px-2 py-0.5 rounded-full bg-primary/20 text-primary-glow border border-primary/40">JUEGO</span>
