@@ -93,8 +93,8 @@ function HomePage() {
             <MessageCircle size={16} />
           </Link>
           <NotificationBell />
-          {admin && (
-            <Link to="/admin" title="Admin"
+          {(mod || admin) && (
+            <Link to="/admin" title="Moderación"
               className="w-9 h-9 rounded-xl border border-accent/40 bg-accent/10 grid place-items-center active:scale-95 transition">
               <ShieldCheck size={16} className="text-primary-glow" />
             </Link>
