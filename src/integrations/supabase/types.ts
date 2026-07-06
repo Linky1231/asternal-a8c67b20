@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      banned_emails: {
+        Row: {
+          banned_by: string | null
+          created_at: string
+          email: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          banned_by?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          banned_by?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -29,6 +53,103 @@ export type Database = {
           blocked_id?: string
           blocker_id?: string
           created_at?: string
+        }
+        Relationships: []
+      }
+      chat_members: {
+        Row: {
+          chat_id: string
+          invited_by: string | null
+          is_admin: boolean
+          joined_at: string
+          status: Database["public"]["Enums"]["chat_member_status"]
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          invited_by?: string | null
+          is_admin?: boolean
+          joined_at?: string
+          status?: Database["public"]["Enums"]["chat_member_status"]
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          invited_by?: string | null
+          is_admin?: boolean
+          joined_at?: string
+          status?: Database["public"]["Enums"]["chat_member_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_members_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          author_id: string
+          chat_id: string
+          content: string | null
+          created_at: string
+          id: string
+          sticker_url: string | null
+        }
+        Insert: {
+          author_id: string
+          chat_id: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          sticker_url?: string | null
+        }
+        Update: {
+          author_id?: string
+          chat_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          sticker_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chats: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string | null
+          type: Database["public"]["Enums"]["chat_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string | null
+          type?: Database["public"]["Enums"]["chat_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string | null
+          type?: Database["public"]["Enums"]["chat_type"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -355,6 +476,33 @@ export type Database = {
           },
         ]
       }
+      stickers: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string | null
+          owner_id: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string | null
+          owner_id?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string | null
+          owner_id?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           created_at: string
@@ -444,10 +592,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_chat_active_member: {
+        Args: { _chat: string; _user: string }
+        Returns: boolean
+      }
+      is_chat_creator: {
+        Args: { _chat: string; _user: string }
+        Returns: boolean
+      }
+      is_chat_participant: {
+        Args: { _chat: string; _user: string }
+        Returns: boolean
+      }
       is_mod_or_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      chat_member_status: "pending" | "active" | "left"
+      chat_type: "direct" | "group"
       notification_type: "comment" | "reply" | "reaction" | "repost" | "mention"
       post_media_type: "none" | "image" | "video" | "link"
       reaction_type: "like" | "favorite"
@@ -580,6 +742,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      chat_member_status: ["pending", "active", "left"],
+      chat_type: ["direct", "group"],
       notification_type: ["comment", "reply", "reaction", "repost", "mention"],
       post_media_type: ["none", "image", "video", "link"],
       reaction_type: ["like", "favorite"],

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { type PostWithMeta, toggleReaction, toggleRepost, deletePost, updatePost, reportContent } from "@/lib/social/api";
 import { CommentSection } from "./CommentSection";
 
@@ -52,13 +53,18 @@ export function PostCard({
   return (
     <article className="panel rounded-xl p-3 border border-border/40 space-y-2">
       <header className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center font-display text-xs text-primary-glow shrink-0">
-          {(post.author?.display_name ?? post.author?.username ?? "?")[0]?.toUpperCase()}
-        </div>
-        <div className="flex-1 min-w-0">
+        <Link to="/profile/$userId" params={{ userId: post.author_id }}
+          className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/40 to-accent/30 grid place-items-center font-display text-xs text-primary-glow shrink-0 overflow-hidden">
+          {post.author?.avatar_url ? (
+            <img src={post.author.avatar_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            (post.author?.display_name ?? post.author?.username ?? "?")[0]?.toUpperCase()
+          )}
+        </Link>
+        <Link to="/profile/$userId" params={{ userId: post.author_id }} className="flex-1 min-w-0 hover:opacity-80">
           <div className="text-sm font-display truncate">{post.author?.display_name ?? post.author?.username ?? "anon"}</div>
           <div className="text-[10px] font-mono text-muted-foreground">@{post.author?.username ?? "?"} · {timeAgo(post.created_at)}{post.category ? ` · ${post.category}` : ""}</div>
-        </div>
+        </Link>
         <div className="relative">
           <button onClick={() => setMenuOpen(o => !o)} className="w-8 h-8 rounded-md border border-border text-muted-foreground">⋯</button>
           {menuOpen && (

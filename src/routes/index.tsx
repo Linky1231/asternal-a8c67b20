@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import { Gamepad2, Newspaper, Search, LogOut, Wrench, Plus, ShieldCheck, User } from "lucide-react";
+import { Gamepad2, Newspaper, Search, LogOut, Wrench, Plus, ShieldCheck, User, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchFeed, fetchGames, getMyProfile, isMod, isAdmin, type PostWithMeta, type Profile } from "@/lib/social/api";
 import { PostComposer } from "@/components/social/PostComposer";
@@ -88,9 +88,13 @@ function HomePage() {
             className="w-9 h-9 rounded-xl border border-border grid place-items-center active:scale-95 transition">
             <Search size={16} />
           </button>
+          <Link to="/chats" title="Mensajes"
+            className="w-9 h-9 rounded-xl border border-border grid place-items-center active:scale-95 transition">
+            <MessageCircle size={16} />
+          </Link>
           <NotificationBell />
-          {admin && (
-            <Link to="/admin" title="Admin"
+          {(mod || admin) && (
+            <Link to="/admin" title="Moderación"
               className="w-9 h-9 rounded-xl border border-accent/40 bg-accent/10 grid place-items-center active:scale-95 transition">
               <ShieldCheck size={16} className="text-primary-glow" />
             </Link>

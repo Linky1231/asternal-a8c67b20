@@ -87,6 +87,20 @@ function AuthPage() {
           <button disabled={busy} className="w-full py-3 rounded-lg bg-gradient-to-r from-primary to-accent text-primary-foreground font-display tracking-widest text-sm glow-border disabled:opacity-50">
             {busy ? "..." : mode === "signin" ? "ENTRAR" : "REGISTRARME"}
           </button>
+          {mode === "signin" && (
+            <button type="button" onClick={async () => {
+              if (!email) { setErr("Escribe tu email arriba primero"); return; }
+              setBusy(true); setErr(null);
+              try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset-password" });
+                if (error) throw error;
+                setErr("✉️ Te enviamos un enlace para restablecer la contraseña");
+              } catch (e) { setErr((e as Error).message); }
+              finally { setBusy(false); }
+            }} className="w-full text-[10px] text-muted-foreground hover:text-primary-glow underline">
+              ¿Olvidaste tu contraseña?
+            </button>
+          )}
           <div className="text-center text-[10px] text-muted-foreground">o</div>
           <button type="button" onClick={google} className="w-full py-2.5 rounded-lg border border-border text-sm font-display tracking-widest">
             CONTINUAR CON GOOGLE

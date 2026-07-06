@@ -571,3 +571,238 @@ export async function fetchUserPosts(userId: string, opts: { games?: boolean } =
   }
   return out;
 }
+
+// ---------- Banned emails ----------
+export type BannedEmail = { id: string; email: string; reason: string | null; created_at: string; banned_by: string | null };
+
+export async function listBannedEmails(): Promise<BannedEmail[]> {
+  const { data, error } = await supabase.from("banned_emails").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as BannedEmail[];
+}
+export async function banEmail(email: string, reason?: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const clean = email.trim().toLowerCase();
+  if (!clean) throw new Error("Email requerido");
+  const { error } = await supabase.from("banned_emails").insert({ email: clean, reason: reason || null, banned_by: user.id });
+  if (error) throw error;
+}
+export async function unbanEmail(id: string): Promise<void> {
+  const { error } = await supabase.from("banned_emails").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------- Chats ----------
+export type ChatRow = {
+  id: string;
+  type: "direct" | "group";
+  name: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type ChatMemberRow = {
+  chat_id: string;
+  user_id: string;
+  status: "pending" | "active" | "left";
+  invited_by: string | null;
+  is_admin: boolean;
+  joined_at: string;
+};
+export type ChatMessageRow = {
+  id: string;
+  chat_id: string;
+  author_id: string;
+  content: string | null;
+  sticker_url: string | null;
+  created_at: string;
+};
+export type ChatSummary = {
+  chat: ChatRow;
+  members: (ChatMemberRow & { profile: Profile | null })[];
+  my_status: "pending" | "active" | "left";
+  last_message: ChatMessageRow | null;
+  other?: Profile | null; // for direct
+};
+
+export async function listMyChats(): Promise<{ active: ChatSummary[]; pending: ChatSummary[] }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { active: [], pending: [] };
+  const { data: myMems, error } = await supabase.from("chat_members")
+    .select("*").eq("user_id", user.id).in("status", ["active", "pending"]);
+  if (error) throw error;
+  const chatIds = (myMems ?? []).map(m => m.chat_id);
+  if (!chatIds.length) return { active: [], pending: [] };
+  const [chatsRes, membersRes, msgsRes] = await Promise.all([
+    supabase.from("chats").select("*").in("id", chatIds),
+    supabase.from("chat_members").select("*").in("chat_id", chatIds),
+    supabase.from("chat_messages").select("*").in("chat_id", chatIds).order("created_at", { ascending: false }),
+  ]);
+  const allUserIds = Array.from(new Set((membersRes.data ?? []).map(m => m.user_id)));
+  const { data: profiles } = await supabase.from("profiles").select("*").in("id", allUserIds);
+  const pmap = new Map((profiles ?? []).map(p => [p.id, p as Profile]));
+
+  const summaries: ChatSummary[] = [];
+  for (const chat of (chatsRes.data ?? [])) {
+    const members = (membersRes.data ?? []).filter(m => m.chat_id === chat.id).map(m => ({ ...(m as ChatMemberRow), profile: pmap.get(m.user_id) ?? null }));
+    const mine = members.find(m => m.user_id === user.id);
+    if (!mine) continue;
+    const last = (msgsRes.data ?? []).find(m => m.chat_id === chat.id) as ChatMessageRow | null;
+    const other = chat.type === "direct" ? (members.find(m => m.user_id !== user.id)?.profile ?? null) : null;
+    summaries.push({ chat: chat as ChatRow, members, my_status: mine.status, last_message: last, other });
+  }
+  summaries.sort((a, b) => new Date(b.chat.updated_at).getTime() - new Date(a.chat.updated_at).getTime());
+  return {
+    active: summaries.filter(s => s.my_status === "active"),
+    pending: summaries.filter(s => s.my_status === "pending"),
+  };
+}
+
+export async function getChat(chatId: string): Promise<ChatSummary | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const [{ data: chat }, { data: members }] = await Promise.all([
+    supabase.from("chats").select("*").eq("id", chatId).maybeSingle(),
+    supabase.from("chat_members").select("*").eq("chat_id", chatId),
+  ]);
+  if (!chat) return null;
+  const allIds = (members ?? []).map(m => m.user_id);
+  const { data: profiles } = await supabase.from("profiles").select("*").in("id", allIds);
+  const pmap = new Map((profiles ?? []).map(p => [p.id, p as Profile]));
+  const mems = (members ?? []).map(m => ({ ...(m as ChatMemberRow), profile: pmap.get(m.user_id) ?? null }));
+  const mine = mems.find(m => m.user_id === user.id);
+  const other = chat.type === "direct" ? (mems.find(m => m.user_id !== user.id)?.profile ?? null) : null;
+  return { chat: chat as ChatRow, members: mems, my_status: mine?.status ?? "left", last_message: null, other };
+}
+
+export async function fetchChatMessages(chatId: string): Promise<(ChatMessageRow & { author: Profile | null })[]> {
+  const { data, error } = await supabase.from("chat_messages")
+    .select("*").eq("chat_id", chatId).order("created_at", { ascending: true }).limit(500);
+  if (error) throw error;
+  const ids = Array.from(new Set((data ?? []).map(m => m.author_id)));
+  const { data: profs } = await supabase.from("profiles").select("*").in("id", ids);
+  const pmap = new Map((profs ?? []).map(p => [p.id, p as Profile]));
+  return (data ?? []).map(m => ({ ...(m as ChatMessageRow), author: pmap.get(m.author_id) ?? null }));
+}
+
+export async function sendChatMessage(chatId: string, opts: { content?: string; sticker_url?: string }): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase.from("chat_messages").insert({
+    chat_id: chatId,
+    author_id: user.id,
+    content: opts.content ?? null,
+    sticker_url: opts.sticker_url ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function createDirectChat(otherUserId: string): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  if (otherUserId === user.id) throw new Error("No puedes chatear contigo mismo");
+  // reuse if existing
+  const { data: mine } = await supabase.from("chat_members").select("chat_id").eq("user_id", user.id).eq("status", "active");
+  const myChatIds = (mine ?? []).map(m => m.chat_id);
+  if (myChatIds.length) {
+    const { data: existing } = await supabase.from("chat_members")
+      .select("chat_id").eq("user_id", otherUserId).in("chat_id", myChatIds);
+    for (const row of existing ?? []) {
+      const { data: c } = await supabase.from("chats").select("*").eq("id", row.chat_id).eq("type", "direct").maybeSingle();
+      if (c) return c.id;
+    }
+  }
+  const { data: chat, error } = await supabase.from("chats").insert({
+    type: "direct", created_by: user.id,
+  }).select().single();
+  if (error) throw error;
+  await supabase.from("chat_members").insert([
+    { chat_id: chat.id, user_id: user.id, status: "active", is_admin: true, invited_by: user.id },
+    { chat_id: chat.id, user_id: otherUserId, status: "pending", invited_by: user.id },
+  ]);
+  return chat.id;
+}
+
+export async function createGroupChat(name: string, memberIds: string[]): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data: chat, error } = await supabase.from("chats").insert({
+    type: "group", name: name.trim() || "Grupo", created_by: user.id,
+  }).select().single();
+  if (error) throw error;
+  const rows = [
+    { chat_id: chat.id, user_id: user.id, status: "active" as const, is_admin: true, invited_by: user.id },
+    ...memberIds.filter(id => id !== user.id).map(id => ({
+      chat_id: chat.id, user_id: id, status: "pending" as const, is_admin: false, invited_by: user.id,
+    })),
+  ];
+  await supabase.from("chat_members").insert(rows);
+  return chat.id;
+}
+
+export async function respondChatInvite(chatId: string, accept: boolean): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  if (accept) {
+    await supabase.from("chat_members").update({ status: "active" })
+      .eq("chat_id", chatId).eq("user_id", user.id);
+  } else {
+    await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", user.id);
+  }
+}
+
+export async function leaveChat(chatId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", user.id);
+}
+
+export async function deleteChat(chatId: string): Promise<void> {
+  const { error } = await supabase.from("chats").delete().eq("id", chatId);
+  if (error) throw error;
+}
+
+export async function inviteToChat(chatId: string, userIds: string[]): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const rows = userIds.map(id => ({
+    chat_id: chatId, user_id: id, status: "pending" as const, is_admin: false, invited_by: user.id,
+  }));
+  if (rows.length) await supabase.from("chat_members").insert(rows);
+}
+
+export async function searchUsers(query: string): Promise<Profile[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const { data, error } = await supabase.from("profiles").select("*")
+    .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(30);
+  if (error) throw error;
+  return (data ?? []) as Profile[];
+}
+
+// ---------- Stickers ----------
+export type Sticker = { id: string; owner_id: string | null; url: string; is_default: boolean; name: string | null };
+
+export async function listStickers(): Promise<Sticker[]> {
+  const { data, error } = await supabase.from("stickers").select("*").order("is_default", { ascending: false }).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Sticker[];
+}
+
+export async function uploadSticker(file: File): Promise<Sticker> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const path = await uploadMedia(file, user.id);
+  const { data: signed } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 365);
+  const url = signed?.signedUrl ?? path;
+  const { data, error } = await supabase.from("stickers").insert({
+    owner_id: user.id, url, is_default: false, name: file.name.replace(/\.[^.]+$/, ""),
+  }).select().single();
+  if (error) throw error;
+  return data as Sticker;
+}
+
+export async function deleteSticker(id: string): Promise<void> {
+  await supabase.from("stickers").delete().eq("id", id);
+}
