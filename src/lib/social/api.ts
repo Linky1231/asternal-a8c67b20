@@ -60,7 +60,7 @@ export async function signMediaUrls(paths: string[]): Promise<string[]> {
   if (!paths.length) return [];
   const out: string[] = [];
   for (const p of paths) {
-    if (/^https?:\/\//.test(p)) { out.push(p); continue; }
+    if (/^https?:\/\//.test(p) || p.startsWith("gd:")) { out.push(p); continue; }
     const { data } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrl(p, 60 * 60 * 24 * 7);
     if (data?.signedUrl) out.push(data.signedUrl);
   }
@@ -413,6 +413,64 @@ export async function remixGame(post: PostWithMeta): Promise<{ cloudId: string; 
   return { cloudId: (data as { id: string }).id, name };
 }
 
+
+// ---------- GDevelop games ----------
+const GD_BUCKET = "gd-games";
+export const isGdPost = (p: { media_urls: string[] }) => (p.media_urls?.[0] ?? "").startsWith("gd:");
+/** URL that serves the exported HTML5 game (index.html) through our proxy. */
+export const gdPlayUrl = (p: { media_urls: string[] }) => `/api/public/gd/${p.media_urls[0].slice(3)}/index.html`;
+export const gdSourceUrl = (p: { media_urls: string[] }) => p.media_urls[1]?.startsWith("gd:") ? `/api/public/gd/${p.media_urls[1].slice(3)}` : null;
+
+export async function publishGdGame(input: {
+  zipFile: File;
+  sourceFile?: File | null;
+  title: string;
+  description?: string;
+  tags?: string[];
+  coverFile?: File | null;
+  allowRemix?: boolean;
+  onProgress?: (done: number, total: number) => void;
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const JSZip = (await import("jszip")).default;
+  const zip = await JSZip.loadAsync(input.zipFile);
+  const names = Object.keys(zip.files).filter(n => !zip.files[n].dir);
+  const indexPath = names.filter(n => /(^|\/)index\.html$/i.test(n)).sort((a, b) => a.length - b.length)[0];
+  if (!indexPath) throw new Error("El ZIP no contiene index.html. Exporta tu juego en GDevelop como HTML5 (carpeta/ZIP).");
+  const root = indexPath.slice(0, indexPath.length - "index.html".length);
+  const files = names.filter(n => n.startsWith(root));
+  const base = `${user.id}/${crypto.randomUUID()}`;
+  let done = 0;
+  const queue = [...files];
+  const worker = async () => {
+    while (queue.length) {
+      const n = queue.shift()!;
+      const blob = await zip.files[n].async("blob");
+      const rel = n.slice(root.length);
+      const { error } = await supabase.storage.from(GD_BUCKET).upload(`${base}/${rel}`, blob, { upsert: true, contentType: "application/octet-stream" });
+      if (error) throw error;
+      input.onProgress?.(++done, files.length);
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  const media = [`gd:${base}`];
+  if (input.sourceFile) {
+    const safe = input.sourceFile.name.replace(/[^a-z0-9._-]+/gi, "-");
+    const sp = `${user.id}/${crypto.randomUUID()}-src/${safe}`;
+    const { error } = await supabase.storage.from(GD_BUCKET).upload(sp, input.sourceFile, { upsert: true });
+    if (error) throw error;
+    media.push(`gd:${sp}`);
+  }
+  const coverPath = input.coverFile ? await uploadMedia(input.coverFile, user.id) : null;
+  const content = `🎮 ${input.title}${input.description ? "\n\n" + input.description : ""}`;
+  const { data: post, error } = await supabase.from("posts").insert({
+    author_id: user.id, content, media_urls: media, media_type: "none", link_url: null,
+    category: "game", cover_url: coverPath, allow_remix: input.allowRemix ?? true,
+  } as never).select().single();
+  if (error) throw error;
+  await upsertTagsFor(post!.id, input.tags);
+}
 
 export async function fetchGames(opts: { search?: string } = {}): Promise<PostWithMeta[]> {
   return fetchFeed({ ...opts, category: "game" });

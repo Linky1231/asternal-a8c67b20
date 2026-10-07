@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Play, Heart, MessageCircle, Share2, Trash2, MoreHorizontal, Pencil, GitFork, Loader2 } from "lucide-react";
 import { useNavigate, Link } from "@tanstack/react-router";
-import { type PostWithMeta, toggleReaction, deletePost, loadGameProject, reportContent, remixGame } from "@/lib/social/api";
+import { type PostWithMeta, toggleReaction, deletePost, loadGameProject, reportContent, remixGame, isGdPost, gdPlayUrl, gdSourceUrl } from "@/lib/social/api";
 import type { Project, Scene } from "@/lib/engine/core";
 import { GameRuntime } from "@/components/engine/GameRuntime";
 import { CommentSection } from "./CommentSection";
@@ -36,6 +36,8 @@ export function GameCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [remixing, setRemixing] = useState(false);
+  const [gdPlaying, setGdPlaying] = useState(false);
+  const gd = isGdPost(post);
   const { title, body } = extractTitle(post.content);
   const mine = myId === post.author_id;
   const canRemix = post.allow_remix !== false;
@@ -52,6 +54,7 @@ export function GameCard({
   }, [playing]);
 
   const play = async () => {
+    if (gd) { setGdPlaying(true); return; }
     if (!post.signed_media[0]) { setErr("Sin datos"); return; }
     setLoading(true); setErr(null);
     try {
@@ -80,10 +83,16 @@ export function GameCard({
   };
   const doRemix = async () => {
     if (!canRemix) { setErr("El autor no permite remixes"); return; }
+    if (gd) {
+      const src = gdSourceUrl(post);
+      if (!src) { setErr("Este juego no incluye proyecto para remix"); return; }
+      const a = document.createElement("a"); a.href = src; a.download = ""; a.click();
+      setErr("Proyecto descargado: ábrelo en el editor con Archivo → Abrir.");
+      return;
+    }
     setRemixing(true); setErr(null);
     try {
       const { cloudId, name } = await remixGame(post);
-      // Auto-import locally so aparece en "Mis juegos" del editor al instante
       const project = (await loadGameProject(post.signed_media[0])) as Project;
       try { (project as { name?: string }).name = name; } catch { /* ignore */ }
       const localId = createProject(name);
@@ -95,6 +104,16 @@ export function GameCard({
     } catch (e) { setErr((e as Error).message); }
     finally { setRemixing(false); }
   };
+
+  if (gdPlaying) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background" style={{ height: "100dvh", width: "100vw" }}>
+        <iframe src={gdPlayUrl(post)} title={title} className="w-full h-full border-0" allow="fullscreen; autoplay; gamepad" />
+        <button onClick={() => setGdPlaying(false)}
+          className="fixed top-3 right-3 z-[110] px-3 py-2 rounded-xl glass text-xs font-display tracking-widest active:scale-95">SALIR</button>
+      </div>
+    );
+  }
 
   if (playing) {
     return (
