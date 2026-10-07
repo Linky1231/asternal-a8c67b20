@@ -19,6 +19,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ChatsChatIdRouteImport } from './routes/chats.$chatId'
 import { Route as ProfileUserIdRouteImport } from './routes/profile.$userId'
+import { Route as ApiPublicGdSplatRouteImport } from './routes/api/public/gd.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +71,11 @@ const ProfileUserIdRoute = ProfileUserIdRouteImport.update({
   path: '/$userId',
   getParentRoute: () => ProfileRoute,
 } as any)
+const ApiPublicGdSplatRoute = ApiPublicGdSplatRouteImport.update({
+  id: '/api/public/gd/$',
+  path: '/api/public/gd/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/chats/$chatId': typeof ChatsChatIdRoute
   '/profile/$userId': typeof ProfileUserIdRoute
+  '/api/public/gd/$': typeof ApiPublicGdSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/chats/$chatId': typeof ChatsChatIdRoute
   '/profile/$userId': typeof ProfileUserIdRoute
+  '/api/public/gd/$': typeof ApiPublicGdSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/chats/$chatId': typeof ChatsChatIdRoute
   '/profile/$userId': typeof ProfileUserIdRoute
+  '/api/public/gd/$': typeof ApiPublicGdSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/chats/$chatId'
     | '/profile/$userId'
+    | '/api/public/gd/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/chats/$chatId'
     | '/profile/$userId'
+    | '/api/public/gd/$'
   id:
     | '__root__'
     | '/'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/chats/$chatId'
     | '/profile/$userId'
+    | '/api/public/gd/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   FeedRoute: typeof FeedRoute
   ProfileRoute: typeof ProfileRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicGdSplatRoute: typeof ApiPublicGdSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileUserIdRouteImport
       parentRoute: typeof ProfileRoute
     }
+    '/api/public/gd/$': {
+      id: '/api/public/gd/$'
+      path: '/api/public/gd/$'
+      fullPath: '/api/public/gd/$'
+      preLoaderRoute: typeof ApiPublicGdSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -263,6 +283,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeedRoute: FeedRoute,
   ProfileRoute: ProfileRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicGdSplatRoute: ApiPublicGdSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

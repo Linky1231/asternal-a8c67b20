@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { publishGame, updateGame } from "@/lib/social/api";
+import { publishGame, updateGame, publishGdGame } from "@/lib/social/api";
 import { Upload, Loader2, CheckCircle2, ImagePlus, X, GitFork } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
@@ -42,6 +42,10 @@ export function PublishGameDialog({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [zipFile, setZipFile] = useState<File | null>(null);
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [progress, setProgress] = useState<string>("");
+  const isGd = mode === "publish" && !project;
 
   useEffect(() => {
     if (open) {
@@ -89,6 +93,12 @@ export function PublishGameDialog({
         });
       } else if (project) {
         await publishGame({ project, title: title.trim(), description: description.trim(), tags, coverFile, allowRemix });
+      } else {
+        if (!zipFile) { setErr("Sube el ZIP HTML5 exportado desde GDevelop"); setBusy(false); return; }
+        await publishGdGame({
+          zipFile, sourceFile, title: title.trim(), description: description.trim(), tags, coverFile, allowRemix,
+          onProgress: (d, t) => setProgress(`${d}/${t}`),
+        });
       }
       setDone(true);
       setTimeout(() => {
@@ -115,6 +125,21 @@ export function PublishGameDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
+          {isGd && (
+            <div className="space-y-2">
+              <label className="block">
+                <span className="text-[10px] font-display tracking-widest text-muted-foreground">JUEGO GDEVELOP (ZIP HTML5)</span>
+                <input type="file" accept=".zip,application/zip" onChange={e => setZipFile(e.target.files?.[0] ?? null)}
+                  className="w-full mt-1 text-xs file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary/15 file:text-primary" />
+              </label>
+              <label className="block">
+                <span className="text-[10px] font-display tracking-widest text-muted-foreground">PROYECTO PARA REMIX (OPCIONAL, .JSON/.ZIP)</span>
+                <input type="file" accept=".json,.zip" onChange={e => setSourceFile(e.target.files?.[0] ?? null)}
+                  className="w-full mt-1 text-xs file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-muted file:text-foreground" />
+              </label>
+              {busy && progress && <div className="text-[11px] text-muted-foreground">Subiendo archivos {progress}…</div>}
+            </div>
+          )}
           <div>
             <span className="text-[10px] font-display tracking-widest text-muted-foreground">PORTADA</span>
             <div className="mt-1 flex items-center gap-3">
